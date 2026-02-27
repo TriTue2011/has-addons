@@ -1,0 +1,36 @@
+{
+  "configuration": {
+    "ws_port": {
+      "name": "Main WS Port",
+      "description": "Bridge listen port for AiBoxPlus WebSocket (maps to device :8082)"
+    },
+    "spk_port": {
+      "name": "Speaker WS Port",
+      "description": "Bridge listen port for Speaker WebSocket (maps to device :8080)"
+    },
+    "target_ws_port": {
+      "name": "Target WS Port",
+      "description": "AiBoxPlus WebSocket port on the speaker device"
+    },
+    "target_spk_port": {
+      "name": "Target Speaker Port",
+      "description": "Speaker WebSocket port on the speaker device"
+    },
+    "ping_interval": {
+      "name": "Ping Interval",
+      "description": "WebSocket ping interval in seconds"
+    },
+    "ping_timeout": {
+      "name": "Ping Timeout",
+      "description": "WebSocket ping timeout in seconds"
+    },
+    "open_timeout": {
+      "name": "Connection Timeout",
+      "description": "Timeout for connecting to upstream device in seconds"
+    },
+    "allowed_ips": {
+      "name": "Allowed Device IPs",
+      "description": "List of speaker IP addresses allowed to connect through bridge. Leave empty to allow all."
+    }
+  }
+}
