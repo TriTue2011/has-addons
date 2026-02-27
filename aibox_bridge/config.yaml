@@ -1,1 +1,35 @@
-
+---
+name: "AI BOX WebSocket Bridge"
+description: "WebSocket bridge for AI BOX speakers. Routes connections to LAN devices via ?ip= parameter. Use with Cloudflare Tunnel for remote access."
+version: "1.0.0"
+slug: "aibox_bridge"
+url: "https://github.com/aibox-bridge"
+arch:
+  - aarch64
+  - amd64
+  - armhf
+  - armv7
+  - i386
+host_network: true
+init: false
+startup: services
+boot: auto
+options:
+  ws_port: 18082
+  spk_port: 18080
+  target_ws_port: 8082
+  target_spk_port: 8080
+  ping_interval: 20
+  ping_timeout: 20
+  open_timeout: 10
+  allowed_ips: []
+schema:
+  ws_port: port
+  spk_port: port
+  target_ws_port: port
+  target_spk_port: port
+  ping_interval: "int(1,300)"
+  ping_timeout: "int(1,300)"
+  open_timeout: "int(1,60)"
+  allowed_ips:
+    - str
