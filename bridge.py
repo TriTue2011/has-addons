@@ -1,14 +1,21 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-AI BOX WebSocket Bridge v3.1 - IP-Based Dynamic Routing
-========================================================
+AI BOX WebSocket Bridge v3.2 - IP-Based Dynamic Routing
 
   ws://bridge:18082?ip=192.168.1.100  ->  192.168.1.100:8082
   ws://bridge:18080?ip=192.168.1.100  ->  192.168.1.100:8080
+
+CHANGES v3.2:
+  - FIX: Plain HTTP requests (keep-alive, health checks from HA/load balancer)
+         no longer produce InvalidUpgrade errors.
+         Auto-selects sync/async process_request based on websockets version:
+           websockets >= 14.x (incl. 16.x) -> async def
+           websockets 12-13               -> def (sync)
 """
 
 import asyncio
+import http
 import logging
 import os
 import sys
@@ -58,6 +65,33 @@ async def relay(src, dst):
             await dst.send(msg)
     except ConnectionClosed:
         pass
+
+
+# -- HTTP health-check handler ----------------------------------------------
+# websockets >= 14 (incl. 16.x) requires process_request to be async.
+# websockets 12-13 uses a sync function.
+def _make_process_request(label):
+    if WS_VER >= (14, 0):
+        async def process_request(connection, request):
+            try:
+                upgrade = request.headers.get("upgrade", "") or request.headers.get("Upgrade", "")
+            except Exception:
+                upgrade = ""
+            if upgrade.lower() != "websocket":
+                log.debug("[%s] HTTP health-check -> 200 OK", label)
+                return connection.respond(http.HTTPStatus.OK, "AI BOX Bridge OK\n")
+            return None
+    else:
+        def process_request(connection, request):
+            try:
+                upgrade = request.headers.get("upgrade", "") or request.headers.get("Upgrade", "")
+            except Exception:
+                upgrade = ""
+            if upgrade.lower() != "websocket":
+                log.debug("[%s] HTTP health-check -> 200 OK", label)
+                return connection.respond(http.HTTPStatus.OK, "AI BOX Bridge OK\n")
+            return None
+    return process_request
 
 
 # -- Handler factory --------------------------------------------------------
@@ -128,9 +162,11 @@ def make_handler(target_port, label):
     return handler
 
 
-# -- Serve helper (works with websockets 12 through 15) --------------------
-def _serve(handler, host, port):
+# -- Serve helper (works with websockets 12 through 16) --------------------
+def _serve(handler, host, port, process_request_fn=None):
     kwargs = dict(ping_interval=None, max_size=MAX_SIZE)
+    if process_request_fn is not None:
+        kwargs["process_request"] = process_request_fn
     if WS_VER >= (14, 0):
         return websockets.serve(handler, host, port, **kwargs)
     else:
@@ -143,8 +179,11 @@ async def main():
     ws_h  = make_handler(TARGET_WS_PORT,  "WS ")
     spk_h = make_handler(TARGET_SPK_PORT, "SPK")
 
-    async with _serve(ws_h, LISTEN_HOST, WS_PORT), \
-               _serve(spk_h, LISTEN_HOST, SPK_PORT):
+    ws_pr  = _make_process_request("WS ")
+    spk_pr = _make_process_request("SPK")
+
+    async with _serve(ws_h,  LISTEN_HOST, WS_PORT,  ws_pr), \
+               _serve(spk_h, LISTEN_HOST, SPK_PORT, spk_pr):
         log.info("Bridge ready. Waiting for connections...")
         await asyncio.Future()
 
