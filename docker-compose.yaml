@@ -1,0 +1,41 @@
+version: "3.8"
+# ╔══════════════════════════════════════════════════════════════════╗
+# ║  AI BOX Bridge - IP-Based Routing                               ║
+# ║                                                                  ║
+# ║  ws://<host>:18082/?ip=<device_ip>  ->  <device_ip>:8082 (AiBox) ║
+# ║  ws://<host>:18080/?ip=<device_ip>  ->  <device_ip>:8080 (Speaker)║
+# ╚══════════════════════════════════════════════════════════════════╝
+
+services:
+  aibox_bridge:
+    image: python:3.12-alpine
+    container_name: aibox_bridge
+    restart: unless-stopped
+    network_mode: host
+
+    environment:
+      LISTEN_HOST:      "0.0.0.0"
+      WS_PORT:          "18082"
+      SPK_PORT:         "18080"
+      TARGET_WS_PORT:   "8082"
+      TARGET_SPK_PORT:  "8080"
+      PING_INTERVAL:    "20"
+      PING_TIMEOUT:     "20"
+      OPEN_TIMEOUT:     "10"
+      MAX_SIZE:         "10485760"
+      ALLOWED_IPS:      "${ALLOWED_IPS:-}"
+
+    volumes:
+      - /opt/aibox_bridge/bridge.py:/app/bridge.py:ro
+
+    working_dir: /app
+    command: >
+      sh -c "pip install --no-cache-dir --root-user-action=ignore 'websockets>=12.0' -q &&
+             python -u bridge.py"
+
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import socket; socket.create_connection(('127.0.0.1',18082),2).close(); socket.create_connection(('127.0.0.1',18080),2).close()\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
