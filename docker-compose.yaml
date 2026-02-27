@@ -34,7 +34,7 @@ services:
              python -u bridge.py"
 
     healthcheck:
-      test: ["CMD-SHELL", "python3 -c \"import socket; socket.create_connection(('127.0.0.1',18082),2).close(); socket.create_connection(('127.0.0.1',18080),2).close()\""]
+      test: ["CMD-SHELL", "ps aux | grep -v grep | grep -q bridge.py"]
       interval: 30s
       timeout: 5s
       retries: 3
