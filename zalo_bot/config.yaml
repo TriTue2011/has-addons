@@ -16,7 +16,6 @@ arch:
   - aarch64
   - armv7
   - armhf
-  - i386
 image: "ghcr.io/tritue2011/zalobot-{arch}"
 
 options:
