@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng nhập Zalo</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            width: 90%;
+            max-width: 500px;
+            margin-top: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #0068ff;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #333;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        button {
+            background-color: #0068ff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 12px 15px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+            font-weight: 600;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #0050c9;
+        }
+        .qr-container {
+            margin-top: 30px;
+            text-align: center;
+            display: none;
+        }
+        .qr-container img {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            text-align: center;
+            display: none;
+        }
+        .loading {
+            color: #0068ff;
+            background-color: #e6f0ff;
+            border: 1px solid #b3d7ff;
+        }
+        .success {
+            color: #28a745;
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            color: #dc3545;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+        }
+        .instructions {
+            margin-top: 15px;
+            font-size: 15px;
+            color: #666;
+        }
+        #countdown {
+            font-weight: bold;
+        }
+        .back-link {
+            margin-top: 20px;
+            color: #0068ff;
+            text-decoration: none;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Đăng nhập Zalo</h1>
+        <div id="login-form">
+            <div class="form-group">
+                <label for="proxy">Proxy (không bắt buộc):</label>
+                <input type="text" id="proxy" placeholder="http://user:pass@host:port" />
+            </div>
+            <button id="login-button" onclick="generateQR()">Tạo mã QR</button>
+        </div>
+        
+        <div id="qr-container" class="qr-container">
+            <div id="qr-code"></div>
+            <div class="instructions">
+                Quét mã QR bằng ứng dụng Zalo trên điện thoại của bạn để đăng nhập
+            </div>
+        </div>
+        
+        <div id="status-message" class="status"></div>
+    </div>
+    
+    <a href="/" class="back-link">← Quay lại trang chủ</a>
+    
+    <script>
+        let socket;
+        let countdownInterval;
+
+        function generateQR() {
+            const proxyValue = document.getElementById('proxy').value;
+            const loginButton = document.getElementById('login-button');
+            const qrContainer = document.getElementById('qr-container');
+            const statusMessage = document.getElementById('status-message');
+            const qrCode = document.getElementById('qr-code');
+            
+            // Hiển thị trạng thái đang tải
+            loginButton.disabled = true;
+            loginButton.textContent = 'Đang tạo mã QR...';
+            statusMessage.className = 'status loading';
+            statusMessage.textContent = 'Đang tạo mã QR, vui lòng đợi...';
+            statusMessage.style.display = 'block';
+            
+            // Gửi yêu cầu để tạo mã QR
+            fetch('/zalo-login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ proxy: proxyValue })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Lỗi khi tạo mã QR');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success && data.qrCodeImage) {
+                    // Hiển thị mã QR
+                    qrCode.innerHTML = `<img src="${data.qrCodeImage}" alt="Mã QR Zalo" />`;
+                    qrContainer.style.display = 'block';
+                    
+                    // Cập nhật trạng thái
+                    statusMessage.className = 'status loading';
+                    statusMessage.innerHTML = 'Vui lòng quét mã QR bằng ứng dụng Zalo trên điện thoại của bạn.';
+                    
+                    // Thiết lập kết nối WebSocket để nhận thông báo đăng nhập thành công
+                    connectWebSocket();
+                    
+                    // Kích hoạt lại nút
+                    loginButton.disabled = false;
+                    loginButton.textContent = 'Tạo mã QR mới';
+                } else {
+                    throw new Error('Không nhận được mã QR hợp lệ');
+                }
+            })
+            .catch(error => {
+                console.error('Lỗi:', error);
+                statusMessage.className = 'status error';
+                statusMessage.textContent = 'Đã xảy ra lỗi khi tạo mã QR. Vui lòng thử lại sau.';
+                
+                // Kích hoạt lại nút
+                loginButton.disabled = false;
+                loginButton.textContent = 'Tạo mã QR';
+            });
+        }
+        
+        function connectWebSocket() {
+            // Đóng kết nối WebSocket cũ nếu có
+            if (socket) {
+                socket.close();
+            }
+            
+            // Xác định URL WebSocket dựa trên URL hiện tại
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws`;
+            
+            console.log('Đang kết nối đến WebSocket tại:', wsUrl);
+            
+            try {
+                socket = new WebSocket(wsUrl);
+                
+                socket.onopen = function() {
+                    console.log('WebSocket đã kết nối');
+                    const statusMessage = document.getElementById('status-message');
+                    if (statusMessage.className === 'status error') {
+                        statusMessage.className = 'status loading';
+                        statusMessage.innerHTML = 'Kết nối WebSocket thành công. Vui lòng quét mã QR để đăng nhập.';
+                    }
+                };
+                
+                socket.onmessage = function(event) {
+                    console.log('Nhận tin nhắn WebSocket:', event.data);
+                    
+                    if (event.data === 'login_success') {
+                        const statusMessage = document.getElementById('status-message');
+                        statusMessage.className = 'status success';
+                        statusMessage.innerHTML = 'Đăng nhập thành công! Đang chuyển hướng về trang chủ trong <span id="countdown">3</span> giây...';
+                        
+                        // Bắt đầu đếm ngược
+                        let seconds = 3;
+                        const countdownElement = document.getElementById('countdown');
+                        
+                        clearInterval(countdownInterval);
+                        countdownInterval = setInterval(function() {
+                            seconds--;
+                            countdownElement.textContent = seconds;
+                            
+                            if (seconds <= 0) {
+                                clearInterval(countdownInterval);
+                                window.location.href = '/';
+                            }
+                        }, 1000);
+                    }
+                };
+                
+                socket.onerror = function(error) {
+                    console.error('Lỗi WebSocket:', error);
+                    const statusMessage = document.getElementById('status-message');
+                    statusMessage.className = 'status error';
+                    statusMessage.innerHTML = 'Lỗi kết nối WebSocket. <a href="#" onclick="connectWebSocket(); return false;">Thử kết nối lại</a> hoặc <a href="/zalo-login">làm mới trang</a>.';
+                };
+                
+                socket.onclose = function() {
+                    console.log('WebSocket đã đóng kết nối');
+                    const statusMessage = document.getElementById('status-message');
+                    if (statusMessage.className !== 'status success') {
+                        statusMessage.className = 'status error';
+                        statusMessage.innerHTML = 'Kết nối WebSocket đã đóng. <a href="#" onclick="connectWebSocket(); return false;">Thử kết nối lại</a> hoặc <a href="/zalo-login">làm mới trang</a>.';
+                    }
+                };
+            } catch (err) {
+                console.error('Lỗi khi tạo WebSocket:', err);
+                const statusMessage = document.getElementById('status-message');
+                statusMessage.className = 'status error';
+                statusMessage.innerHTML = 'Không thể tạo kết nối WebSocket. <a href="/zalo-login">Làm mới trang</a> để thử lại.';
+            }
+        }
+    </script>
+</body>
+</html> 

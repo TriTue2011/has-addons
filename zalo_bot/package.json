@@ -1,0 +1,24 @@
+{
+  "name": "zalo-bot",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "migrate-structure": "node scripts/migrate-structure.js"
+  },
+  "dependencies": {
+    "axios": "^1.8.3",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^16.4.7",
+    "ejs": "^3.1.9",
+    "express": "^4.21.2",
+    "express-session": "^1.18.1",
+    "https-proxy-agent": "^7.0.6",
+    "node-fetch": "^3.3.2",
+    "qrcode": "^1.5.4",
+    "sharp": "^0.33.5",
+    "ws": "^8.18.1",
+    "image-size": "^1.0.2",
+    "zca-js": "latest"
+  }
+}

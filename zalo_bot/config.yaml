@@ -1,6 +1,6 @@
 name: "Zalo Bot"
 description: "Add-on Zalo Bot in Home Assistant"
-url: "https://github.com/smarthomeblack/hass-addon"
+url: "https://github.com/TriTue2011/has-addons"
 version: "2025.10.8"
 slug: "zalo_bot"
 init: false
@@ -17,9 +17,8 @@ arch:
   - armv7
   - armhf
   - i386
-image: "ghcr.io/smarthomeblack/zalobot-{arch}"
+image: "ghcr.io/tritue2011/zalobot-{arch}"
 
-# Cấu hình cho add-on
 options:
   data_directory: "/config/zalo_bot"
 schema:

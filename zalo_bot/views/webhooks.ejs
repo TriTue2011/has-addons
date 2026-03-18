@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý Webhook - MultiZlogin</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
+    <style>
+        .webhook-card {
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        .webhook-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .account-info {
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        .webhook-input {
+            margin-bottom: 15px;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 50px 0;
+            color: #6c757d;
+        }
+        .webhook-type-label {
+            font-weight: bold;
+            color: #495057;
+        }
+        .test-btn {
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="mb-4">Quản lý Webhook</h1>
+        
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i> 
+            Cấu hình webhook cho từng tài khoản Zalo. Mỗi tài khoản có thể có các webhook riêng biệt.
+        </div>
+        
+        <div id="message-container" class="mb-4"></div>
+        
+        <div id="accounts-container">
+            <% if (accounts && accounts.length > 0) { %>
+                <% accounts.forEach(function(account) { %>
+                    <div class="card webhook-card" data-account-id="<%= account.ownId %>">
+                        <div class="card-body">
+                            <div class="account-info">
+                                <h5 class="card-title">
+                                    <i class="fas fa-user"></i> 
+                                    Tài khoản: <%= account.phoneNumber %> (<%= account.ownId %>)
+                                </h5>
+                                <p class="card-text">
+                                    <span class="badge badge-<%= account.isConnected ? 'success' : 'danger' %>">
+                                        <i class="fas fa-<%= account.isConnected ? 'check' : 'times' %>"></i>
+                                        <%= account.isConnected ? 'Đang kết nối' : 'Đã ngắt kết nối' %>
+                                    </span>
+                                    <% if (account.proxy && account.proxy !== 'Không sử dụng') { %>
+                                        <span class="badge badge-info">
+                                            <i class="fas fa-globe"></i> <%= account.proxy %>
+                                        </span>
+                                    <% } %>
+                                </p>
+                            </div>
+                            
+                            <div class="webhook-settings">
+                                <div class="webhook-input">
+                                    <label class="webhook-type-label" for="message-<%= account.ownId %>">
+                                        <i class="fas fa-comment"></i> Webhook tin nhắn:
+                                    </label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="message-<%= account.ownId %>" 
+                                            value="<%= webhookConfigs[account.ownId]?.messageWebhookUrl || '' %>" 
+                                            placeholder="URL webhook nhận tin nhắn">
+                                        <div class="input-group-append">
+                                            <button class="btn btn-primary save-webhook" 
+                                                data-account-id="<%= account.ownId %>" 
+                                                data-webhook-type="messageWebhookUrl">
+                                                <i class="fas fa-save"></i> Lưu
+                                            </button>
+                                            <button class="btn btn-info test-webhook" 
+                                                data-account-id="<%= account.ownId %>" 
+                                                data-webhook-type="messageWebhookUrl">
+                                                <i class="fas fa-vial"></i> Thử
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="webhook-input">
+                                    <label class="webhook-type-label" for="group-<%= account.ownId %>">
+                                        <i class="fas fa-users"></i> Webhook sự kiện nhóm:
+                                    </label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="group-<%= account.ownId %>" 
+                                            value="<%= webhookConfigs[account.ownId]?.groupEventWebhookUrl || '' %>" 
+                                            placeholder="URL webhook nhận sự kiện nhóm">
+                                        <div class="input-group-append">
+                                            <button class="btn btn-primary save-webhook" 
+                                                data-account-id="<%= account.ownId %>" 
+                                                data-webhook-type="groupEventWebhookUrl">
+                                                <i class="fas fa-save"></i> Lưu
+                                            </button>
+                                            <button class="btn btn-info test-webhook" 
+                                                data-account-id="<%= account.ownId %>" 
+                                                data-webhook-type="groupEventWebhookUrl">
+                                                <i class="fas fa-vial"></i> Thử
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="webhook-input">
+                                    <label class="webhook-type-label" for="reaction-<%= account.ownId %>">
+                                        <i class="fas fa-thumbs-up"></i> Webhook reaction:
+                                    </label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="reaction-<%= account.ownId %>" 
+                                            value="<%= webhookConfigs[account.ownId]?.reactionWebhookUrl || '' %>" 
+                                            placeholder="URL webhook nhận thông báo reaction">
+                                        <div class="input-group-append">
+                                            <button class="btn btn-primary save-webhook" 
+                                                data-account-id="<%= account.ownId %>" 
+                                                data-webhook-type="reactionWebhookUrl">
+                                                <i class="fas fa-save"></i> Lưu
+                                            </button>
+                                            <button class="btn btn-info test-webhook" 
+                                                data-account-id="<%= account.ownId %>" 
+                                                data-webhook-type="reactionWebhookUrl">
+                                                <i class="fas fa-vial"></i> Thử
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="text-right mt-3">
+                                    <button class="btn btn-danger delete-all-webhooks" data-account-id="<%= account.ownId %>">
+                                        <i class="fas fa-trash"></i> Xóa tất cả webhook
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                <% }); %>
+            <% } else { %>
+                <div class="empty-state">
+                    <i class="fas fa-user-slash fa-4x mb-3"></i>
+                    <h4>Không có tài khoản nào</h4>
+                    <p>Vui lòng đăng nhập Zalo trước khi thiết lập webhook.</p>
+                    <a href="/login" class="btn btn-primary mt-2">Đăng nhập Zalo</a>
+                </div>
+            <% } %>
+        </div>
+        
+        <div class="mt-4">
+            <a href="/" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Trở về trang chủ
+            </a>
+        </div>
+    </div>
+    
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    
+    <script>
+        $(document).ready(function() {
+            // Hiển thị thông báo
+            function showMessage(message, type) {
+                const messageContainer = $('#message-container');
+                messageContainer.html(`<div class="alert alert-${type} alert-dismissible fade show">
+                    ${message}
+                    <button type="button" class="close" data-dismiss="alert">&times;</button>
+                </div>`);
+                
+                // Tự động ẩn thông báo sau 5 giây
+                setTimeout(function() {
+                    messageContainer.find('.alert').alert('close');
+                }, 5000);
+            }
+            
+            // Lưu webhook
+            $(document).on('click', '.save-webhook', function() {
+                const btn = $(this);
+                const accountId = btn.data('account-id');
+                const webhookType = btn.data('webhook-type');
+                const url = $(`#${webhookType.replace('WebhookUrl', '')}-${accountId}`).val().trim();
+                
+                // Hiển thị đang xử lý
+                btn.html('<i class="fas fa-spinner fa-spin"></i> Đang lưu');
+                btn.prop('disabled', true);
+                
+                $.ajax({
+                    url: `/api/webhook-config/${accountId}`,
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ webhookType, url }),
+                    success: function(response) {
+                        if (response.success) {
+                            showMessage('Đã lưu webhook thành công!', 'success');
+                        } else {
+                            showMessage('Lỗi: ' + (response.error || 'Không thể lưu webhook'), 'danger');
+                        }
+                    },
+                    error: function(xhr) {
+                        const error = xhr.responseJSON ? xhr.responseJSON.error : 'Không thể lưu webhook';
+                        showMessage('Lỗi: ' + error, 'danger');
+                    },
+                    complete: function() {
+                        btn.html('<i class="fas fa-save"></i> Lưu');
+                        btn.prop('disabled', false);
+                    }
+                });
+            });
+            
+            // Thử webhook
+            $(document).on('click', '.test-webhook', function() {
+                const btn = $(this);
+                const accountId = btn.data('account-id');
+                const webhookType = btn.data('webhook-type');
+                const url = $(`#${webhookType.replace('WebhookUrl', '')}-${accountId}`).val().trim();
+                
+                if (!url) {
+                    showMessage('Vui lòng nhập URL webhook trước khi thử', 'warning');
+                    return;
+                }
+                
+                // Hiển thị đang xử lý
+                btn.html('<i class="fas fa-spinner fa-spin"></i> Đang thử');
+                btn.prop('disabled', true);
+                
+                $.ajax({
+                    url: `/api/test-webhook`,
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ accountId, webhookType, url }),
+                    success: function(response) {
+                        if (response.success) {
+                            showMessage('Đã gửi dữ liệu thử nghiệm thành công!', 'success');
+                        } else {
+                            showMessage('Lỗi: ' + (response.error || 'Không thể thử webhook'), 'danger');
+                        }
+                    },
+                    error: function(xhr) {
+                        const error = xhr.responseJSON ? xhr.responseJSON.error : 'Không thể thử webhook';
+                        showMessage('Lỗi: ' + error, 'danger');
+                    },
+                    complete: function() {
+                        btn.html('<i class="fas fa-vial"></i> Thử');
+                        btn.prop('disabled', false);
+                    }
+                });
+            });
+            
+            // Xóa tất cả webhook của một tài khoản
+            $(document).on('click', '.delete-all-webhooks', function() {
+                const btn = $(this);
+                const accountId = btn.data('account-id');
+                
+                if (!confirm('Bạn có chắc chắn muốn xóa tất cả webhook của tài khoản này?')) {
+                    return;
+                }
+                
+                // Hiển thị đang xử lý
+                btn.html('<i class="fas fa-spinner fa-spin"></i> Đang xóa');
+                btn.prop('disabled', true);
+                
+                $.ajax({
+                    url: `/api/webhook-config/${accountId}`,
+                    type: 'DELETE',
+                    success: function(response) {
+                        if (response.success) {
+                            // Xóa giá trị trong các input
+                            $(`#message-${accountId}, #group-${accountId}, #reaction-${accountId}`).val('');
+                            showMessage('Đã xóa tất cả webhook thành công!', 'success');
+                        } else {
+                            showMessage('Lỗi: ' + (response.error || 'Không thể xóa webhook'), 'danger');
+                        }
+                    },
+                    error: function(xhr) {
+                        const error = xhr.responseJSON ? xhr.responseJSON.error : 'Không thể xóa webhook';
+                        showMessage('Lỗi: ' + error, 'danger');
+                    },
+                    complete: function() {
+                        btn.html('<i class="fas fa-trash"></i> Xóa tất cả webhook');
+                        btn.prop('disabled', false);
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html> 

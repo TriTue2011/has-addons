@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Cập nhật Webhook URL</title>
+  </head>
+  <body>
+    <h2>Cập nhật 3 Webhook URL</h2>
+    <form action="/updateWebhook" method="post">
+      <div>
+        <label for="messageWebhookUrl">Message Webhook URL:</label>
+        <input type="text" id="messageWebhookUrl" name="messageWebhookUrl" placeholder="https://example.com/webhook-message" required>
+      </div>
+      <div>
+        <label for="groupEventWebhookUrl">Group Event Webhook URL:</label>
+        <input type="text" id="groupEventWebhookUrl" name="groupEventWebhookUrl" placeholder="https://example.com/webhook-group-event" required>
+      </div>
+      <div>
+        <label for="reactionWebhookUrl">Reaction Webhook URL:</label>
+        <input type="text" id="reactionWebhookUrl" name="reactionWebhookUrl" placeholder="https://example.com/webhook-reaction" required>
+      </div>
+      <button type="submit">Cập nhật</button>
+    </form>
+  </body>
+</html>

@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zalo Bot - Tin nhắn</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .message-container {
+            max-height: 500px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 20px;
+        }
+        .message {
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+        }
+        .bg-light-blue {
+            background-color: #e3f2fd;
+        }
+        .thread-id {
+            font-weight: bold;
+            color: #0d6efd;
+            cursor: pointer;
+        }
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1>Theo dõi tin nhắn Zalo Bot</h1>
+        <p>Trang này hiển thị các tin nhắn đến và giúp bạn dễ dàng lấy thread_id</p>
+        
+        <div class="row">
+            <div class="col-12 col-md-8">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Tin nhắn gần đây</h5>
+                        <button id="clearBtn" class="btn btn-sm btn-outline-danger">Xóa tất cả</button>
+                    </div>
+                    <div class="card-body">
+                        <div id="messages" class="message-container">
+                            <div class="alert alert-info">Đang kết nối với server...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-12 col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Hướng dẫn</h5>
+                    </div>
+                    <div class="card-body">
+                        <p>Khi nhận được tin nhắn, bạn sẽ thấy thread_id hiển thị bên dưới:</p>
+                        <ol>
+                            <li>Nhấp vào thread_id để sao chép</li>
+                            <li>Sử dụng thread_id này trong Home Assistant để gửi tin nhắn</li>
+                        </ol>
+                        <div class="alert alert-warning">
+                            <strong>Lưu ý:</strong> Thread_id cho người dùng và nhóm là khác nhau.
+                        </div>
+                        
+                        <h6 class="mt-3">Thread ID đã sao chép:</h6>
+                        <div class="input-group">
+                            <input type="text" id="copiedThreadId" class="form-control" readonly>
+                            <button class="btn btn-outline-secondary" type="button" id="copyAgain">Sao chép</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const messagesContainer = document.getElementById('messages');
+            const clearBtn = document.getElementById('clearBtn');
+            const copiedThreadIdInput = document.getElementById('copiedThreadId');
+            const copyAgainBtn = document.getElementById('copyAgain');
+            
+            // Thêm status indicator vào giao diện
+            const statusIndicator = document.createElement('div');
+            statusIndicator.id = 'connection-status';
+            statusIndicator.className = 'position-fixed bottom-0 start-0 m-3 p-2 badge bg-warning';
+            statusIndicator.textContent = 'Đang kết nối...';
+            document.body.appendChild(statusIndicator);
+            
+            // WebSocket connection
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}`;
+            let socket = null;
+            let reconnectAttempts = 0;
+            const maxReconnectAttempts = 5;
+            
+            // Lưu trữ tin nhắn
+            let messagesHistory = [];
+            
+            // Khởi tạo kết nối WebSocket
+            function connectWebSocket() {
+                socket = new WebSocket(wsUrl);
+                
+                // Connect to WebSocket
+                socket.onopen = function() {
+                    messagesContainer.innerHTML = '<div class="alert alert-success">Đã kết nối với server!</div>';
+                    statusIndicator.className = 'position-fixed bottom-0 start-0 m-3 p-2 badge bg-success';
+                    statusIndicator.textContent = 'Đã kết nối';
+                    reconnectAttempts = 0; // Reset counter on successful connection
+                };
+                
+                // Handle incoming messages
+                socket.onmessage = function(event) {
+                    try {
+                        const data = JSON.parse(event.data);
+                        console.log('Received message:', data);
+                        
+                        // Hiển thị tin nhắn mới
+                        addMessageToDisplay(data);
+                    } catch (error) {
+                        console.error('Error parsing message:', error);
+                    }
+                };
+                
+                socket.onclose = function() {
+                    statusIndicator.className = 'position-fixed bottom-0 start-0 m-3 p-2 badge bg-danger';
+                    statusIndicator.textContent = 'Mất kết nối';
+                    messagesContainer.innerHTML += '<div class="alert alert-danger">Mất kết nối với server!</div>';
+                    
+                    // Thử kết nối lại sau 5 giây nếu chưa đạt số lần thử tối đa
+                    if (reconnectAttempts < maxReconnectAttempts) {
+                        setTimeout(() => {
+                            reconnectAttempts++;
+                            statusIndicator.className = 'position-fixed bottom-0 start-0 m-3 p-2 badge bg-warning';
+                            statusIndicator.textContent = `Đang kết nối lại (${reconnectAttempts}/${maxReconnectAttempts})...`;
+                            connectWebSocket();
+                        }, 5000);
+                    } else {
+                        statusIndicator.textContent = 'Không thể kết nối - Hãy tải lại trang';
+                    }
+                };
+            }
+            
+            // Khởi tạo kết nối ban đầu
+            connectWebSocket();
+            
+            // Thêm tin nhắn vào container
+            function addMessageToDisplay(data) {
+                // Lưu tin nhắn vào history
+                messagesHistory.push(data);
+                
+                // Tạo element hiển thị tin nhắn
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message bg-light-blue';
+                
+                // Format data để hiển thị
+                let displayContent = '';
+                
+                // Hiển thị thread_id đặc biệt để dễ copy
+                if (data.threadId || data.fromThreadId) {
+                    const threadId = data.threadId || data.fromThreadId;
+                    displayContent += `<p>Thread ID: <span class="thread-id" data-thread-id="${threadId}">${threadId}</span></p>`;
+                }
+                
+                // Hiển thị nội dung tin nhắn
+                if (data.message) {
+                    displayContent += `<p><strong>Tin nhắn:</strong> ${data.message}</p>`;
+                }
+                
+                // Thêm thông tin người gửi nếu có
+                if (data.fromUser) {
+                    displayContent += `<p><strong>Từ:</strong> ${data.fromUser.name || data.fromUser}</p>`;
+                }
+                
+                // Thêm thời gian nhận
+                const time = new Date().toLocaleTimeString();
+                displayContent += `<p class="text-muted small">Nhận lúc: ${time}</p>`;
+                
+                // Thêm nút hiển thị đầy đủ JSON
+                displayContent += `
+                    <div class="collapse" id="fullJson${messagesHistory.length}">
+                        <div class="card card-body">
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    </div>
+                    <button class="btn btn-sm btn-outline-secondary mt-2" 
+                            data-bs-toggle="collapse" 
+                            data-bs-target="#fullJson${messagesHistory.length}">
+                        Xem chi tiết
+                    </button>`;
+                
+                messageDiv.innerHTML = displayContent;
+                
+                // Thêm vào container
+                messagesContainer.prepend(messageDiv);
+                
+                // Thêm event listener cho thread_id để copy
+                const threadIdElement = messageDiv.querySelector('.thread-id');
+                if (threadIdElement) {
+                    threadIdElement.addEventListener('click', function() {
+                        const threadId = this.getAttribute('data-thread-id');
+                        
+                        // Luôn cập nhật và hiển thị thread ID trong ô input trước
+                        copiedThreadIdInput.value = threadId;
+                        
+                        // Focus vào input để người dùng thấy giá trị được cập nhật
+                        copiedThreadIdInput.focus();
+                        
+                        // Đảm bảo giá trị đã được cập nhật hoàn toàn trước khi chọn
+                        setTimeout(() => {
+                            // Chọn toàn bộ text trong input để dễ nhận biết
+                            copiedThreadIdInput.select();
+                            
+                            // Sao chép vào clipboard
+                            try {
+                                navigator.clipboard.writeText(threadId)
+                                    .then(() => {
+                                        // Thông báo đã sao chép thành công - sử dụng thông báo nhẹ nhàng hơn
+                                        const alertMsg = document.createElement('div');
+                                        alertMsg.className = 'alert alert-success alert-dismissible fade show position-fixed bottom-0 end-0 m-3';
+                                        alertMsg.innerHTML = `Đã sao chép Thread ID: ${threadId} <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>`;
+                                        document.body.appendChild(alertMsg);
+                                        
+                                        // Tự động đóng thông báo sau 3 giây
+                                        setTimeout(() => {
+                                            alertMsg.remove();
+                                        }, 3000);
+                                    })
+                                    .catch(err => {
+                                        console.error('Không thể sao chép qua clipboard API:', err);
+                                        alert('Đã chọn Thread ID. Sử dụng Ctrl+C để sao chép');
+                                    });
+                            } catch (error) {
+                                console.error('Lỗi khi sao chép:', error);
+                                alert('Đã chọn Thread ID. Sử dụng Ctrl+C để sao chép');
+                            }
+                        }, 50); // Đợi 50ms để đảm bảo DOM đã được cập nhật
+                    });
+                }
+            }
+            
+            // Xóa tất cả tin nhắn
+            clearBtn.addEventListener('click', function() {
+                messagesContainer.innerHTML = '';
+                messagesHistory = [];
+            });
+            
+            // Sao chép lại thread ID
+            copyAgainBtn.addEventListener('click', function() {
+                if (copiedThreadIdInput.value) {
+                    // Focus và chọn toàn bộ text trong input
+                    copiedThreadIdInput.focus();
+                    copiedThreadIdInput.select();
+                    
+                    navigator.clipboard.writeText(copiedThreadIdInput.value)
+                        .then(() => {
+                            // Hiển thị thông báo kiểu toast
+                            const alertMsg = document.createElement('div');
+                            alertMsg.className = 'alert alert-success alert-dismissible fade show position-fixed bottom-0 end-0 m-3';
+                            alertMsg.innerHTML = `Đã sao chép Thread ID: ${copiedThreadIdInput.value} <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>`;
+                            document.body.appendChild(alertMsg);
+                            
+                            // Tự động đóng thông báo sau 3 giây
+                            setTimeout(() => {
+                                alertMsg.remove();
+                            }, 3000);
+                        })
+                        .catch(err => {
+                            console.error('Không thể sao chép:', err);
+                            alert('Đã chọn Thread ID. Sử dụng Ctrl+C để sao chép');
+                        });
+                }
+            });
+        });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

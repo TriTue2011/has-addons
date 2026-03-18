@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Đăng nhập quản trị | Zalo Server</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f5f5f5;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .login-container {
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      padding: 30px;
+      width: 350px;
+    }
+    h1 {
+      text-align: center;
+      color: #0068ff;
+      margin-bottom: 24px;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 500;
+      color: #333;
+    }
+    input[type="text"], input[type="password"] {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+      font-size: 16px;
+    }
+    button {
+      background-color: #0068ff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 12px 15px;
+      font-size: 16px;
+      cursor: pointer;
+      width: 100%;
+      font-weight: 600;
+      transition: background-color 0.3s;
+    }
+    button:hover {
+      background-color: #0050c9;
+    }
+    .error-message {
+      color: #e41e3f;
+      margin-top: 20px;
+      text-align: center;
+      font-size: 14px;
+    }
+    .info {
+      margin-top: 16px;
+      font-size: 14px;
+      color: #666;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <h1>Đăng nhập quản trị</h1>
+    
+    <form id="loginForm">
+      <div class="form-group">
+        <label for="username">Tài khoản</label>
+        <input type="text" id="username" name="username" required autocomplete="username">
+      </div>
+      
+      <div class="form-group">
+        <label for="password">Mật khẩu</label>
+        <input type="password" id="password" name="password" required autocomplete="current-password">
+      </div>
+      
+      <button type="submit">Đăng nhập</button>
+      
+      <div class="error-message" id="errorMessage"></div>
+    </form>
+    
+    <div class="info">
+      Tài khoản mặc định: liên hệ admin để lấy tài khoản
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const errorMessage = document.getElementById('errorMessage');
+      errorMessage.textContent = '';
+      
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      
+      try {
+        // Sử dụng một API endpoint duy nhất
+        const response = await fetch('/api/test-login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ username, password }),
+          credentials: 'include' // Quan trọng: đảm bảo cookie được gửi và lưu
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          // Chuyển hướng về trang chủ nếu đăng nhập thành công
+          window.location.href = '/';
+        } else {
+          // Hiển thị thông báo lỗi
+          errorMessage.textContent = data.message || 'Đăng nhập thất bại';
+        }
+      } catch (error) {
+        console.error('Lỗi khi đăng nhập:', error);
+        errorMessage.textContent = 'Đã xảy ra lỗi khi kết nối đến máy chủ';
+      }
+    });
+  </script>
+</body>
+</html> 
