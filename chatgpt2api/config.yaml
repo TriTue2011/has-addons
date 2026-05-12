@@ -1,8 +1,8 @@
 name: "chatgpt2api"
-description: "OpenAI API gateway — ChatGPT, Codex OAuth, OpenCode free, Gemini, DALL-E"
+description: "OpenAI API Gateway - ChatGPT, Codex, OpenCode, Gemini, DALL-E"
 version: "1.2.0"
 slug: "chatgpt2api"
-url: "https://github.com/TriTue2011/chatgpt2api"
+url: "https://github.com/TriTue2011/has-addons"
 arch:
   - amd64
   - aarch64
@@ -10,10 +10,15 @@ host_network: true
 init: false
 startup: application
 boot: auto
+ports:
+  3030/tcp: 3030
+ports_description:
+  3030/tcp: Web UI + API
 options:
   auth_key: "sk-chatgpt2api"
 schema:
   auth_key: password
+image: ghcr.io/tritue2011/chatgpt2api
 webui: "http://[HOST]:3030"
 panel_icon: "mdi:robot"
 panel_title: "chatgpt2api"

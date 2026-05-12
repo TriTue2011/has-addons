@@ -1,3 +1,0 @@
-build_from:
-  aarch64: ghcr.io/tritue2011/chatgpt2api:latest
-  amd64: ghcr.io/tritue2011/chatgpt2api:latest
