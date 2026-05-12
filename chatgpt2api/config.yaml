@@ -1,11 +1,11 @@
 name: "chatgpt2api"
-description: "OpenAI-compatible API gateway — ChatGPT, Codex OAuth, OpenCode free, Gemini, DALL-E. Dung lam AI agent backend cho Home Assistant."
+description: "OpenAI API gateway — ChatGPT, Codex OAuth, OpenCode free, Gemini, DALL-E"
 version: "1.2.0"
 slug: "chatgpt2api"
 url: "https://github.com/TriTue2011/chatgpt2api"
 arch:
-  - aarch64
   - amd64
+  - aarch64
 host_network: true
 init: false
 startup: application
