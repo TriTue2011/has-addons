@@ -15,6 +15,7 @@ Sau đó tìm **chatgpt2api** → **Install**.
 | Option | Mặc định | Mô tả |
 |--------|----------|-------|
 | `auth_key` | `sk-chatgpt2api` | API key bảo vệ API và Web UI |
+| `base_url` | (trống) | URL công khai nếu dùng ngoài mạng local (vd: `https://chatgpt.mydomain.com`) |
 
 ## Sau khi cài
 

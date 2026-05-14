@@ -16,8 +16,10 @@ ports_description:
   3030/tcp: Web UI + API
 options:
   auth_key: "sk-chatgpt2api"
+  base_url: ""
 schema:
   auth_key: password
+  base_url: str?
 webui: "http://[HOST]:[PORT:3030]"
 panel_icon: "mdi:robot"
 panel_title: "chatgpt2api"
