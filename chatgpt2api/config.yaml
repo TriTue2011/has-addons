@@ -1,6 +1,6 @@
 name: "chatgpt2api"
 description: "OpenAI API Gateway - ChatGPT, Codex, OpenCode, Gemini, DALL-E"
-version: "1.2.5"
+version: "1.2.6"
 slug: "chatgpt2api"
 url: "https://github.com/TriTue2011/has-addons"
 arch:
@@ -8,6 +8,9 @@ arch:
   - aarch64
 host_network: true
 init: false
+map:
+  - type: data
+    read_only: false
 startup: application
 boot: auto
 ports:
