@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# Persistent data directory (survives addon rebuilds)
+DATA_DIR="/data/chatgpt2api"
+mkdir -p "$DATA_DIR"
+ln -sfn "$DATA_DIR" /app/data 2>/dev/null || true
+
 # HA addon passes config options as JSON to /data/options.json
 if [ -f /data/options.json ]; then
     if command -v jq &> /dev/null; then
