@@ -11,6 +11,8 @@ init: false
 map:
   - type: data
     read_only: false
+  - type: config
+    read_only: false
 startup: application
 boot: auto
 ports:

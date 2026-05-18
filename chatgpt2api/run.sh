@@ -1,9 +1,18 @@
 #!/bin/bash
 set -euo pipefail
 
-# Persistent data directory (HA addon /data is auto-mounted and survives rebuilds)
-PERSISTENT_DATA="/data/chatgpt2api"
+# Persistent data in HA config directory (survives rebuilds AND uninstall/reinstall)
+# /config is HA's main config folder, backed up by users
+PERSISTENT_DATA="/config/chatgpt2api"
+OLD_DATA="/data/chatgpt2api"
 APP_DATA="/app/data"
+
+# Migrate from old /data/ location if needed
+if [ -d "$OLD_DATA" ] && [ ! -d "$PERSISTENT_DATA" ]; then
+    echo "[addon] Migrating data from $OLD_DATA to $PERSISTENT_DATA"
+    mkdir -p "$(dirname "$PERSISTENT_DATA")"
+    mv "$OLD_DATA" "$PERSISTENT_DATA"
+fi
 
 # link_dir: symlink $target → $source, handling first-run and rebuild correctly
 link_dir() {
