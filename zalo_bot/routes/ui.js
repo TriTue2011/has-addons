@@ -263,10 +263,10 @@ router.get('/change-password', (req, res) => {
     res.render('change-password');
 });
 
-// Hiển thị trang reset mật khẩu admin
-router.get('/reset-password', (req, res) => {
-    res.render('reset-password');
-});
+// Đã gỡ trang /reset-password. Trang này mở công khai nhưng nút bấm gọi
+// /api/reset-admin-password — đường đó nay chỉ bật ở chế độ gỡ lỗi nên luôn trả
+// 404, thành ra trang mở được mà không làm được gì. Admin đổi mật khẩu tại
+// /change-password.
 
 // Route hiển thị tin nhắn và thread_id
 router.get('/messages', (req, res) => {

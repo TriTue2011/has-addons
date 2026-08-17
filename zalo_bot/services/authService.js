@@ -423,7 +423,6 @@ export const publicRoutes = [
   '/api/check-auth', // API kiểm tra trạng thái xác thực
   '/api/session-test', // API kiểm tra session
   '/api/account-webhook/', // API webhook có tham số
-  '/reset-password', // Trang reset mật khẩu admin
   '/favicon.ico', // Favicon
   '/ws', // WebSocket
   '/pwa-manifest', // PWA manifest
