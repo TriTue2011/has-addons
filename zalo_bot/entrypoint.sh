@@ -166,6 +166,8 @@ fi
 # Mật khẩu admin: chưa khai thì sinh MỘT LẦN rồi giữ lại, thay vì để server tự
 # sinh mới mỗi lần tạo users.json. Sinh ở đây để còn ghi ra tệp cho người cài
 # đọc được — bắt họ lục log mới biết đăng nhập bằng gì là không xong.
+TU_SINH_MK=0
+TU_SINH_KHOA=0
 if [ -z "$ZALO_SERVER_ADMIN_PASSWORD" ]; then
   PASS_FILE="$DATA_DIRECTORY/.admin_password"
   if [ ! -s "$PASS_FILE" ] && [ -w "$DATA_DIRECTORY" ]; then
@@ -176,6 +178,7 @@ if [ -z "$ZALO_SERVER_ADMIN_PASSWORD" ]; then
   if [ -s "$PASS_FILE" ]; then
     ZALO_SERVER_ADMIN_PASSWORD=$(cat "$PASS_FILE")
     export ZALO_SERVER_ADMIN_PASSWORD
+    TU_SINH_MK=1
   fi
 fi
 
@@ -194,14 +197,25 @@ if [ -z "$ZALO_SERVER_API_KEY" ]; then
   if [ -s "$KEY_FILE" ]; then
     ZALO_SERVER_API_KEY=$(cat "$KEY_FILE")
     export ZALO_SERVER_API_KEY
+    TU_SINH_KHOA=1
   fi
 fi
 
 # Tệp thông tin đăng nhập, đặt ngay trong thư mục dữ liệu để mở bằng File editor
-# hay Samba là thấy. Chỉ ghi khi CHÍNH add-on sinh mật khẩu; anh tự khai mật
-# khẩu ở phần cài đặt thì không ghi gì cả.
+# hay Samba là thấy.
+#
+# Điều kiện phải bám vào việc LẦN CHẠY NÀY có tự sinh bí mật hay không, chứ
+# không bám vào việc tệp .admin_password / .api_key có tồn tại. Bản trước bám
+# nhầm vào sự tồn tại của tệp: ai từng chạy lúc chưa cấu hình gì thì hai tệp đó
+# nằm lại, và sau khi họ tự điền mật khẩu ở phần cài đặt, add-on VẪN ghi mật
+# khẩu của chính họ ra tệp và in ra tab Log — đúng cái mà đoạn này hứa không làm.
 INFO_FILE="$DATA_DIRECTORY/THONG-TIN-DANG-NHAP.txt"
-if { [ -s "$DATA_DIRECTORY/.admin_password" ] || [ -s "$DATA_DIRECTORY/.api_key" ]; } \
+if [ "$TU_SINH_MK" = "0" ] && [ "$TU_SINH_KHOA" = "0" ]; then
+  # Bí mật do người dùng tự khai — xoá tệp cũ vì nó đang giữ mật khẩu không nên
+  # nằm ở đó, và nội dung cũng đã sai so với cấu hình hiện tại.
+  rm -f "$INFO_FILE" 2>/dev/null
+fi
+if { [ "$TU_SINH_MK" = "1" ] || [ "$TU_SINH_KHOA" = "1" ]; } \
    && [ -w "$DATA_DIRECTORY" ]; then
   {
     echo "THONG TIN DANG NHAP ZALO BOT"
