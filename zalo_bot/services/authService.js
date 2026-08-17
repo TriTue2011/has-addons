@@ -7,9 +7,30 @@ import crypto from 'crypto';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// PBKDF2: bản ghi CŨ dùng 1000 vòng (yếu). Bản ghi MỚI dùng 600000 (OWASP
+// khuyến nghị ≥210k cho PBKDF2-SHA512). Lưu số vòng THEO TỪNG bản ghi để bản
+// cũ vẫn đăng nhập được (xác minh bằng đúng số vòng của nó), bản mới mạnh hơn.
+const PBKDF2_ITERS = 600000;
+const PBKDF2_LEGACY = 1000;
+
+function _hash(password, salt, iters) {
+  return crypto.pbkdf2Sync(password, salt, iters, 64, 'sha512').toString('hex');
+}
+
+// Mật khẩu admin ban đầu: ưu tiên env. KHÔNG có env → sinh NGẪU NHIÊN và cảnh
+// báo (không còn 'admin' cứng đoán được). Trả {password, fromEnv}.
+function _initialAdminSecret() {
+  const env = String(process.env.ZALO_SERVER_ADMIN_PASSWORD || '').trim();
+  if (env) return { password: env, fromEnv: true };
+  return { password: crypto.randomBytes(18).toString('base64url'), fromEnv: false };
+}
+
+function _adminUsername() {
+  return String(process.env.ZALO_SERVER_ADMIN_USERNAME || 'admin').trim() || 'admin';
+}
+
 // Đường dẫn đến file lưu thông tin đăng nhập
 const userFilePath = path.join(process.cwd(), 'data', 'cookies', 'users.json');
-console.log("Path to users.json:", userFilePath); // Log để debug
 
 // Tạo file users.json nếu chưa tồn tại
 const initUserFile = () => {
@@ -33,48 +54,51 @@ const initUserFile = () => {
     if (!fs.existsSync(userFilePath)) {
       console.log("File users.json không tồn tại, đang tạo...");
 
-      // Tạo mật khẩu mặc định 'admin' cho người dùng 'admin'
-      const defaultPassword = 'admin';
+      // Mật khẩu admin ban đầu: env ZALO_SERVER_ADMIN_PASSWORD, hoặc NGẪU NHIÊN.
+      // KHÔNG còn mặc định 'admin' đoán được.
+      const uname = _adminUsername();
+      const { password, fromEnv } = _initialAdminSecret();
       const salt = crypto.randomBytes(16).toString('hex');
-      const hash = crypto.pbkdf2Sync(defaultPassword, salt, 1000, 64, 'sha512').toString('hex');
-
       const users = [{
-        username: 'admin',
+        username: uname,
         salt,
-        hash,
-        role: 'admin' // Thêm quyền admin
+        hash: _hash(password, salt, PBKDF2_ITERS),
+        iterations: PBKDF2_ITERS,
+        role: 'admin',
       }];
-
-      // Tạo file users.json
-      const jsonData = JSON.stringify(users, null, 2);
-      console.log("Dữ liệu JSON sẽ được ghi:", jsonData);
-
-      fs.writeFileSync(userFilePath, jsonData);
-      console.log('Đã tạo file users.json với tài khoản mặc định: admin/admin');
+      fs.writeFileSync(userFilePath, JSON.stringify(users, null, 2));
+      if (fromEnv) {
+        console.log(`Đã tạo users.json với admin '${uname}' (mật khẩu từ ZALO_SERVER_ADMIN_PASSWORD)`);
+      } else {
+        // In MỘT LẦN để chủ máy đăng nhập rồi đổi — không có env thì đây là
+        // đường duy nhất biết mật khẩu (không còn admin/admin).
+        console.warn(`[BẢO MẬT] Chưa đặt ZALO_SERVER_ADMIN_PASSWORD. Đã sinh mật khẩu admin NGẪU NHIÊN cho '${uname}':`);
+        console.warn(`[BẢO MẬT]   ${password}`);
+        console.warn('[BẢO MẬT] Hãy đăng nhập, ĐỔI mật khẩu, rồi đặt ZALO_SERVER_ADMIN_PASSWORD để lần sau không sinh ngẫu nhiên.');
+      }
     } else {
-      console.log("File users.json đã tồn tại");
-      // Kiểm tra nội dung file
+      // Kiểm tra file hợp lệ — KHÔNG log nội dung (chứa salt/hash).
       try {
         const content = fs.readFileSync(userFilePath, 'utf8');
-        console.log("Nội dung file users.json:", content.slice(0, 100) + "...");
         JSON.parse(content); // Kiểm tra xem có phải JSON hợp lệ
-        console.log("users.json là JSON hợp lệ");
       } catch (readError) {
         console.error("Lỗi khi đọc/phân tích file users.json:", readError);
-        // Nếu file không đúng định dạng JSON, tạo lại
-        const defaultPassword = 'admin';
+        // File hỏng → tạo lại, KHÔNG dùng admin/admin (env hoặc ngẫu nhiên).
+        const uname = _adminUsername();
+        const { password, fromEnv } = _initialAdminSecret();
         const salt = crypto.randomBytes(16).toString('hex');
-        const hash = crypto.pbkdf2Sync(defaultPassword, salt, 1000, 64, 'sha512').toString('hex');
-
         const users = [{
-          username: 'admin',
+          username: uname,
           salt,
-          hash,
-          role: 'admin'
+          hash: _hash(password, salt, PBKDF2_ITERS),
+          iterations: PBKDF2_ITERS,
+          role: 'admin',
         }];
-
         fs.writeFileSync(userFilePath, JSON.stringify(users, null, 2));
-        console.log('Đã tạo lại file users.json với tài khoản mặc định: admin/admin');
+        if (!fromEnv) {
+          console.warn(`[BẢO MẬT] users.json hỏng, đã tạo lại admin '${uname}' với mật khẩu NGẪU NHIÊN:`);
+          console.warn(`[BẢO MẬT]   ${password}`);
+        }
       }
     }
   } catch (error) {
@@ -90,23 +114,13 @@ const getUsers = () => {
   try {
     // Đảm bảo đọc dữ liệu mới nhất từ file (không sử dụng cache)
     const data = fs.readFileSync(userFilePath, { encoding: 'utf8', flag: 'r' });
-    console.log(`Read users.json file, size: ${data.length} bytes`);
 
     try {
       const users = JSON.parse(data);
-      console.log(`Parsed ${users.length} users from file`);
-
-      // Log thông tin về mỗi người dùng (chỉ hiển thị thông tin cơ bản)
-      users.forEach((user, index) => {
-        console.log(`User ${index + 1}: ${user.username}, role: ${user.role}, ` +
-                    `salt: ${user.salt ? user.salt.substring(0, 5) + '...' : 'missing'}, ` +
-                    `hash: ${user.hash ? user.hash.substring(0, 5) + '...' : 'missing'}`);
-      });
-
+      // KHÔNG log username/salt/hash của từng user (rò băm mật khẩu ra log).
       return users;
     } catch (parseError) {
       console.error('Lỗi khi phân tích JSON từ file users.json:', parseError);
-      console.log('Nội dung file gây lỗi:', data);
       return [];
     }
   } catch (error) {
@@ -125,164 +139,152 @@ export const addUser = (username, password, role = 'user') => {
   }
 
   const salt = crypto.randomBytes(16).toString('hex');
-  const hash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
-
   users.push({
     username,
     salt,
-    hash,
-    role
+    hash: _hash(password, salt, PBKDF2_ITERS),
+    iterations: PBKDF2_ITERS,
+    role,
   });
 
   fs.writeFileSync(userFilePath, JSON.stringify(users, null, 2));
   return true;
 };
 
+const lockFilePath = path.join(process.cwd(), 'data', 'cookies', 'users.lock');
+
+async function withUserLock(fn) {
+  const maxWaitMs = 30000;
+  const startTime = Date.now();
+
+  while (true) {
+    try {
+      // 'wx' flag: atomic check-and-create, fails nếu file đã tồn tại
+      fs.writeFileSync(lockFilePath, String(Date.now()), { flag: 'wx' });
+      break;
+    } catch (err) {
+      if (err.code !== 'EEXIST') {
+        // Lỗi thật sự (permission, disk,...) — throw ra ngoài
+        throw new Error(`Không thể tạo lock file: ${err.message}`);
+      }
+
+      // Lock đang được giữ bởi process khác, kiểm tra timeout
+      if (Date.now() - startTime > maxWaitMs) {
+        throw new Error('Không thể acquire lock sau 30s — lock có thể bị orphaned');
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+    }
+  }
+
+  try {
+    return await fn();
+  } finally {
+    try { fs.unlinkSync(lockFilePath); } catch (e) { /* ignore */ }
+  }
+}
+
+export const deleteUser = (username) => {
+  return withUserLock(() => {
+    const users = getUsers();
+    const idx = users.findIndex(u => u.username === username);
+    if (idx === -1) return { success: false, message: 'Không tìm thấy người dùng' };
+
+    // Không cho xóa admin cuối cùng
+    const adminCount = users.filter(u => u.role === 'admin').length;
+    if (users[idx].role === 'admin' && adminCount <= 1) {
+      return { success: false, message: 'Không thể xóa admin cuối cùng' };
+    }
+
+    users.splice(idx, 1);
+    fs.writeFileSync(userFilePath, JSON.stringify(users, null, 2));
+    return { success: true };
+  });
+};
+
 // Xác thực người dùng và trả về thông tin user
 export const validateUser = (username, password) => {
-  console.log(`Validating user: ${username}, password length: ${password.length}`);
-
   // Đọc dữ liệu trực tiếp từ file để đảm bảo dữ liệu mới nhất
   let users = [];
   try {
     const data = fs.readFileSync(userFilePath, { encoding: 'utf8', flag: 'r' });
     users = JSON.parse(data);
-    console.log(`Read ${users.length} users directly from file`);
   } catch (error) {
     console.error('Error reading users file directly:', error);
     return null;
   }
 
   const user = users.find(user => user.username === username);
-  console.log(`User found: ${user ? 'YES' : 'NO'}`);
-
   if (!user) {
-    console.log(`User ${username} not found in database`);
     return null;
   }
 
-  console.log(`Found user: ${user.username}, role: ${user.role}`);
-  console.log(`User's salt: ${user.salt.substring(0, 10)}...`);
-  console.log(`User's hash: ${user.hash.substring(0, 10)}...`);
-
-  console.log(`Password: ${password}`);
-  console.log(`Salt: ${user.salt}`);
-
-  const hash = crypto.pbkdf2Sync(password, user.salt, 1000, 64, 'sha512').toString('hex');
-  console.log(`Generated hash from provided password: ${hash.substring(0, 10)}...`);
-  console.log(`User's hash from database: ${user.hash.substring(0, 10)}...`);
-  console.log(`Full generated hash: ${hash}`);
-  console.log(`Full user's hash: ${user.hash}`);
-  console.log(`Hash comparison: ${user.hash === hash ? 'MATCH' : 'NO MATCH'}`);
-  console.log(`Hash length comparison: Generated=${hash.length}, Stored=${user.hash.length}`);
-
-  if (user.hash === hash) {
-    console.log('Authentication successful');
+  // TUYỆT ĐỐI không log password/salt/hash — trước đây in mật khẩu thô + full
+  // hash + salt mỗi lượt login, mà bot tự đăng nhập mỗi phút nên credential
+  // rò liên tục ra docker logs (báo cáo bảo mật 07/08 xác nhận trên máy chủ).
+  // Xác minh bằng ĐÚNG số vòng của bản ghi (bản cũ 1000, bản mới 600000).
+  const iters = Number(user.iterations) || PBKDF2_LEGACY;
+  const hash = _hash(password, user.salt, iters);
+  const stored = Buffer.from(String(user.hash), 'hex');
+  const computed = Buffer.from(hash, 'hex');
+  const ok = stored.length === computed.length && crypto.timingSafeEqual(stored, computed);
+  if (ok) {
     return {
       username: user.username,
       role: user.role || 'user'
     };
   }
-
-  console.log('Authentication failed - password mismatch');
   return null;
 };
 
 // Thay đổi mật khẩu
 export const changePassword = (username, oldPassword, newPassword) => {
-  console.log(`Attempting to change password for user: ${username}`);
-  console.log(`Old password length: ${oldPassword.length}, New password length: ${newPassword.length}`);
-
+  // KHÔNG log password/độ dài/salt/hash (rò băm + độ dài mật khẩu ra log).
   // Đọc dữ liệu trực tiếp từ file để đảm bảo dữ liệu mới nhất
   let users = [];
   try {
     const data = fs.readFileSync(userFilePath, { encoding: 'utf8', flag: 'r' });
     users = JSON.parse(data);
-    console.log(`Read ${users.length} users directly from file for password change`);
   } catch (error) {
     console.error('Error reading users file directly for password change:', error);
     return false;
   }
 
   const userIndex = users.findIndex(user => user.username === username);
-  console.log(`User index in array: ${userIndex}`);
-
   if (userIndex === -1) {
-    console.log(`User ${username} not found in database`);
     return false;
   }
 
   const user = users[userIndex];
-  console.log(`Found user: ${user.username}, role: ${user.role}`);
-  console.log(`User's current salt: ${user.salt.substring(0, 10)}...`);
-  console.log(`User's current hash: ${user.hash.substring(0, 10)}...`);
-
-  const hash = crypto.pbkdf2Sync(oldPassword, user.salt, 1000, 64, 'sha512').toString('hex');
-  console.log(`Generated hash from old password: ${hash.substring(0, 10)}...`);
-  console.log(`Hash comparison: ${user.hash === hash ? 'MATCH' : 'NO MATCH'}`);
-
-  if (user.hash !== hash) {
-    console.log('Old password verification failed');
+  const iters = Number(user.iterations) || PBKDF2_LEGACY;
+  const hash = _hash(oldPassword, user.salt, iters);
+  const stored = Buffer.from(String(user.hash), 'hex');
+  const computed = Buffer.from(hash, 'hex');
+  const ok = stored.length === computed.length && crypto.timingSafeEqual(stored, computed);
+  if (!ok) {
     return false; // Mật khẩu cũ không chính xác
   }
 
-  // Cập nhật mật khẩu mới
+  // Cập nhật mật khẩu mới — nâng lên số vòng MẠNH (600000).
   const salt = crypto.randomBytes(16).toString('hex');
-  console.log(`Generated new salt: ${salt.substring(0, 10)}...`);
-
-  const newHash = crypto.pbkdf2Sync(newPassword, salt, 1000, 64, 'sha512').toString('hex');
-  console.log(`Generated new hash: ${newHash.substring(0, 10)}...`);
-  console.log(`Full new hash: ${newHash}`);
-  console.log(`New hash length: ${newHash.length}`);
-
-  // Lưu trực tiếp vào biến users
+  const newHash = _hash(newPassword, salt, PBKDF2_ITERS);
   users[userIndex].salt = salt;
   users[userIndex].hash = newHash;
-
-  // In ra để kiểm tra
-  console.log(`Updated user object: salt=${users[userIndex].salt.substring(0, 10)}..., hash=${users[userIndex].hash.substring(0, 10)}...`);
+  users[userIndex].iterations = PBKDF2_ITERS;
 
   try {
-    // Tạo đường dẫn tạm thời để ghi file
+    // Ghi qua file tạm rồi rename (atomic) — KHÔNG log nội dung.
     const tempFilePath = path.join(process.cwd(), 'data', 'cookies', 'users.json.tmp');
-    console.log(`Using temporary file path: ${tempFilePath}`);
-
-    const jsonData = JSON.stringify(users, null, 2);
-    console.log(`Writing to temporary file: ${tempFilePath}`);
-    console.log(`JSON data to write (first 100 chars): ${jsonData.substring(0, 100)}...`);
-
-    // Ghi vào file tạm thời trước
-    fs.writeFileSync(tempFilePath, jsonData, { encoding: 'utf8', flag: 'w' });
-    console.log('Temporary file written successfully');
-
-    // Kiểm tra file tạm thời đã được ghi đúng chưa
-    const tempFileContent = fs.readFileSync(tempFilePath, 'utf8');
-    console.log(`Temporary file content (first 100 chars): ${tempFileContent.substring(0, 100)}...`);
-
-    // Di chuyển file tạm thời thành file chính thức
+    fs.writeFileSync(tempFilePath, JSON.stringify(users, null, 2), { encoding: 'utf8', flag: 'w' });
     fs.renameSync(tempFilePath, userFilePath);
-    console.log(`Renamed temporary file to: ${userFilePath}`);
 
     // Verify the file was written correctly
     const verifyUsers = getUsers();
     const verifyUser = verifyUsers.find(u => u.username === username);
-
-    if (!verifyUser) {
-      console.error('Verification failed - user not found after password change');
+    if (!verifyUser || verifyUser.salt !== salt || verifyUser.hash !== newHash) {
+      console.error('Verification failed after password change');
       return false;
     }
-
-    console.log(`Verification - New salt: ${verifyUser.salt.substring(0, 10)}...`);
-    console.log(`Verification - New hash: ${verifyUser.hash.substring(0, 10)}...`);
-    console.log(`Verification - Salt matches: ${verifyUser.salt === salt ? 'YES' : 'NO'}`);
-    console.log(`Verification - Hash matches: ${verifyUser.hash === newHash ? 'YES' : 'NO'}`);
-
-    if (verifyUser.salt !== salt || verifyUser.hash !== newHash) {
-      console.error('Verification failed - salt or hash mismatch after password change');
-      return false;
-    }
-
-    console.log('Password change successful and verified');
     return true;
   } catch (error) {
     console.error('Error writing password change to file:', error);
@@ -290,15 +292,69 @@ export const changePassword = (username, oldPassword, newPassword) => {
   }
 };
 
+/** API key cho HA / gateway (env ZALO_SERVER_API_KEY hoặc CHATGPT2API_AUTH_KEY). */
+export const getServerApiKey = () =>
+  String(process.env.ZALO_SERVER_API_KEY || process.env.CHATGPT2API_AUTH_KEY || '').trim();
+
+function timingSafeEqualStr(a, b) {
+  try {
+    const ba = Buffer.from(String(a), 'utf8');
+    const bb = Buffer.from(String(b), 'utf8');
+    if (ba.length !== bb.length) return false;
+    return crypto.timingSafeEqual(ba, bb);
+  } catch {
+    return false;
+  }
+}
+
+function extractApiToken(req) {
+  const auth = String(req.headers.authorization || '');
+  if (auth.toLowerCase().startsWith('bearer ')) return auth.slice(7).trim();
+  const x = req.headers['x-api-key'];
+  if (x) return String(x).trim();
+  if (req.query && req.query.api_key) return String(req.query.api_key).trim();
+  return '';
+}
+
 // Middleware xác thực cho các route
 export const authMiddleware = (req, res, next) => {
-  // Kiểm tra nếu đã đăng nhập (thông qua session)
   if (req.session && req.session.authenticated) {
     return next();
   }
 
-  // Chuyển hướng về trang đăng nhập
-  res.redirect('/admin-login');
+  // P0#4: Bearer / X-Api-Key khớp env (HA integration không dùng session cookie).
+  // API key chỉ có nghĩa cho các route TÍCH HỢP gửi tin. Trước đây nó đi qua
+  // middleware chung nên một key cấp cho Home Assistant mở được cả dashboard,
+  // lịch sử chat và trang quản lý người dùng — quyền rộng hơn mục đích rất nhiều.
+  const expected = getServerApiKey();
+  const token = extractApiToken(req);
+  if (expected && token && timingSafeEqualStr(token, expected)) {
+    if (isApiKeyRoute(req.path)) {
+      req.apiKeyAuth = true;
+      return next();
+    }
+    return res.status(403).json({
+      success: false,
+      message: 'ZALO_SERVER_API_KEY chỉ dùng được cho các route GỬI nội dung (tin, ảnh, tệp, video, sticker). '
+        + 'Đọc lịch sử chat, tra người dùng, tạo/sửa nhóm, kết bạn và dashboard đều cần đăng nhập tài khoản admin.',
+      code: 'API_KEY_OUT_OF_SCOPE',
+    });
+  }
+
+  // API request: return 401 JSON instead of HTML redirect
+  if (req.path.startsWith('/api/') || req.headers.accept?.includes('application/json')) {
+    return res.status(401).json({
+      success: false,
+      message: expected
+        ? 'Thiếu hoặc sai API key (Authorization: Bearer … / X-Api-Key)'
+        : 'Chưa đăng nhập',
+      code: 'UNAUTHORIZED',
+    });
+  }
+
+  // Browser request: redirect
+  const prefix = req.ingressPath || '';
+  res.redirect(prefix + '/admin-login');
 };
 
 // Middleware kiểm tra quyền admin
@@ -308,6 +364,42 @@ export const adminMiddleware = (req, res, next) => {
   }
 
   res.status(403).send('Không có quyền truy cập. Chỉ admin mới có thể thực hiện chức năng này.');
+};
+
+/** Route mọi tài khoản đã đăng nhập đều dùng được, không cần vai admin. */
+const SELF_SERVICE_ROUTES = [
+  '/change-password',
+  '/api/change-password',
+  '/api/logout',
+  '/api/check-auth',
+];
+
+/**
+ * Cổng vai cho phần dashboard/chat: đã qua authMiddleware rồi, giờ đòi thêm
+ * vai 'admin'.
+ *
+ * Vì sao chặn hẳn thay vì lọc dữ liệu: hệ thống KHÔNG có ACL theo tài khoản
+ * Zalo hay theo cuộc trò chuyện. Trước bản này, một tài khoản vai 'user' đăng
+ * nhập được là đọc toàn bộ lịch sử chat của mọi tài khoản và gửi tin thay
+ * chúng — quyền ngang admin. Khi chưa có ACL thì đóng là lựa chọn đúng; muốn
+ * cho 'user' vào chat thì phải làm ACL theo account/conversation trước (và lọc
+ * cả dữ liệu broadcast qua WebSocket).
+ */
+export const dashboardRoleMiddleware = (req, res, next) => {
+  if (req.apiKeyAuth) return next();  // route tích hợp, đã kiểm ở authMiddleware
+  const p = req.path || '';
+  if (SELF_SERVICE_ROUTES.some((r) => p === r)) return next();
+  if (req.session && req.session.authenticated && req.session.role === 'admin') {
+    return next();
+  }
+  if (p.startsWith('/api/') || (req.headers.accept || '').includes('application/json')) {
+    return res.status(403).json({
+      success: false,
+      message: 'Tài khoản này không có quyền quản trị.',
+      code: 'FORBIDDEN_ROLE',
+    });
+  }
+  return res.status(403).send('Không có quyền truy cập. Chỉ admin mới vào được trang này.');
 };
 
 // Lấy toàn bộ danh sách người dùng (chỉ admin mới có quyền)
@@ -330,15 +422,19 @@ export const publicRoutes = [
   '/api/logout', // API đăng xuất
   '/api/check-auth', // API kiểm tra trạng thái xác thực
   '/api/session-test', // API kiểm tra session
-  '/api/test-json', // API test JSON
   '/api/account-webhook/', // API webhook có tham số
-  '/api/debug-users-file', // API debug file users.json
-  '/api/reset-admin-password', // API reset mật khẩu admin
   '/reset-password', // Trang reset mật khẩu admin
   '/favicon.ico', // Favicon
   '/ws', // WebSocket
+  '/pwa-manifest', // PWA manifest
+  '/chat/sw.js', // PWA service worker
+  '/chat/icons/*', // PWA icons
+  '/chat/css/*', // Chat CSS
+  '/chat/js/*', // Chat JS
 
-  // Thêm các API Zalo không cần xác thực
+  // Legacy: các API Zalo từng public. Khi ZALO_SERVER_API_KEY /
+  // CHATGPT2API_AUTH_KEY được set, isPublicRoute sẽ KHÔNG coi chúng public
+  // (bắt buộc Bearer/session) — xem SENSITIVE_API_PREFIXES bên dưới.
   '/api/findUser',
   '/api/getUserInfo',
   '/api/sendFriendRequest',
@@ -350,8 +446,83 @@ export const publicRoutes = [
   '/api/sendImageToUser',
   '/api/sendImagesToUser',
   '/api/sendImageToGroup',
-  '/api/sendImagesToGroup'
+  '/api/sendImagesToGroup',
+  '/api/getGroupChatHistoryByAccount'
 ];
+
+/** API gửi tin / điều khiển — không public khi đã cấu hình API key. */
+const SENSITIVE_API_PREFIXES = [
+  '/api/findUser',
+  '/api/getUserInfo',
+  '/api/sendFriendRequest',
+  '/api/sendmessage',
+  '/api/createGroup',
+  '/api/getGroupInfo',
+  '/api/addUserToGroup',
+  '/api/removeUserFromGroup',
+  '/api/sendImageToUser',
+  '/api/sendImagesToUser',
+  '/api/sendImageToGroup',
+  '/api/sendImagesToGroup',
+  '/api/getGroupChatHistoryByAccount',
+];
+
+/**
+ * Route được phép xác thực bằng ZALO_SERVER_API_KEY: **CHỈ GỬI NỘI DUNG**.
+ *
+ * Chính sách (chủ máy chốt 08/08/2026): key này cấp cho tích hợp gửi thông báo
+ * (Home Assistant, script), nên nó chỉ được gửi tin/ảnh/tệp/video/sticker.
+ * Mọi thứ khác — đọc lịch sử chat, tra số điện thoại ra người dùng, tạo và sửa
+ * nhóm, kết bạn — phải đăng nhập bằng tài khoản admin.
+ *
+ * Vì sao không dùng lại SENSITIVE_API_PREFIXES như bản trước: danh sách đó trả
+ * lời câu hỏi KHÁC — "route nào từng public và nay phải xác thực". Dùng chung
+ * khiến key gửi thông báo đọc được `getGroupChatHistoryByAccount` (toàn bộ lịch
+ * sử nhóm) và `findUser` (tra số điện thoại), rộng hơn mục đích rất nhiều. Hai
+ * danh sách từ đây độc lập.
+ *
+ * Liệt kê ĐỦ TÊN từng route, gồm cả biến thể `…ByAccount`: tài liệu
+ * docs/ZALO_ANH_VA_HOME_ASSISTANT.md hướng dẫn gửi album qua
+ * `sendImagesToUserByAccount`, mà khớp theo tiền tố `/api/sendImagesToUser`
+ * KHÔNG bắt được tên đó (không phải `/` hay `?` đứng sau).
+ *
+ * KHÔNG có ở đây, có chủ đích: sendFriendRequest (kết bạn — đổi quan hệ tài
+ * khoản), sendReportByAccount (báo cáo vi phạm lên Zalo), và các sự kiện trạng
+ * thái sendSeen/sendDelivered/sendTyping (đổi trạng thái đã-đọc của tài khoản
+ * thật, không phải gửi nội dung).
+ */
+const API_KEY_ROUTES = [
+  // Tin nhắn chữ
+  '/api/sendmessage',
+  '/api/sendMessageByAccount',
+  // Ảnh đơn
+  '/api/sendImageToUser',
+  '/api/sendImageToUserByAccount',
+  '/api/sendImageToGroup',
+  '/api/sendImageToGroupByAccount',
+  '/api/sendImageByAccount',
+  // Album nhiều ảnh
+  '/api/sendImagesToUser',
+  '/api/sendImagesToUserByAccount',
+  '/api/sendImagesToGroup',
+  '/api/sendImagesToGroupByAccount',
+  // Tệp / phương tiện khác
+  '/api/sendFile',
+  '/api/sendFileByAccount',
+  '/api/sendVideoByAccount',
+  '/api/sendVoiceByAccount',
+  '/api/sendStickerByAccount',
+  '/api/sendLinkByAccount',
+  '/api/sendCardByAccount',
+];
+
+/** True nếu path nằm trong phạm vi API key. */
+export const isApiKeyRoute = (path) => {
+  const p = String(path || '');
+  return API_KEY_ROUTES.some(
+    (pref) => p === pref || p.startsWith(pref + '/') || p.startsWith(pref + '?')
+  );
+};
 
 // Kiểm tra xem route có phải là public hay không
 export const isPublicRoute = (path) => {
@@ -363,6 +534,17 @@ export const isPublicRoute = (path) => {
     if (path.startsWith('/api/account-webhook/')) {
       console.log('Is account webhook API with parameters:', true);
       return true;
+    }
+
+    // P0#4: khi có API key, các route gửi tin không còn public
+    const apiKey = getServerApiKey();
+    if (apiKey) {
+      for (const pref of SENSITIVE_API_PREFIXES) {
+        if (path === pref || path.startsWith(pref + '/') || path.startsWith(pref + '?')) {
+          console.log('Sensitive API requires key/session:', path);
+          return false;
+        }
+      }
     }
 
     // Kiểm tra các route cụ thể trong danh sách publicRoutes

@@ -1,7 +1,7 @@
 name: "Zalo Bot"
 description: "Add-on Zalo Bot in Home Assistant"
 url: "https://github.com/TriTue2011/has-addons"
-version: "2025.10.8"
+version: "2026.8.17"
 slug: "zalo_bot"
 init: false
 map:
@@ -16,9 +16,26 @@ arch:
   - aarch64
   - armv7
   - armhf
-image: "ghcr.io/tritue2011/zalobot-{arch}"
+# Một image đa kiến trúc cho cả bốn arch ở trên: Docker tự chọn đúng bản
+# theo máy đang kéo. Dạng cũ "…zalobot-{arch}" đẻ ra bốn package riêng và
+# theo tài liệu Home Assistant thì chỉ còn là fallback tương thích ngược.
+image: "ghcr.io/tritue2011/zalobot"
 
 options:
   data_directory: "/config/zalo_bot"
+  # Để trống cũng chạy được, nhưng nên điền — xem giải thích ở README.
+  session_secret: ""
+  admin_password: ""
+  api_key: ""
 schema:
   data_directory: "str"
+  # Khoá ký session. Bỏ trống cũng được: add-on tự sinh một khoá và giữ lại
+  # trong thư mục dữ liệu, phiên vẫn sống qua restart.
+  session_secret: "password?"
+  # Mật khẩu admin lần đầu. Bỏ trống cũng được: add-on sinh ngẫu nhiên, giữ lại,
+  # ghi ra THONG-TIN-DANG-NHAP.txt trong thư mục dữ liệu và in ra log mỗi lần
+  # khởi động (bản cũ dùng 'admin' — ai cũng đoán được).
+  admin_password: "password?"
+  # Khoá cho các API gửi tin. CHƯA ĐẶT thì /api/sendmessage, /api/findUser… mở
+  # cho mọi máy trong LAN vì add-on chạy host_network.
+  api_key: "password?"

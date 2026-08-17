@@ -36,6 +36,25 @@ if [ -f /data/options.json ]; then
       echo "Will try to use the directory anyway, but may have limited functionality"
     fi
   fi
+
+  # Bí mật đặt qua giao diện add-on. Bản này KHÔNG còn mật khẩu admin 'admin' và
+  # KHÔNG còn khoá phiên cố định: thiếu thì server tự sinh ngẫu nhiên — mật khẩu
+  # in ra log lần đầu, còn khoá phiên đổi mỗi lần khởi động lại nên ai đang đăng
+  # nhập sẽ bị đá ra. Đặt các giá trị dưới đây để tránh cả hai.
+  if [ -z "$SESSION_SECRET" ]; then
+    SESSION_SECRET=$(jq -r '.session_secret // ""' /data/options.json)
+    export SESSION_SECRET
+  fi
+  if [ -z "$ZALO_SERVER_ADMIN_PASSWORD" ]; then
+    ZALO_SERVER_ADMIN_PASSWORD=$(jq -r '.admin_password // ""' /data/options.json)
+    export ZALO_SERVER_ADMIN_PASSWORD
+  fi
+  # Chưa đặt api_key thì các API Zalo (/api/sendmessage, /api/findUser…) vẫn mở
+  # cho MỌI máy trong LAN, vì add-on chạy host_network. Đặt vào là đóng lại.
+  if [ -z "$ZALO_SERVER_API_KEY" ]; then
+    ZALO_SERVER_API_KEY=$(jq -r '.api_key // ""' /data/options.json)
+    export ZALO_SERVER_API_KEY
+  fi
 fi
 
 # Nếu vẫn không có DATA_DIRECTORY, sử dụng mặc định
@@ -126,6 +145,65 @@ echo "-------------------------------------"
 
 # Đảm bảo DATA_DIRECTORY được truyền vào Node.js
 export DATA_DIRECTORY="$DATA_DIRECTORY"
+
+# Chưa khai session_secret ở cấu hình lẫn biến môi trường thì sinh MỘT LẦN rồi
+# giữ lại trong thư mục dữ liệu. Sinh mới mỗi lần chạy sẽ đá mọi người đang đăng
+# nhập ra sau mỗi lần khởi động lại add-on.
+if [ -z "$SESSION_SECRET" ]; then
+  SECRET_FILE="$DATA_DIRECTORY/.session_secret"
+  if [ ! -s "$SECRET_FILE" ] && [ -w "$DATA_DIRECTORY" ]; then
+    node -e "console.log(require('crypto').randomBytes(32).toString('hex'))" \
+      > "$SECRET_FILE" 2>/dev/null
+    chmod 600 "$SECRET_FILE" 2>/dev/null
+  fi
+  if [ -s "$SECRET_FILE" ]; then
+    SESSION_SECRET=$(cat "$SECRET_FILE")
+    export SESSION_SECRET
+    echo "Dùng SESSION_SECRET đã lưu tại $SECRET_FILE (phiên sống qua restart)"
+  fi
+fi
+
+# Mật khẩu admin: chưa khai thì sinh MỘT LẦN rồi giữ lại, thay vì để server tự
+# sinh mới mỗi lần tạo users.json. Sinh ở đây để còn ghi ra tệp cho người cài
+# đọc được — bắt họ lục log mới biết đăng nhập bằng gì là không xong.
+if [ -z "$ZALO_SERVER_ADMIN_PASSWORD" ]; then
+  PASS_FILE="$DATA_DIRECTORY/.admin_password"
+  if [ ! -s "$PASS_FILE" ] && [ -w "$DATA_DIRECTORY" ]; then
+    node -e "console.log(require('crypto').randomBytes(12).toString('base64url'))" \
+      > "$PASS_FILE" 2>/dev/null
+    chmod 600 "$PASS_FILE" 2>/dev/null
+  fi
+  if [ -s "$PASS_FILE" ]; then
+    ZALO_SERVER_ADMIN_PASSWORD=$(cat "$PASS_FILE")
+    export ZALO_SERVER_ADMIN_PASSWORD
+  fi
+fi
+
+# Tệp thông tin đăng nhập, đặt ngay trong thư mục dữ liệu để mở bằng File editor
+# hay Samba là thấy. Chỉ ghi khi CHÍNH add-on sinh mật khẩu; anh tự khai mật
+# khẩu ở phần cài đặt thì không ghi gì cả.
+INFO_FILE="$DATA_DIRECTORY/THONG-TIN-DANG-NHAP.txt"
+if [ -s "$DATA_DIRECTORY/.admin_password" ] && [ -w "$DATA_DIRECTORY" ]; then
+  {
+    echo "THONG TIN DANG NHAP ZALO BOT"
+    echo "============================"
+    echo
+    echo "Dia chi : http://<dia-chi-may-Home-Assistant>:${PORT:-3000}"
+    echo "Tai khoan: ${ZALO_SERVER_ADMIN_USERNAME:-admin}"
+    echo "Mat khau : $ZALO_SERVER_ADMIN_PASSWORD"
+    echo
+    echo "Mat khau nay do add-on tu sinh vi phan cai dat de trong."
+    echo "Dang nhap xong nen doi mat khau, hoac dien san o 'admin_password'."
+    echo
+    echo "LUU Y: neu da doi mat khau trong giao dien thi tep nay KHONG con dung."
+  } > "$INFO_FILE" 2>/dev/null
+  chmod 600 "$INFO_FILE" 2>/dev/null
+  echo "============================================================"
+  echo " Tai khoan: ${ZALO_SERVER_ADMIN_USERNAME:-admin}"
+  echo " Mat khau : $ZALO_SERVER_ADMIN_PASSWORD"
+  echo " Da ghi ra: $INFO_FILE"
+  echo "============================================================"
+fi
 
 # Khởi động ứng dụng
 echo "Starting Zalo Server with data directory: $DATA_DIRECTORY"

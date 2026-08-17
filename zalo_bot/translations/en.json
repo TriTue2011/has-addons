@@ -1,0 +1,20 @@
+{
+  "configuration": {
+    "data_directory": {
+      "name": "Data directory",
+      "description": "Where login cookies, webhooks and proxies are stored. Keep /config/zalo_bot unless you have a reason to change it — changing it loses the Zalo session and you must scan the QR code again."
+    },
+    "session_secret": {
+      "name": "Session signing key",
+      "description": "Can be left EMPTY: the add-on generates a key unique to this machine and keeps it, so logins survive restarts. Fill this in only if you want to manage the key yourself. Generate with: openssl rand -hex 32"
+    },
+    "admin_password": {
+      "name": "Admin password",
+      "description": "Can be left EMPTY: the add-on generates a random password, writes it to THONG-TIN-DANG-NHAP.txt in the data directory (open it with the File editor or Samba) and prints it to the Log tab on every start. Fill this in to choose your own."
+    },
+    "api_key": {
+      "name": "Send API key",
+      "description": "RECOMMENDED. If left empty, any machine on your local network can call the sending APIs (/api/sendmessage, /api/findUser…) without logging in — meaning they can send messages from your Zalo account. Setting a key closes that. Generate with: openssl rand -hex 32"
+    }
+  }
+}

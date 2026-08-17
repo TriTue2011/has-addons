@@ -1,107 +1,227 @@
-# 🔊 AI BOX Add-ons cho Home Assistant
+# 💬 Zalo Bot cho Home Assistant
 
-## ❓ Nhóm Support:
+Gửi và nhận tin nhắn **Zalo cá nhân** ngay trong Home Assistant: báo động, nhắc
+việc, gửi ảnh camera, chuyển tiếp tin nhắn vào automation.
+
+## ❓ Nhóm hỗ trợ
+
 - Zalo: https://zalo.me/g/alvkgn274
 - Facebook: https://www.facebook.com/groups/aiboxvn
 
 ---
 
-# Ai dùng Docker thì vào thư mục từng add-on sẽ có hướng dẫn riêng cho Docker
+## Trước hết: cần HAI phần, không phải một
 
-# Hướng Dẫn Thêm Kho Add-on cho Home Assistant
+Rất nhiều người cài xong một phần rồi tưởng hỏng. Bộ đầy đủ gồm:
 
-Kho add-on này chứa các tiện ích mở rộng cho thiết bị **AI BOX (Phicomm R1)** trên Home Assistant. Dưới đây là hướng dẫn từng bước để thêm kho repository vào Home Assistant của bạn.
+| Phần | Là gì | Cài ở đâu |
+|---|---|---|
+| **Máy chủ Zalo** | Chương trình thật sự đăng nhập và nói chuyện với Zalo | Add-on Home Assistant **hoặc** container Docker |
+| **Tích hợp Zalo Bot** | Phần tạo service, entity, nút bấm trong Home Assistant | HACS |
 
-## Bước 1: Mở Home Assistant
+Tích hợp **không tự nói chuyện với Zalo được** — nó chỉ gọi sang máy chủ. Thiếu
+máy chủ thì tích hợp không làm gì cả.
 
-- Đăng nhập vào giao diện Home Assistant trên trình duyệt (ví dụ: `http://homeassistant.local:8123` hoặc địa chỉ IP của thiết bị chạy Home Assistant).
+Máy chủ chạy bằng Node.js nên **không thể** nhét vào tích hợp HACS (Home
+Assistant chỉ chạy Python).
 
-## Bước 2: Truy cập phần Add-on Store
+---
 
-- Nhấp vào **Settings** (Cài đặt) ở góc dưới bên trái.
-- Chọn **Add-ons** → **Add-on Store**.
+# PHẦN 1 — Cài máy chủ Zalo
 
-## Bước 3: Thêm Kho Repository
+Chọn **một** trong hai đường dưới đây.
 
-- Trong giao diện Add-on Store, nhấp vào biểu tượng **ba dấu chấm** (⋮) ở góc trên bên phải.
-- Chọn **Repositories**.
-- Dán đường dẫn sau vào ô nhập liệu:
+## Đường A: Add-on (cho Home Assistant OS và Supervised)
+
+> Không dùng được với Home Assistant bản Docker/Container — bản đó không có hệ
+> thống add-on. Nếu bạn chạy HA bằng `docker run` hay `docker compose`, hãy đi
+> theo **Đường B**.
+
+**Bước 1.** Vào **Settings → Add-ons → Add-on Store**.
+
+**Bước 2.** Nhấp biểu tượng **ba chấm** (⋮) góc trên bên phải → **Repositories**.
+
+**Bước 3.** Dán đường dẫn này rồi **Add**:
 
 ```
 https://github.com/TriTue2011/has-addons
 ```
 
-- Nhấp **Add** để xác nhận.
+**Bước 4.** Nhấn F5 để tải lại trang, tìm **Zalo Bot** → **Install**. Lần đầu
+tải image mất vài phút.
 
-## Bước 4: Cài đặt Add-on
+**Bước 5.** Sang tab **Configuration** và điền:
 
-- Sau khi thêm kho thành công, F5 lại trình duyệt rồi tìm tên add-on.
-- Nhấp vào add-on bạn muốn cài đặt, sau đó nhấp **Install** (Cài đặt).
-- Sau khi cài đặt, vào tab **Configuration** để cấu hình, sau đó nhấp **Start**.
+| Ô | Nên điền gì |
+|---|---|
+| `data_directory` | Để nguyên `/config/zalo_bot` |
+| `api_key` | **Nên điền.** Sinh bằng `openssl rand -hex 32` |
+| `admin_password` | Để trống cũng được — add-on tự sinh, xem bước 7 |
+| `session_secret` | Để trống cũng được — add-on tự sinh và giữ lại |
 
----
+**Bước 6.** Nhấn **Start**, rồi mở tab **Log** xem có lỗi không.
 
-## 📦 Danh sách Add-on
+**Bước 7.** Nếu để trống `admin_password`, tìm mật khẩu trong tab **Log** —
+add-on in ra một khối như thế này mỗi lần khởi động:
 
-### 🌐 AI BOX WebSocket Bridge
-
-WebSocket bridge cho phép điều khiển loa AI BOX (Phicomm R1) từ xa qua Cloudflare Tunnel. Hỗ trợ nhiều loa cùng lúc.
-
-**Tính năng:**
-- Route kết nối WebSocket đến đúng loa qua tham số `?ip=`
-- Hỗ trợ 2 port: WS Control (18082) và Speaker (18080)
-- IP whitelist bảo mật
-- Dùng kết hợp với Cloudflare Tunnel và [AI BOX WebUI Card](https://github.com/TriTue2011/R1-card)
-
-**Cấu hình nhanh:**
-1. Cài add-on → vào tab **Configuration**
-2. Thêm IP các loa vào `allowed_ips`
-3. **Start**
-4. Cấu hình Cloudflare Tunnel trỏ 2 hostname về `http://localhost:18082` và `http://localhost:18080`
-
----
-
-## 🎴 Card điều khiển AI BOX
-
-Card Lovelace đi kèm: [AI BOX WebUI Card (R1-card)](https://github.com/TriTue2011/R1-card)
-
-Cài qua HACS → Custom repositories → `https://github.com/TriTue2011/R1-card` → Category: Dashboard
-
-Cấu hình card:
-
-```yaml
-# 1 loa qua tunnel
-type: custom:aibox-webui-card
-host: <ip_loa>
-tunnel_host: <your_tunnel_domain>
-speaker_tunnel_host: <your_speaker_tunnel_domain>
-mode: auto
-
-# Nhiều loa
-type: custom:aibox-webui-card
-mode: auto
-rooms:
-  - name: "Phòng khách"
-    host: "<ip_loa_1>"
-    tunnel_host: <your_tunnel_domain>
-    speaker_tunnel_host: <your_speaker_tunnel_domain>
-  - name: "Phòng ngủ"
-    host: "<ip_loa_2>"
-    tunnel_host: <your_tunnel_domain>
-    speaker_tunnel_host: <your_speaker_tunnel_domain>
+```
+============================================================
+ Tai khoan: admin
+ Mat khau : 6nLh3ufkZMp0DUAN
+ Da ghi ra: /config/zalo_bot/THONG-TIN-DANG-NHAP.txt
+============================================================
 ```
 
+Mật khẩu cũng nằm trong tệp `THONG-TIN-DANG-NHAP.txt` ở thư mục dữ liệu, mở
+bằng add-on **File editor** hoặc qua **Samba** là thấy.
+
+**Bước 8.** Mở giao diện web tại `http://<ip-máy-Home-Assistant>:3000`, đăng
+nhập bằng tài khoản trên, rồi **quét mã QR bằng ứng dụng Zalo trên điện thoại**
+để đăng nhập tài khoản Zalo.
+
+## Đường B: Docker
+
+Dùng khi chạy Home Assistant bản Container, hoặc muốn đặt máy chủ Zalo ở máy
+khác.
+
+Tạo `docker-compose.yaml`:
+
+```yaml
+services:
+  zalobot:
+    image: ghcr.io/tritue2011/zalobot:latest
+    container_name: zalobot
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      DATA_DIRECTORY: /app/data
+      PORT: "3000"
+      # Sinh từng chuỗi bằng: openssl rand -hex 32
+      SESSION_SECRET: "thay-bang-chuoi-ngau-nhien"
+      ZALO_SERVER_ADMIN_PASSWORD: "thay-bang-mat-khau-manh"
+      ZALO_SERVER_API_KEY: "thay-bang-khoa-ngau-nhien"
+    volumes:
+      - ./zalobot-data:/app/data
+```
+
+Chạy:
+
+```bash
+docker compose up -d
+docker compose logs -f zalobot
+```
+
+Rồi mở `http://<ip-máy-chạy-docker>:3000`, đăng nhập bằng `admin` và mật khẩu
+vừa đặt, quét mã QR bằng Zalo trên điện thoại.
+
+**Gắn volume vào đúng `/app/data`** — cookie đăng nhập nằm ở đó. Thiếu volume là
+mỗi lần dựng lại container phải quét QR lại từ đầu.
+
+Image là **một** image dùng chung cho mọi kiến trúc: `amd64`, `aarch64`,
+`armv7`, `armhf`. Docker tự chọn đúng bản.
+
 ---
 
-## 🔧 Lưu ý
+# PHẦN 2 — Cài tích hợp trong Home Assistant
 
-- Add-on sử dụng `host_network` để truy cập loa trong mạng LAN.
-- Nếu gặp lỗi, kiểm tra kết nối mạng hoặc cập nhật Home Assistant lên phiên bản mới nhất.
-- Để biết thêm chi tiết về từng add-on, xem tab **Documentation** trong trang cài đặt add-on.
+Làm sau khi máy chủ ở Phần 1 đã chạy và đã quét QR xong.
 
-## 🆘 Hỗ trợ
+**Bước 1.** Mở **HACS** → dấu **ba chấm** góc trên phải → **Custom repositories**.
 
-Nếu bạn cần trợ giúp, hãy mở issue trên GitHub tại:
-[https://github.com/TriTue2011/has-addons/issues](https://github.com/TriTue2011/has-addons/issues)
+**Bước 2.** Dán đường dẫn, chọn loại **Integration**, rồi **Add**:
 
-Cảm ơn bạn đã sử dụng kho add-on!
+```
+https://github.com/TriTue2011/zalo_bot
+```
+
+**Bước 3.** Tìm **Zalo Bot** trong HACS → **Download** → **khởi động lại Home
+Assistant**.
+
+**Bước 4.** Vào **Settings → Devices & Services → Add Integration** → tìm
+**Zalo Bot**. Điền:
+
+| Ô | Giá trị |
+|---|---|
+| Zalo server | `http://<ip-máy-chủ-zalo>:3000` |
+| Username | `admin` |
+| Password | mật khẩu ở Phần 1 |
+
+Chạy add-on trên cùng máy Home Assistant thì điền `http://localhost:3000`.
+
+**Bước 5.** Xong. Trong automation sẽ có các service `zalo_bot.send_message`,
+`zalo_bot.send_image`, `zalo_bot.send_file`…
+
+---
+
+## Cấu hình chi tiết
+
+| Tuỳ chọn | Biến môi trường (bản Docker) | Bỏ trống thì sao |
+|---|---|---|
+| `data_directory` | `DATA_DIRECTORY` | Add-on dùng `/config/zalo_bot`, Docker dùng `/app/data` |
+| `api_key` | `ZALO_SERVER_API_KEY` | **Các API gửi tin mở cho mọi máy trong mạng nội bộ** — xem mục bảo mật |
+| `admin_password` | `ZALO_SERVER_ADMIN_PASSWORD` | Sinh ngẫu nhiên, ghi ra `THONG-TIN-DANG-NHAP.txt` và in ra log |
+| `session_secret` | `SESSION_SECRET` | Sinh một lần rồi giữ lại, phiên đăng nhập sống qua khởi động lại |
+
+Biến môi trường luôn **được ưu tiên hơn** ô cấu hình add-on.
+
+Đổi `admin_password` sau khi tài khoản đã tạo thì **không** đổi mật khẩu đang
+dùng — giá trị đó chỉ áp dụng lúc tạo tài khoản lần đầu. Muốn đổi thì đăng nhập
+vào giao diện web rồi dùng chức năng đổi mật khẩu.
+
+---
+
+## ⚠️ Bảo mật — đọc trước khi mở cổng
+
+Cổng 3000 là **cổng quản trị một tài khoản Zalo thật**. Ai vào được cổng này thì
+đọc được tin nhắn và gửi tin dưới danh nghĩa bạn.
+
+**Đừng bao giờ mở cổng 3000 ra Internet.** Không NAT, không port forward. Cần
+truy cập từ xa thì đi qua VPN hoặc Cloudflare Tunnel có xác thực.
+
+**Nên đặt `api_key`.** Chưa đặt thì nhóm API gửi tin — `/api/sendmessage`,
+`/api/findUser`, `/api/getUserInfo`, `/api/createGroup` — mở cho mọi máy trong
+mạng nội bộ, không cần đăng nhập. Đặt khoá vào là đóng lại, từ đó các API này
+đòi header `Authorization: Bearer <api_key>` hoặc phiên đăng nhập admin.
+
+Khoá đó cố ý **chỉ cấp quyền gửi nội dung** (tin, ảnh, tệp, video, sticker). Đọc
+lịch sử chat, tra người dùng, tạo và sửa nhóm, kết bạn đều bắt buộc đăng nhập
+bằng tài khoản admin.
+
+---
+
+## Gặp sự cố
+
+**Add-on không hiện trong Store.** Nhấn F5 tải lại trang. Vẫn không thấy thì
+kiểm tra đã thêm đúng đường dẫn kho ở bước 3 chưa.
+
+**Không tìm thấy add-on dù đã thêm kho, và Home Assistant chạy bằng Docker.**
+Bản Container không có hệ thống add-on. Đi theo Đường B.
+
+**Add-on chạy nhưng không đăng nhập được.** Mở tab **Log** tìm khối in mật khẩu.
+Nếu bạn tự điền `admin_password` mà vẫn sai, nhớ rằng giá trị đó chỉ áp dụng lần
+đầu tạo tài khoản — xoá tệp `users.json` trong thư mục dữ liệu rồi khởi động lại
+để tạo lại từ đầu.
+
+**Cứ khởi động lại là bị đăng xuất khỏi giao diện web.** Đang chạy Docker mà
+chưa đặt `SESSION_SECRET`. Đặt vào là hết.
+
+**Mỗi lần dựng lại container phải quét QR lại.** Chưa gắn volume vào
+`/app/data`, nên cookie đăng nhập mất theo container.
+
+**Tích hợp báo không kết nối được máy chủ.** Kiểm tra máy Home Assistant gọi tới
+được địa chỉ đã điền:
+
+```bash
+curl -s -o /dev/null -w "%{http_code}\n" http://<ip-máy-chủ-zalo>:3000/admin-login
+```
+
+Trả `200` là thông. Không phải `200` thì lỗi mạng hoặc sai cổng, chưa phải lỗi
+tích hợp.
+
+---
+
+## 🆘 Báo lỗi
+
+Mở issue tại https://github.com/TriTue2011/has-addons/issues — kèm nội dung tab
+**Log** của add-on, và nhớ **che mật khẩu cùng khoá API** trước khi dán.

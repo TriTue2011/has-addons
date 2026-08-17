@@ -2,6 +2,7 @@
 import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
+import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'url';
 import fetch from 'node-fetch';
 import { Readable } from 'stream';
@@ -99,9 +100,14 @@ export async function saveFileFromUrl(url) {
     }
 }
 
+// Tên tệp PHẢI khác nhau mỗi lời gọi. Trước đây dùng cố định "temp.png":
+// taiVeVaGuiNhieuAnh gọi hàm này một lần cho MỖI ảnh, nên cả N lần ghi lên cùng
+// một tệp và mảng đường dẫn chứa N bản của CÙNG một đường dẫn. Zalo nhận đủ N
+// tấm (soAnh báo đúng N) nhưng tấm nào cũng là ảnh tải về CUỐI CÙNG. Hai yêu cầu
+// gửi chạy song song cũng ghi đè lẫn nhau vì lý do này.
 export async function saveImage(url) {
     try {
-        const imgPath = path.join(process.cwd(), "temp.png");
+        const imgPath = path.join(process.cwd(), `temp-${randomUUID()}.png`);
 
         const { data } = await axios.get(url, { responseType: "arraybuffer" });
         fs.writeFileSync(imgPath, Buffer.from(data, "utf-8"));
