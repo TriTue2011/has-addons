@@ -61,6 +61,38 @@ WebSocket bridge cho phép điều khiển loa AI BOX (Phicomm R1) từ xa qua C
 
 ---
 
+### 💬 Zalo Bot
+
+Chạy `zalo-server` để tự động hoá gửi và nhận tin nhắn Zalo cá nhân từ Home
+Assistant. Dùng kèm tích hợp HACS [zalo_bot](https://github.com/TriTue2011/zalo_bot)
+— add-on là phần nói chuyện với Zalo, tích hợp là phần tạo service và entity
+trong Home Assistant. **Cần cả hai.**
+
+- Thư mục: [`zalo_bot/`](zalo_bot/) — có [README riêng](zalo_bot/README.md) kèm hướng dẫn chạy bằng Docker
+- Image: `ghcr.io/tritue2011/zalobot` (một image cho mọi kiến trúc: amd64, aarch64, armv7, armhf)
+- Cổng: 3000
+
+Sau khi cài, mở tab **Configuration**. Ô `api_key` **nên điền** — bỏ trống thì
+mọi máy trong mạng nội bộ đều gọi được các API gửi tin mà không cần đăng nhập.
+Mật khẩu quản trị nếu để trống sẽ được sinh ngẫu nhiên, ghi vào tệp
+`THONG-TIN-DANG-NHAP.txt` trong thư mục dữ liệu và in ra tab **Log**.
+
+---
+
+### 🤖 chatgpt2api
+
+Cổng API tương thích OpenAI, gộp ChatGPT, Codex OAuth, OpenCode, Gemini, DALL-E.
+
+- Thư mục: [`chatgpt2api/`](chatgpt2api/) — xem [README riêng](chatgpt2api/README.md)
+- Image: `ghcr.io/tritue2011/chatgpt2api`
+- Cổng: 3030 (Web UI + API)
+
+Ô `auth_key` **bắt buộc phải đặt**. Khoá này cấp quyền quản trị, và add-on chạy
+trên mạng của máy Home Assistant — để trống hoặc dùng giá trị mẫu thì ứng dụng
+từ chối khởi động.
+
+---
+
 ## 🎴 Card điều khiển AI BOX
 
 Card Lovelace đi kèm: [AI BOX WebUI Card (R1-card)](https://github.com/TriTue2011/R1-card)
