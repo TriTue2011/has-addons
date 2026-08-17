@@ -1,0 +1,20 @@
+{
+  "configuration": {
+    "data_directory": {
+      "name": "Thư mục dữ liệu",
+      "description": "Nơi lưu cookie đăng nhập, webhook và proxy. Giữ nguyên /config/zalo_bot nếu không có lý do đổi — đổi rồi là mất phiên đăng nhập Zalo, phải quét QR lại."
+    },
+    "session_secret": {
+      "name": "Khoá ký phiên đăng nhập",
+      "description": "Để TRỐNG cũng được: add-on tự sinh một khoá riêng cho máy này và giữ lại, phiên vẫn sống qua mỗi lần khởi động. Chỉ điền nếu muốn tự quản khoá. Sinh bằng: openssl rand -hex 32"
+    },
+    "admin_password": {
+      "name": "Mật khẩu quản trị",
+      "description": "Để TRỐNG cũng được: add-on tự sinh mật khẩu ngẫu nhiên, ghi vào tệp THONG-TIN-DANG-NHAP.txt trong thư mục dữ liệu (mở bằng File editor hoặc Samba là thấy) và in ra tab Log mỗi lần khởi động. Điền vào đây nếu muốn tự đặt."
+    },
+    "api_key": {
+      "name": "Khoá API gửi tin",
+      "description": "NÊN ĐIỀN. Bỏ trống thì mọi máy trong mạng nội bộ đều gọi được các API gửi tin (/api/sendmessage, /api/findUser…) mà không cần đăng nhập, tức gửi được tin từ tài khoản Zalo của bạn. Điền vào là đóng lại. Sinh bằng: openssl rand -hex 32"
+    }
+  }
+}
