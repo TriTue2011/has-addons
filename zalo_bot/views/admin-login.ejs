@@ -108,8 +108,8 @@
       const password = document.getElementById('password').value;
       
       try {
-        // Sử dụng một API endpoint duy nhất
-        const response = await fetch('/api/test-login', {
+        // Sử dụng API endpoint đăng nhập chuẩn
+        const response = await fetch('/api/login', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
