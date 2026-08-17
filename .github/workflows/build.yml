@@ -43,6 +43,19 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # Tag PHẢI khớp `version` trong zalo_bot/config.yaml: Supervisor kéo
+      # đúng `{image}:{version}` lấy từ đó. Ghi cứng số ở đây thì mỗi lần nâng
+      # version trong config.yaml là add-on đi tìm một tag không tồn tại và
+      # hỏng khi cài — đọc thẳng ra để hai nơi không thể lệch nhau.
+      - name: Lấy version từ config.yaml
+        id: ver
+        run: |
+          v=$(grep -E '^version:' zalo_bot/config.yaml | head -1 \
+              | sed -E 's/^version:[[:space:]]*"?([^"]+)"?[[:space:]]*$/\1/')
+          if [ -z "$v" ]; then echo "Không đọc được version"; exit 1; fi
+          echo "Add-on version: $v"
+          echo "v=$v" >> "$GITHUB_OUTPUT"
+
       - name: Build and push ${{ matrix.arch }}
         uses: docker/build-push-action@v5
         with:
@@ -51,4 +64,4 @@ jobs:
           push: true
           tags: |
             ghcr.io/tritue2011/zalobot-${{ matrix.arch }}:latest
-            ghcr.io/tritue2011/zalobot-${{ matrix.arch }}:2025.10.8
+            ghcr.io/tritue2011/zalobot-${{ matrix.arch }}:${{ steps.ver.outputs.v }}
