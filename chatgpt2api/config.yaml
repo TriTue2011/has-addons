@@ -1,6 +1,6 @@
 name: "chatgpt2api"
 description: "OpenAI API Gateway - ChatGPT, Codex, OpenCode, Gemini, DALL-E"
-version: "1.2.6"
+version: "1.2.7"
 slug: "chatgpt2api"
 url: "https://github.com/TriTue2011/has-addons"
 arch:
@@ -20,7 +20,12 @@ ports:
 ports_description:
   3030/tcp: Web UI + API
 options:
-  auth_key: "sk-chatgpt2api"
+  # KHÔNG đặt sẵn giá trị: tệp này nằm trong kho công khai, nên đặt sẵn nghĩa là
+  # mọi người cài add-on đều dùng chung một khoá. Mà khoá này không phải khoá
+  # API thường — nó cấp thẳng vai admin (xem api/support.py trong chatgpt2api) —
+  # và add-on chạy host_network cổng 3030, tức mở cho cả mạng nội bộ.
+  # Từ bản 1.2.7 ứng dụng cũng từ chối các giá trị mẫu đoán được.
+  auth_key: ""
   base_url: ""
 schema:
   auth_key: password

@@ -14,8 +14,22 @@ Sau đó tìm **chatgpt2api** → **Install**.
 
 | Option | Mặc định | Mô tả |
 |--------|----------|-------|
-| `auth_key` | `sk-chatgpt2api` | API key bảo vệ API và Web UI |
+| `auth_key` | **(trống — bắt buộc điền)** | Khoá bảo vệ API và Web UI. Ai có khoá này được cấp quyền **quản trị**, mà add-on chạy trên mạng của máy Home Assistant — nên phải đặt khoá riêng, dài. Sinh bằng `openssl rand -hex 32` |
 | `base_url` | (trống) | URL công khai nếu dùng ngoài mạng local (vd: `https://chatgpt.mydomain.com`) |
+
+## ⚠️ Nâng cấp lên 1.2.7: phải đặt lại `auth_key`
+
+Các bản trước đặt sẵn `auth_key` là `sk-chatgpt2api`. Giá trị đó nằm trong kho
+mã nguồn công khai, nên bất kỳ ai trong mạng nội bộ cũng đoán được và dùng nó để
+lấy quyền quản trị — add-on chạy `host_network` ở cổng 3030.
+
+Từ bản này giá trị mặc định bị bỏ trống, và ứng dụng **từ chối khởi động** nếu
+khoá để trống, ngắn dưới 8 ký tự, hoặc là một giá trị mẫu đã biết. Nếu add-on
+không chạy sau khi cập nhật, mở tab Log — thông báo sẽ nói rõ lý do.
+
+Cách xử lý: vào tab Configuration, điền `auth_key` bằng chuỗi sinh từ
+`openssl rand -hex 32`, rồi khởi động lại. Nhớ cập nhật khoá đó ở mọi nơi đang
+gọi vào gateway (Home Assistant, script, ứng dụng khác).
 
 ## Sau khi cài
 

@@ -1,0 +1,12 @@
+{
+  "configuration": {
+    "auth_key": {
+      "name": "Access key (REQUIRED)",
+      "description": "This key protects the whole API and Web UI, and whoever holds it is granted admin rights. The add-on runs on the Home Assistant host network, so do not leave it empty and do not use a sample value — the application will refuse to start. Generate with: openssl rand -hex 32"
+    },
+    "base_url": {
+      "name": "Public URL",
+      "description": "Only needed when reaching the add-on from outside your local network, e.g. https://chatgpt.example.com. Used to build image links. Leave empty for local-only use."
+    }
+  }
+}

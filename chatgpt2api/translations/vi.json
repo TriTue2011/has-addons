@@ -1,0 +1,12 @@
+{
+  "configuration": {
+    "auth_key": {
+      "name": "Khoá truy cập (BẮT BUỘC)",
+      "description": "Khoá này bảo vệ toàn bộ API và Web UI, và ai có nó được cấp quyền quản trị. Add-on chạy trên mạng của máy Home Assistant nên đừng để trống và đừng dùng giá trị mẫu — ứng dụng sẽ từ chối khởi động. Sinh bằng: openssl rand -hex 32"
+    },
+    "base_url": {
+      "name": "Địa chỉ công khai",
+      "description": "Chỉ điền khi truy cập từ ngoài mạng nội bộ, ví dụ https://chatgpt.tenmien.com. Dùng để dựng đường dẫn ảnh. Để trống nếu chỉ dùng trong nhà."
+    }
+  }
+}
