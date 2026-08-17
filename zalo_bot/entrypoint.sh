@@ -146,6 +146,23 @@ echo "-------------------------------------"
 # Đảm bảo DATA_DIRECTORY được truyền vào Node.js
 export DATA_DIRECTORY="$DATA_DIRECTORY"
 
+# Chưa khai session_secret ở cấu hình lẫn biến môi trường thì sinh MỘT LẦN rồi
+# giữ lại trong thư mục dữ liệu. Sinh mới mỗi lần chạy sẽ đá mọi người đang đăng
+# nhập ra sau mỗi lần khởi động lại add-on.
+if [ -z "$SESSION_SECRET" ]; then
+  SECRET_FILE="$DATA_DIRECTORY/.session_secret"
+  if [ ! -s "$SECRET_FILE" ] && [ -w "$DATA_DIRECTORY" ]; then
+    node -e "console.log(require('crypto').randomBytes(32).toString('hex'))" \
+      > "$SECRET_FILE" 2>/dev/null
+    chmod 600 "$SECRET_FILE" 2>/dev/null
+  fi
+  if [ -s "$SECRET_FILE" ]; then
+    SESSION_SECRET=$(cat "$SECRET_FILE")
+    export SESSION_SECRET
+    echo "Dùng SESSION_SECRET đã lưu tại $SECRET_FILE (phiên sống qua restart)"
+  fi
+fi
+
 # Khởi động ứng dụng
 echo "Starting Zalo Server with data directory: $DATA_DIRECTORY"
 exec node server.js

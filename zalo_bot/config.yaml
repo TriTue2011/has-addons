@@ -29,8 +29,8 @@ options:
   api_key: ""
 schema:
   data_directory: "str"
-  # Khoá ký session. Bỏ trống thì mỗi lần khởi động lại sinh khoá mới và mọi
-  # người đang đăng nhập bị đá ra.
+  # Khoá ký session. Bỏ trống cũng được: add-on tự sinh một khoá và giữ lại
+  # trong thư mục dữ liệu, phiên vẫn sống qua restart.
   session_secret: "password?"
   # Mật khẩu admin lần đầu. Bỏ trống thì server sinh ngẫu nhiên và in ra log
   # add-on đúng một lần (bản cũ dùng 'admin' — ai cũng đoán được).
