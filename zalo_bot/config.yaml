@@ -16,7 +16,10 @@ arch:
   - aarch64
   - armv7
   - armhf
-image: "ghcr.io/tritue2011/zalobot-{arch}"
+# Một image đa kiến trúc cho cả bốn arch ở trên: Docker tự chọn đúng bản
+# theo máy đang kéo. Dạng cũ "…zalobot-{arch}" đẻ ra bốn package riêng và
+# theo tài liệu Home Assistant thì chỉ còn là fallback tương thích ngược.
+image: "ghcr.io/tritue2011/zalobot"
 
 options:
   data_directory: "/config/zalo_bot"
