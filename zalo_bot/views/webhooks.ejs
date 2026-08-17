@@ -177,8 +177,13 @@
             // Hiển thị thông báo
             function showMessage(message, type) {
                 const messageContainer = $('#message-container');
+                // `message` có thể mang lời báo lỗi từ máy chủ, mà lời đó vọng
+                // lại giá trị người dùng vừa nhập — escape trước khi vào HTML.
+                const esc = (v) => (v == null ? '' : String(v))
+                    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
                 messageContainer.html(`<div class="alert alert-${type} alert-dismissible fade show">
-                    ${message}
+                    ${esc(message)}
                     <button type="button" class="close" data-dismiss="alert">&times;</button>
                 </div>`);
                 

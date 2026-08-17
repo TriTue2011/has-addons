@@ -36,6 +36,25 @@ if [ -f /data/options.json ]; then
       echo "Will try to use the directory anyway, but may have limited functionality"
     fi
   fi
+
+  # Bí mật đặt qua giao diện add-on. Bản này KHÔNG còn mật khẩu admin 'admin' và
+  # KHÔNG còn khoá phiên cố định: thiếu thì server tự sinh ngẫu nhiên — mật khẩu
+  # in ra log lần đầu, còn khoá phiên đổi mỗi lần khởi động lại nên ai đang đăng
+  # nhập sẽ bị đá ra. Đặt các giá trị dưới đây để tránh cả hai.
+  if [ -z "$SESSION_SECRET" ]; then
+    SESSION_SECRET=$(jq -r '.session_secret // ""' /data/options.json)
+    export SESSION_SECRET
+  fi
+  if [ -z "$ZALO_SERVER_ADMIN_PASSWORD" ]; then
+    ZALO_SERVER_ADMIN_PASSWORD=$(jq -r '.admin_password // ""' /data/options.json)
+    export ZALO_SERVER_ADMIN_PASSWORD
+  fi
+  # Chưa đặt api_key thì các API Zalo (/api/sendmessage, /api/findUser…) vẫn mở
+  # cho MỌI máy trong LAN, vì add-on chạy host_network. Đặt vào là đóng lại.
+  if [ -z "$ZALO_SERVER_API_KEY" ]; then
+    ZALO_SERVER_API_KEY=$(jq -r '.api_key // ""' /data/options.json)
+    export ZALO_SERVER_API_KEY
+  fi
 fi
 
 # Nếu vẫn không có DATA_DIRECTORY, sử dụng mặc định

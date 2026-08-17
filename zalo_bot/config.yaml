@@ -1,7 +1,7 @@
 name: "Zalo Bot"
 description: "Add-on Zalo Bot in Home Assistant"
 url: "https://github.com/TriTue2011/has-addons"
-version: "2025.10.8"
+version: "2026.8.17"
 slug: "zalo_bot"
 init: false
 map:
@@ -20,5 +20,18 @@ image: "ghcr.io/tritue2011/zalobot-{arch}"
 
 options:
   data_directory: "/config/zalo_bot"
+  # Để trống cũng chạy được, nhưng nên điền — xem giải thích ở README.
+  session_secret: ""
+  admin_password: ""
+  api_key: ""
 schema:
   data_directory: "str"
+  # Khoá ký session. Bỏ trống thì mỗi lần khởi động lại sinh khoá mới và mọi
+  # người đang đăng nhập bị đá ra.
+  session_secret: "password?"
+  # Mật khẩu admin lần đầu. Bỏ trống thì server sinh ngẫu nhiên và in ra log
+  # add-on đúng một lần (bản cũ dùng 'admin' — ai cũng đoán được).
+  admin_password: "password?"
+  # Khoá cho các API gửi tin. CHƯA ĐẶT thì /api/sendmessage, /api/findUser… mở
+  # cho mọi máy trong LAN vì add-on chạy host_network.
+  api_key: "password?"

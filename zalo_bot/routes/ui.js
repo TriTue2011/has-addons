@@ -4,6 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { zaloAccounts, loginZaloAccount } from '../api/zalo/zalo.js';
 import { proxyService } from '../services/proxyService.js';
+import { adminMiddleware } from '../services/authService.js';
 import dotenv from 'dotenv';
 import { broadcastMessage } from '../server.js';  // Import hàm broadcast tin nhắn
 
@@ -86,7 +87,7 @@ router.post('/zalo-login', async (req, res) => {
 });
 
 // Hiển thị form cập nhật webhook URL
-router.get('/updateWebhookForm', (req, res) => {
+router.get('/updateWebhookForm', adminMiddleware, (req, res) => {
     res.render('updateWebhookForm');
 });
 
@@ -97,9 +98,7 @@ router.get('/list', (req, res) => {
 
 // Lấy danh sách tài khoản đã đăng nhập
 router.get('/accounts', (req, res) => {
-    if (zaloAccounts.length === 0) {
-        return res.json({ success: true, message: 'Chưa có tài khoản nào đăng nhập' });
-    }
+    const acceptHeader = req.headers.accept || '';
 
     const accounts = zaloAccounts.map(account => ({
         ownId: account.ownId,
@@ -107,41 +106,32 @@ router.get('/accounts', (req, res) => {
         phoneNumber: account.phoneNumber || 'N/A',
     }));
 
-    // Tạo bảng HTML cho các yêu cầu từ trình duyệt
-    let html = '<table border="1">';
-    html += '<thead><tr>';
-    const headers = ['Own ID', 'Phone Number', 'Proxy'];
-    headers.forEach(header => {
-        html += `<th>${header}</th>`;
-    });
-    html += '</tr></thead><tbody>';
-    accounts.forEach((account) => {
-        html += '<tr>';
-        html += `<td>${account.ownId}</td>`;
-        html += `<td>${account.phoneNumber || 'N/A'}</td>`;
-        html += `<td>${account.proxy || 'Không có'}</td>`;
-        html += '</tr>';
-    });
-    html += '</tbody></table>';
-
-    // Kiểm tra Accept header để quyết định định dạng trả về
-    const acceptHeader = req.headers.accept || '';
-
     if (acceptHeader.includes('application/json')) {
-        // Trả về JSON cho API calls
         return res.json({
             success: true,
-            accounts: accounts,
-            html: html
+            accounts: accounts
         });
-    } else {
-        // Trả về HTML cho truy cập trực tiếp từ trình duyệt
-        res.send(html);
     }
+
+    // Add-on KHÔNG có views/accounts.ejs: view đó thuộc giao diện chat của
+    // chatgpt2api và cần /chat/css, /chat/icons. Dựng bảng ngay tại đây như bản
+    // cũ của add-on, nhưng ESCAPE giá trị — `proxy` do người dùng nhập ở trang
+    // Proxies nên nối thẳng vào HTML là một đường XSS lưu trữ.
+    const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => (
+        { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+    ));
+    const hang = accounts.map((a) => (
+        `<tr><td>${esc(a.ownId)}</td><td>${esc(a.phoneNumber || 'N/A')}</td>`
+        + `<td>${esc(a.proxy || 'Không có')}</td></tr>`
+    )).join('');
+    res.send(
+        '<table border="1"><thead><tr><th>Own ID</th><th>Phone Number</th>'
+        + `<th>Proxy</th></tr></thead><tbody>${hang}</tbody></table>`
+    );
 });
 
 // Endpoint cập nhật 3 webhook URL
-router.post('/updateWebhook', (req, res) => {
+router.post('/updateWebhook', adminMiddleware, (req, res) => {
   const { messageWebhookUrl, groupEventWebhookUrl, reactionWebhookUrl } = req.body;
   // Kiểm tra tính hợp lệ của từng URL
   if (!messageWebhookUrl || !messageWebhookUrl.startsWith("http")) {
@@ -212,12 +202,16 @@ router.post('/updateWebhook', (req, res) => {
 
 // API quản lý proxy
 // Lấy danh sách proxy hiện có
-router.get('/proxies', (req, res) => {
-  res.json({ success: true, data: proxyService.getPROXIES() });
+router.get('/proxies', adminMiddleware, (req, res) => {
+  const acceptHeader = req.headers.accept || '';
+  if (acceptHeader.includes('application/json')) {
+    return res.json({ success: true, data: proxyService.getPROXIES() });
+  }
+  res.render('proxies');
 });
 
 // Thêm một proxy mới
-router.post('/proxies', (req, res) => {
+router.post('/proxies', adminMiddleware, (req, res) => {
   const { proxyUrl } = req.body;
   if (!proxyUrl) {
       return res.status(400).json({ success: false, error: 'proxyUrl không hợp lệ' });
@@ -231,7 +225,7 @@ router.post('/proxies', (req, res) => {
 });
 
 // Xóa một proxy
-router.delete('/proxies', (req, res) => {
+router.delete('/proxies', adminMiddleware, (req, res) => {
   const { proxyUrl } = req.body;
   if (!proxyUrl) {
       return res.status(400).json({ success: false, error: 'proxyUrl không hợp lệ' });
@@ -250,17 +244,12 @@ router.get('/session-test', (req, res) => {
 });
 
 // Route quản lý người dùng
-router.get('/user-management', (req, res) => {
-  // Kiểm tra xem người dùng đã đăng nhập và có quyền admin chưa
-  if (!req.session || !req.session.authenticated || req.session.role !== 'admin') {
-    return res.redirect('/admin-login');
-  }
-
+router.get('/user-management', adminMiddleware, (req, res) => {
   res.render('user-management');
 });
 
 // Hiển thị trang quản lý webhook theo tài khoản
-router.get('/account-webhook-manager', (req, res) => {
+router.get('/account-webhook-manager', adminMiddleware, (req, res) => {
     res.render('account-webhook-manager');
 });
 
