@@ -225,7 +225,16 @@ router.post('/login', (req, res) => {
     req.session.username = user.username;
     req.session.role = user.role;
 
-    res.json({ success: true, user });
+    req.session.save((err) => {
+      if (err) {
+        console.error('Session save error:', err);
+        return res.status(500).json({
+          success: false,
+          message: 'Lỗi server khi lưu phiên đăng nhập',
+        });
+      }
+      return res.json({ success: true, user });
+    });
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({
