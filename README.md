@@ -55,7 +55,7 @@ tải image mất vài phút.
 | Ô | Nên điền gì |
 |---|---|
 | `data_directory` | Để nguyên `/config/zalo_bot` |
-| `api_key` | **Nên điền.** Sinh bằng `openssl rand -hex 32` |
+| `api_key` | Để trống — add-on tự sinh, xem bước 7 |
 | `admin_password` | Để trống cũng được — add-on tự sinh, xem bước 7 |
 | `session_secret` | Để trống cũng được — add-on tự sinh và giữ lại |
 
@@ -68,6 +68,7 @@ add-on in ra một khối như thế này mỗi lần khởi động:
 ============================================================
  Tai khoan: admin
  Mat khau : 6nLh3ufkZMp0DUAN
+ Khoa API : d95a4db8c902296dd7005fad54c9fbb28c32b3b7e517ea3fcce8d59429173
  Da ghi ra: /config/zalo_bot/THONG-TIN-DANG-NHAP.txt
 ============================================================
 ```
@@ -159,7 +160,7 @@ Chạy add-on trên cùng máy Home Assistant thì điền `http://localhost:300
 | Tuỳ chọn | Biến môi trường (bản Docker) | Bỏ trống thì sao |
 |---|---|---|
 | `data_directory` | `DATA_DIRECTORY` | Add-on dùng `/config/zalo_bot`, Docker dùng `/app/data` |
-| `api_key` | `ZALO_SERVER_API_KEY` | **Các API gửi tin mở cho mọi máy trong mạng nội bộ** — xem mục bảo mật |
+| `api_key` | `ZALO_SERVER_API_KEY` | Add-on tự sinh, giữ lại, và ghi vào `THONG-TIN-DANG-NHAP.txt` |
 | `admin_password` | `ZALO_SERVER_ADMIN_PASSWORD` | Sinh ngẫu nhiên, ghi ra `THONG-TIN-DANG-NHAP.txt` và in ra log |
 | `session_secret` | `SESSION_SECRET` | Sinh một lần rồi giữ lại, phiên đăng nhập sống qua khởi động lại |
 
@@ -179,10 +180,14 @@ Cổng 3000 là **cổng quản trị một tài khoản Zalo thật**. Ai vào 
 **Đừng bao giờ mở cổng 3000 ra Internet.** Không NAT, không port forward. Cần
 truy cập từ xa thì đi qua VPN hoặc Cloudflare Tunnel có xác thực.
 
-**Nên đặt `api_key`.** Chưa đặt thì nhóm API gửi tin — `/api/sendmessage`,
-`/api/findUser`, `/api/getUserInfo`, `/api/createGroup` — mở cho mọi máy trong
-mạng nội bộ, không cần đăng nhập. Đặt khoá vào là đóng lại, từ đó các API này
-đòi header `Authorization: Bearer <api_key>` hoặc phiên đăng nhập admin.
+**Khoá API bật sẵn.** Add-on tự sinh `api_key` ngay lần chạy đầu, nên nhóm API
+gửi tin — `/api/sendmessage`, `/api/findUser`, `/api/getUserInfo`,
+`/api/createGroup` — đóng ngay từ đầu, đòi header
+`Authorization: Bearer <api_key>` hoặc phiên đăng nhập admin.
+
+Khoá nằm trong `THONG-TIN-DANG-NHAP.txt` cùng thư mục dữ liệu, và in ra tab
+**Log** mỗi lần khởi động. Chép ra dùng cho REST command hay script. **Tích hợp
+HACS không cần khoá này** — nó đăng nhập bằng tài khoản admin.
 
 Khoá đó cố ý **chỉ cấp quyền gửi nội dung** (tin, ảnh, tệp, video, sticker). Đọc
 lịch sử chat, tra người dùng, tạo và sửa nhóm, kết bạn đều bắt buộc đăng nhập

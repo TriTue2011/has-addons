@@ -1,7 +1,7 @@
 name: "Zalo Bot"
 description: "Add-on Zalo Bot in Home Assistant"
 url: "https://github.com/TriTue2011/has-addons"
-version: "2026.8.17"
+version: "2026.8.18"
 slug: "zalo_bot"
 init: false
 map:
@@ -36,6 +36,6 @@ schema:
   # ghi ra THONG-TIN-DANG-NHAP.txt trong thư mục dữ liệu và in ra log mỗi lần
   # khởi động (bản cũ dùng 'admin' — ai cũng đoán được).
   admin_password: "password?"
-  # Khoá cho các API gửi tin. CHƯA ĐẶT thì /api/sendmessage, /api/findUser… mở
-  # cho mọi máy trong LAN vì add-on chạy host_network.
+  # Khoá cho các API gửi tin. Bỏ trống cũng được: add-on tự sinh một khoá, giữ
+  # lại, và ghi vào THONG-TIN-DANG-NHAP.txt để chép ra dùng.
   api_key: "password?"

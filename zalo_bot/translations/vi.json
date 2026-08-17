@@ -14,7 +14,7 @@
     },
     "api_key": {
       "name": "Khoá API gửi tin",
-      "description": "NÊN ĐIỀN. Bỏ trống thì mọi máy trong mạng nội bộ đều gọi được các API gửi tin (/api/sendmessage, /api/findUser…) mà không cần đăng nhập, tức gửi được tin từ tài khoản Zalo của bạn. Điền vào là đóng lại. Sinh bằng: openssl rand -hex 32"
+      "description": "Bỏ TRỐNG cũng được: add-on tự sinh một khoá riêng, giữ lại, và ghi vào tệp THONG-TIN-DANG-NHAP.txt trong thư mục dữ liệu cùng với mật khẩu quản trị. Chỉ cần khoá này khi gọi thẳng API gửi tin bằng REST command hay script — tích hợp HACS không cần, nó đăng nhập bằng tài khoản."
     }
   }
 }

@@ -179,11 +179,30 @@ if [ -z "$ZALO_SERVER_ADMIN_PASSWORD" ]; then
   fi
 fi
 
+# Khoá API: chưa khai thì cũng TỰ SINH. Trước đây để trống nghĩa là các API gửi
+# tin mở cho mọi máy trong mạng nội bộ, và cách khắc phục duy nhất ghi trong tài
+# liệu là bảo người dùng tự chạy `openssl rand -hex 32` — đòi hỏi vô lý với
+# người cài add-on qua giao diện. Tự sinh vừa bỏ được rào cản đó, vừa đổi mặc
+# định từ MỞ thành ĐÓNG.
+if [ -z "$ZALO_SERVER_API_KEY" ]; then
+  KEY_FILE="$DATA_DIRECTORY/.api_key"
+  if [ ! -s "$KEY_FILE" ] && [ -w "$DATA_DIRECTORY" ]; then
+    node -e "console.log(require('crypto').randomBytes(32).toString('hex'))" \
+      > "$KEY_FILE" 2>/dev/null
+    chmod 600 "$KEY_FILE" 2>/dev/null
+  fi
+  if [ -s "$KEY_FILE" ]; then
+    ZALO_SERVER_API_KEY=$(cat "$KEY_FILE")
+    export ZALO_SERVER_API_KEY
+  fi
+fi
+
 # Tệp thông tin đăng nhập, đặt ngay trong thư mục dữ liệu để mở bằng File editor
 # hay Samba là thấy. Chỉ ghi khi CHÍNH add-on sinh mật khẩu; anh tự khai mật
 # khẩu ở phần cài đặt thì không ghi gì cả.
 INFO_FILE="$DATA_DIRECTORY/THONG-TIN-DANG-NHAP.txt"
-if [ -s "$DATA_DIRECTORY/.admin_password" ] && [ -w "$DATA_DIRECTORY" ]; then
+if { [ -s "$DATA_DIRECTORY/.admin_password" ] || [ -s "$DATA_DIRECTORY/.api_key" ]; } \
+   && [ -w "$DATA_DIRECTORY" ]; then
   {
     echo "THONG TIN DANG NHAP ZALO BOT"
     echo "============================"
@@ -196,11 +215,19 @@ if [ -s "$DATA_DIRECTORY/.admin_password" ] && [ -w "$DATA_DIRECTORY" ]; then
     echo "Dang nhap xong nen doi mat khau, hoac dien san o 'admin_password'."
     echo
     echo "LUU Y: neu da doi mat khau trong giao dien thi tep nay KHONG con dung."
+    echo
+    echo "----------------------------------------------------------"
+    echo "KHOA API (cho REST command / script goi thang vao API gui tin):"
+    echo "$ZALO_SERVER_API_KEY"
+    echo
+    echo "Dung dang header:  Authorization: Bearer <khoa tren>"
+    echo "Tich hop HACS KHONG can khoa nay - no dang nhap bang tai khoan."
   } > "$INFO_FILE" 2>/dev/null
   chmod 600 "$INFO_FILE" 2>/dev/null
   echo "============================================================"
   echo " Tai khoan: ${ZALO_SERVER_ADMIN_USERNAME:-admin}"
   echo " Mat khau : $ZALO_SERVER_ADMIN_PASSWORD"
+  echo " Khoa API : $ZALO_SERVER_API_KEY"
   echo " Da ghi ra: $INFO_FILE"
   echo "============================================================"
 fi

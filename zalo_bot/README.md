@@ -10,7 +10,7 @@ Assistant, để tự động hoá gửi và nhận tin nhắn Zalo cá nhân.
 | `data_directory` | Mặc định `/config/zalo_bot`. Nơi lưu cookie đăng nhập, webhook, proxy. |
 | `session_secret` | Add-on tự sinh một khoá rồi giữ lại trong thư mục dữ liệu, nên phiên vẫn sống qua restart. Chỉ cần điền nếu muốn tự quản khoá hoặc dùng chung giữa nhiều nơi. |
 | `admin_password` | Add-on sinh một mật khẩu ngẫu nhiên, giữ lại, và ghi ra tệp `THONG-TIN-DANG-NHAP.txt` ngay trong thư mục dữ liệu — mở bằng File editor hoặc Samba là thấy. Cũng in ra log mỗi lần khởi động. |
-| `api_key` | **Các API gửi tin vẫn mở cho mọi máy trong mạng LAN.** Xem mục dưới. |
+| `api_key` | Add-on tự sinh một khoá, giữ lại, và ghi vào `THONG-TIN-DANG-NHAP.txt`. Chỉ cần chép ra khi gọi thẳng API bằng REST command hay script. |
 
 Đổi `admin_password` sau khi đã có tài khoản thì **không** đổi mật khẩu đang
 dùng — giá trị này chỉ áp dụng lúc tạo `users.json` lần đầu. Muốn đổi thì đăng
@@ -21,11 +21,14 @@ nhập rồi dùng chức năng đổi mật khẩu.
 Add-on chạy với `host_network: true`, nghĩa là cổng 3000 nằm thẳng trên mạng của
 máy Home Assistant. **Đừng để cổng này ra Internet.**
 
-Khi chưa đặt `api_key`, một nhóm API Zalo vẫn mở không cần đăng nhập — trong đó
-có `/api/sendmessage`, `/api/findUser`, `/api/getUserInfo`, `/api/createGroup`.
-Nghĩa là bất kỳ máy nào trong mạng cũng **gửi tin từ tài khoản Zalo của bạn**
-được. Đặt `api_key` là đóng lại: từ lúc đó các API này đòi header
-`Authorization: Bearer <api_key>` hoặc phiên đăng nhập admin.
+Nhóm API Zalo — `/api/sendmessage`, `/api/findUser`, `/api/getUserInfo`,
+`/api/createGroup` — đóng ngay từ lần chạy đầu, vì add-on tự sinh `api_key` nếu
+bạn để trống. Chúng đòi header `Authorization: Bearer <api_key>` hoặc phiên đăng
+nhập admin.
+
+Bản trước bỏ trống nghĩa là mở cho mọi máy trong mạng, và tài liệu bảo người
+dùng tự chạy `openssl rand -hex 32` — đòi hỏi vô lý với người cài qua giao diện,
+nên phần lớn sẽ bỏ qua và ở nguyên trạng thái mở.
 
 Khoá này cố ý chỉ cấp quyền **gửi nội dung** (tin, ảnh, tệp, video, sticker).
 Đọc lịch sử chat, tra người dùng, tạo và sửa nhóm, kết bạn đều phải đăng nhập

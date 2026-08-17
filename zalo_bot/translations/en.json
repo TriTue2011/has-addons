@@ -14,7 +14,7 @@
     },
     "api_key": {
       "name": "Send API key",
-      "description": "RECOMMENDED. If left empty, any machine on your local network can call the sending APIs (/api/sendmessage, /api/findUser…) without logging in — meaning they can send messages from your Zalo account. Setting a key closes that. Generate with: openssl rand -hex 32"
+      "description": "Can be left EMPTY: the add-on generates a key, keeps it, and writes it to THONG-TIN-DANG-NHAP.txt in the data directory alongside the admin password. You only need this key when calling the sending APIs directly from a REST command or script — the HACS integration does not need it, it logs in with the account."
     }
   }
 }
