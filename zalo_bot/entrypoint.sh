@@ -163,6 +163,48 @@ if [ -z "$SESSION_SECRET" ]; then
   fi
 fi
 
+# Mật khẩu admin: chưa khai thì sinh MỘT LẦN rồi giữ lại, thay vì để server tự
+# sinh mới mỗi lần tạo users.json. Sinh ở đây để còn ghi ra tệp cho người cài
+# đọc được — bắt họ lục log mới biết đăng nhập bằng gì là không xong.
+if [ -z "$ZALO_SERVER_ADMIN_PASSWORD" ]; then
+  PASS_FILE="$DATA_DIRECTORY/.admin_password"
+  if [ ! -s "$PASS_FILE" ] && [ -w "$DATA_DIRECTORY" ]; then
+    node -e "console.log(require('crypto').randomBytes(12).toString('base64url'))" \
+      > "$PASS_FILE" 2>/dev/null
+    chmod 600 "$PASS_FILE" 2>/dev/null
+  fi
+  if [ -s "$PASS_FILE" ]; then
+    ZALO_SERVER_ADMIN_PASSWORD=$(cat "$PASS_FILE")
+    export ZALO_SERVER_ADMIN_PASSWORD
+  fi
+fi
+
+# Tệp thông tin đăng nhập, đặt ngay trong thư mục dữ liệu để mở bằng File editor
+# hay Samba là thấy. Chỉ ghi khi CHÍNH add-on sinh mật khẩu; anh tự khai mật
+# khẩu ở phần cài đặt thì không ghi gì cả.
+INFO_FILE="$DATA_DIRECTORY/THONG-TIN-DANG-NHAP.txt"
+if [ -s "$DATA_DIRECTORY/.admin_password" ] && [ -w "$DATA_DIRECTORY" ]; then
+  {
+    echo "THONG TIN DANG NHAP ZALO BOT"
+    echo "============================"
+    echo
+    echo "Dia chi : http://<dia-chi-may-Home-Assistant>:${PORT:-3000}"
+    echo "Tai khoan: ${ZALO_SERVER_ADMIN_USERNAME:-admin}"
+    echo "Mat khau : $ZALO_SERVER_ADMIN_PASSWORD"
+    echo
+    echo "Mat khau nay do add-on tu sinh vi phan cai dat de trong."
+    echo "Dang nhap xong nen doi mat khau, hoac dien san o 'admin_password'."
+    echo
+    echo "LUU Y: neu da doi mat khau trong giao dien thi tep nay KHONG con dung."
+  } > "$INFO_FILE" 2>/dev/null
+  chmod 600 "$INFO_FILE" 2>/dev/null
+  echo "============================================================"
+  echo " Tai khoan: ${ZALO_SERVER_ADMIN_USERNAME:-admin}"
+  echo " Mat khau : $ZALO_SERVER_ADMIN_PASSWORD"
+  echo " Da ghi ra: $INFO_FILE"
+  echo "============================================================"
+fi
+
 # Khởi động ứng dụng
 echo "Starting Zalo Server with data directory: $DATA_DIRECTORY"
 exec node server.js

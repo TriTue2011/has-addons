@@ -32,8 +32,9 @@ schema:
   # Khoá ký session. Bỏ trống cũng được: add-on tự sinh một khoá và giữ lại
   # trong thư mục dữ liệu, phiên vẫn sống qua restart.
   session_secret: "password?"
-  # Mật khẩu admin lần đầu. Bỏ trống thì server sinh ngẫu nhiên và in ra log
-  # add-on đúng một lần (bản cũ dùng 'admin' — ai cũng đoán được).
+  # Mật khẩu admin lần đầu. Bỏ trống cũng được: add-on sinh ngẫu nhiên, giữ lại,
+  # ghi ra THONG-TIN-DANG-NHAP.txt trong thư mục dữ liệu và in ra log mỗi lần
+  # khởi động (bản cũ dùng 'admin' — ai cũng đoán được).
   admin_password: "password?"
   # Khoá cho các API gửi tin. CHƯA ĐẶT thì /api/sendmessage, /api/findUser… mở
   # cho mọi máy trong LAN vì add-on chạy host_network.

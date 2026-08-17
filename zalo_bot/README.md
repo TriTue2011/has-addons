@@ -9,7 +9,7 @@ Assistant, để tự động hoá gửi và nhận tin nhắn Zalo cá nhân.
 |---|---|
 | `data_directory` | Mặc định `/config/zalo_bot`. Nơi lưu cookie đăng nhập, webhook, proxy. |
 | `session_secret` | Add-on tự sinh một khoá rồi giữ lại trong thư mục dữ liệu, nên phiên vẫn sống qua restart. Chỉ cần điền nếu muốn tự quản khoá hoặc dùng chung giữa nhiều nơi. |
-| `admin_password` | Lần chạy đầu server **sinh mật khẩu ngẫu nhiên và in ra log add-on đúng một lần**. Mở tab Log để lấy, rồi đăng nhập và đổi. |
+| `admin_password` | Add-on sinh một mật khẩu ngẫu nhiên, giữ lại, và ghi ra tệp `THONG-TIN-DANG-NHAP.txt` ngay trong thư mục dữ liệu — mở bằng File editor hoặc Samba là thấy. Cũng in ra log mỗi lần khởi động. |
 | `api_key` | **Các API gửi tin vẫn mở cho mọi máy trong mạng LAN.** Xem mục dưới. |
 
 Đổi `admin_password` sau khi đã có tài khoản thì **không** đổi mật khẩu đang
@@ -73,7 +73,8 @@ Dữ liệu và tài khoản đang có được giữ nguyên, không phải qu�
 đổi có thể khiến bạn thấy khác:
 
 - Không còn tài khoản mặc định `admin` / `admin`. Cài mới sẽ sinh mật khẩu ngẫu
-  nhiên in ra log. Bản đã cài từ trước giữ nguyên tài khoản cũ.
+  nhiên, ghi ra `THONG-TIN-DANG-NHAP.txt` trong thư mục dữ liệu và in ra log.
+  Bản đã cài từ trước giữ nguyên tài khoản cũ.
 - Không còn khoá phiên cố định đoán được. Bỏ trống `session_secret` thì add-on
   tự sinh một khoá riêng cho máy này và giữ lại, nên vẫn không phải đăng nhập
   lại sau mỗi lần khởi động.
