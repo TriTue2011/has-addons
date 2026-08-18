@@ -95,7 +95,13 @@
             
             // WebSocket connection
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = `${protocol}//${window.location.host}`;
+            // Server chỉ nhận nâng cấp WebSocket ở đường kết thúc bằng '/ws'
+            // (server.js), mọi đường khác bị đóng ngay nên trang này báo "Mất
+            // kết nối" liên tục. Lấy phần gốc từ URL hiện tại thay vì gắn '/ws'
+            // vào host, để chạy được cả khi vào qua ingress Home Assistant —
+            // lúc đó ingress chèn thêm tiền tố phía trước '/messages'.
+            const basePath = window.location.pathname.replace(/\/messages\/?$/, '');
+            const wsUrl = `${protocol}//${window.location.host}${basePath}/ws`;
             let socket = null;
             let reconnectAttempts = 0;
             const maxReconnectAttempts = 5;

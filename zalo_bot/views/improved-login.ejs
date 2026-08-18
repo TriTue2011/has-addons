@@ -206,7 +206,10 @@
             
             // Xác định URL WebSocket dựa trên URL hiện tại
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = `${protocol}//${window.location.host}/ws`;
+            // Cùng lý do như trang /messages: bám theo đường hiện tại chứ không
+            // gắn '/ws' vào host, để ingress Home Assistant vẫn dẫn đúng.
+            const basePath = window.location.pathname.replace(/\/zalo-login\/?$/, '');
+            const wsUrl = `${protocol}//${window.location.host}${basePath}/ws`;
             
             console.log('Đang kết nối đến WebSocket tại:', wsUrl);
             

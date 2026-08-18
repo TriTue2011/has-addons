@@ -15,16 +15,24 @@ export function setupEventListeners(api, loginResolve) {
     
     // Lắng nghe sự kiện tin nhắn và gửi đến webhook được cấu hình cho tin nhắn
     api.listener.on("message", (msg) => {
-        const messageWebhookUrl = getWebhookUrl("messageWebhookUrl", ownId);
         // Thêm ownId vào dữ liệu để webhook biết tin nhắn từ tài khoản nào
         const msgWithOwnId = { ...msg, _accountId: ownId };
-        
-        // Gửi tới webhook nếu được cấu hình
-        if (messageWebhookUrl) {
-            triggerN8nWebhook(msgWithOwnId, messageWebhookUrl);
+
+        // TIN DO CHÍNH TÀI KHOẢN NÀY GỬI (msg.isSelf) KHÔNG ĐẨY RA WEBHOOK.
+        // Listener bật selfListen: true để giao diện thấy cả tin gửi từ máy
+        // khác, nhưng bên nhận webhook (bot AI, n8n, automation Home Assistant)
+        // hiểu mọi sự kiện "message" là tin ĐẾN: nó trả lời → tin trả lời sinh
+        // ra sự kiện mới → nó lại trả lời, thành vòng lặp bot tự nói chuyện với
+        // chính mình. Log 18/08: mỗi tin trích dẫn lại tin trước của chính bot,
+        // lặp đều khoảng 4 giây cho tới khi tắt add-on.
+        if (!msg.isSelf) {
+            const messageWebhookUrl = getWebhookUrl("messageWebhookUrl", ownId);
+            if (messageWebhookUrl) {
+                triggerN8nWebhook(msgWithOwnId, messageWebhookUrl);
+            }
         }
-        
-        // Broadcast tin nhắn tới WebSocket cho trang hiển thị thread_id
+
+        // Trang theo dõi tin nhắn vẫn nhận cả hai chiều để soi được hội thoại.
         broadcastToWebsocket(msgWithOwnId);
     });
 
