@@ -134,6 +134,7 @@ import {
     getStickersDetailByAccount
 } from '../api/zalo/zalo.js';
 import { validateUser, adminMiddleware, addUser, deleteUser, getAllUsers, changePassword } from '../services/authService.js';
+import { getDataDirectory } from '../config/addon.js';
 import {
     getWebhookUrl,
     setWebhookUrl,
@@ -803,7 +804,7 @@ router.get('/debug-users-file', (req, res) => {
     // cho bất kỳ ai. Chỉ bật khi ZALO_DEV_ENDPOINTS=1; production trả 404.
     if (!DEV_ENDPOINTS) return res.status(404).json({ success: false, message: 'Not found' });
     try {
-        const userFilePath = path.join(process.cwd(), 'data', 'cookies', 'users.json');
+        const userFilePath = path.join(getDataDirectory(), 'cookies', 'users.json');
         const fileExists = fs.existsSync(userFilePath);
         let fileContent = null;
         let users = [];
@@ -853,7 +854,7 @@ router.get('/debug-users-file', (req, res) => {
 router.post('/reset-admin-password', adminMiddleware, (req, res) => {
     if (!DEV_ENDPOINTS) return res.status(404).json({ success: false, message: 'Not found' });
     try {
-        const userFilePath = path.join(process.cwd(), 'data', 'cookies', 'users.json');
+        const userFilePath = path.join(getDataDirectory(), 'cookies', 'users.json');
         const fileExists = fs.existsSync(userFilePath);
 
         if (!fileExists) {
@@ -898,7 +899,7 @@ router.post('/reset-admin-password', adminMiddleware, (req, res) => {
         // Ghi lại file
         try {
             // Tạo file tạm thời
-            const tempFilePath = path.join(process.cwd(), 'data', 'cookies', 'users.json.tmp');
+            const tempFilePath = path.join(getDataDirectory(), 'cookies', 'users.json.tmp');
             fs.writeFileSync(tempFilePath, JSON.stringify(users, null, 2), { encoding: 'utf8', flag: 'w' });
 
             // Di chuyển file tạm thời thành file chính thức

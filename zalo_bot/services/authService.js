@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import crypto from 'crypto';
+import { getDataDirectory } from '../config/addon.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -29,8 +30,14 @@ function _adminUsername() {
   return String(process.env.ZALO_SERVER_ADMIN_USERNAME || 'admin').trim() || 'admin';
 }
 
-// Đường dẫn đến file lưu thông tin đăng nhập
-const userFilePath = path.join(process.cwd(), 'data', 'cookies', 'users.json');
+// Đường dẫn đến file lưu thông tin đăng nhập. PHẢI nằm trong THƯ MỤC DỮ LIỆU
+// (add-on mặc định /config/zalo_bot) chứ không phải process.cwd() = /app: /app
+// nằm trong image, nên mỗi lần cập nhật add-on là container mới, users.json cũ
+// biến mất cùng container cũ. Mật khẩu tự sinh thì còn dựng lại được từ
+// .admin_password, nhưng mật khẩu người dùng tự đổi ở trang đổi mật khẩu thì
+// mất hẳn. DATA_DIRECTORY do entrypoint.sh đọc từ options.json rồi export, nên
+// giá trị đã đúng ngay lúc nạp module này.
+const userFilePath = path.join(getDataDirectory(), 'cookies', 'users.json');
 
 // Tạo file users.json nếu chưa tồn tại
 const initUserFile = () => {
@@ -38,7 +45,7 @@ const initUserFile = () => {
     console.log("Khởi tạo file người dùng...");
 
     // Kiểm tra và tạo thư mục cookies nếu chưa tồn tại
-    const cookiesDir = path.join(process.cwd(), 'data', 'cookies');
+    const cookiesDir = path.join(getDataDirectory(), 'cookies');
     if (!fs.existsSync(cookiesDir)) {
       console.log("Thư mục cookies không tồn tại, đang tạo...");
       fs.mkdirSync(cookiesDir, { recursive: true });
@@ -151,7 +158,7 @@ export const addUser = (username, password, role = 'user') => {
   return true;
 };
 
-const lockFilePath = path.join(process.cwd(), 'data', 'cookies', 'users.lock');
+const lockFilePath = path.join(getDataDirectory(), 'cookies', 'users.lock');
 
 async function withUserLock(fn) {
   const maxWaitMs = 30000;
@@ -274,7 +281,7 @@ export const changePassword = (username, oldPassword, newPassword) => {
 
   try {
     // Ghi qua file tạm rồi rename (atomic) — KHÔNG log nội dung.
-    const tempFilePath = path.join(process.cwd(), 'data', 'cookies', 'users.json.tmp');
+    const tempFilePath = path.join(getDataDirectory(), 'cookies', 'users.json.tmp');
     fs.writeFileSync(tempFilePath, JSON.stringify(users, null, 2), { encoding: 'utf8', flag: 'w' });
     fs.renameSync(tempFilePath, userFilePath);
 

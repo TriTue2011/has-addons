@@ -160,6 +160,18 @@ export function getWebhookUrl(key, ownId) {
     }
 }
 
+// Ghi webhook MẶC ĐỊNH (áp cho mọi tài khoản chưa có cấu hình riêng) vào file
+// cấu hình trong thư mục dữ liệu, để nó sống qua các lần cập nhật add-on.
+export function setDefaultWebhookUrl(key, url) {
+    try {
+        webhookConfig.default[key] = url;
+        return saveWebhookConfig();
+    } catch (error) {
+        console.error("Lỗi khi thiết lập webhook mặc định:", error);
+        return false;
+    }
+}
+
 // Hàm thiết lập webhook URL cho một số điện thoại cụ thể
 export function setWebhookUrl(ownId, key, url) {
     try {
@@ -245,6 +257,7 @@ loadWebhookConfig();
 export default {
     getWebhookUrl,
     setWebhookUrl,
+    setDefaultWebhookUrl,
     removeWebhookConfig,
     loadWebhookConfig,
     saveWebhookConfig,

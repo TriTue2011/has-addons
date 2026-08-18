@@ -7,6 +7,7 @@ import { proxyService } from '../services/proxyService.js';
 import { adminMiddleware } from '../services/authService.js';
 import dotenv from 'dotenv';
 import { broadcastMessage } from '../server.js';  // Import hàm broadcast tin nhắn
+import { setDefaultWebhookUrl } from '../services/webhookService.js';
 
 const router = express.Router();
 
@@ -149,55 +150,21 @@ router.post('/updateWebhook', adminMiddleware, (req, res) => {
   process.env.GROUP_EVENT_WEBHOOK_URL = groupEventWebhookUrl;
   process.env.REACTION_WEBHOOK_URL = reactionWebhookUrl;
 
-  // Function to update or add a key in the .env content
-  const updateEnvVar = (content, key, value) => {
-    const regex = new RegExp(`^${key}=.*`, 'gm');
-    const newLine = `${key}=${value}`;
-
-    if (regex.test(content)) {
-      return content.replace(regex, newLine);
-    } else {
-      return content + (content && !content.endsWith('\n') ? '\n' : '') + newLine + '\n';
-    }
-  };
-
-  // Update root .env file
-  const rootEnvPath = path.join(process.cwd(), '.env');
-  let rootEnvContent = '';
-
-  // Read existing .env content if it exists
-  if (fs.existsSync(rootEnvPath)) {
-    rootEnvContent = fs.readFileSync(rootEnvPath, 'utf8');
+  // Lưu vào file cấu hình webhook trong THƯ MỤC DỮ LIỆU, không ghi .env nữa.
+  // Đường cũ ghi hai tệp: /app/.env và /app/zalo_data/.env. Tệp thứ hai nằm
+  // trong thư mục mà Dockerfile không hề tạo, nên lệnh ghi luôn ném lỗi và
+  // route này luôn trả 500 — cập nhật webhook từ trang quản trị chưa bao giờ
+  // thành công. Cả hai tệp cũng nằm trong image, tức mất sạch mỗi lần cập nhật
+  // add-on. File cấu hình webhook thì nằm cùng chỗ với dữ liệu người dùng.
+  const luu = [
+    setDefaultWebhookUrl('messageWebhookUrl', messageWebhookUrl),
+    setDefaultWebhookUrl('groupEventWebhookUrl', groupEventWebhookUrl),
+    setDefaultWebhookUrl('reactionWebhookUrl', reactionWebhookUrl),
+  ];
+  if (luu.every(Boolean)) {
+    return res.json({ success: true, message: 'Webhook URLs đã được cập nhật' });
   }
-
-  // Update all three webhook URLs
-  rootEnvContent = updateEnvVar(rootEnvContent, 'MESSAGE_WEBHOOK_URL', messageWebhookUrl);
-  rootEnvContent = updateEnvVar(rootEnvContent, 'GROUP_EVENT_WEBHOOK_URL', groupEventWebhookUrl);
-  rootEnvContent = updateEnvVar(rootEnvContent, 'REACTION_WEBHOOK_URL', reactionWebhookUrl);
-
-  // Also update Docker volume .env file
-  const dockerEnvPath = path.join(process.cwd(), 'zalo_data', '.env');
-  let dockerEnvContent = '';
-
-  // Read existing Docker .env content if it exists
-  if (fs.existsSync(dockerEnvPath)) {
-    dockerEnvContent = fs.readFileSync(dockerEnvPath, 'utf8');
-  }
-
-  // Update all three webhook URLs in Docker .env
-  dockerEnvContent = updateEnvVar(dockerEnvContent, 'MESSAGE_WEBHOOK_URL', messageWebhookUrl);
-  dockerEnvContent = updateEnvVar(dockerEnvContent, 'GROUP_EVENT_WEBHOOK_URL', groupEventWebhookUrl);
-  dockerEnvContent = updateEnvVar(dockerEnvContent, 'REACTION_WEBHOOK_URL', reactionWebhookUrl);
-
-  // Write to both .env files
-  try {
-    fs.writeFileSync(rootEnvPath, rootEnvContent);
-    fs.writeFileSync(dockerEnvPath, dockerEnvContent);
-    res.json({ success: true, message: 'Webhook URLs đã được cập nhật' });
-  } catch (err) {
-    console.error("Lỗi khi ghi file .env:", err);
-    return res.status(500).json({ success: false, error: err.message });
-  }
+  return res.status(500).json({ success: false, error: 'Không ghi được cấu hình webhook' });
 });
 
 // API quản lý proxy
