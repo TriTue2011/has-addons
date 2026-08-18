@@ -2312,9 +2312,7 @@ export async function sendFile(req, res) {
 }
 
 export async function loginZaloAccount(customProxy, cred) {
-    let loginResolve;
     return new Promise(async (resolve, reject) => {
-        loginResolve = resolve;
         let agent;
         let proxyUsed = null;
         let useCustomProxy = false;
@@ -2506,7 +2504,7 @@ export async function loginZaloAccount(customProxy, cred) {
                 // Không resolve ở đây — đợi setup xong mới resolve
             });
 
-            setupEventListeners(api, loginResolve);
+            setupEventListeners(api);
             api.listener.start();
 
             if (!useCustomProxy && proxyUsed) {

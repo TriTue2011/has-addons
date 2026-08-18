@@ -1,5 +1,5 @@
 import { GroupEventType } from "zca-js";
-import { getWebhookUrl, triggerN8nWebhook } from './utils/helpers.js';
+import { getWebhookUrl, triggerN8nWebhook, getCookiesDir } from './utils/helpers.js';
 import { broadcastToWebsocket } from './services/webhookService.js';
 import fs from 'fs';
 import { loginZaloAccount, zaloAccounts } from './api/zalo/zalo.js';
@@ -10,7 +10,8 @@ export const reloginAttempts = new Map();
 // Thời gian tối thiểu giữa các lần thử relogin (5 phút)
 const RELOGIN_COOLDOWN = 5 * 60 * 1000;
 
-export function setupEventListeners(api, loginResolve) {
+// Không nhận `loginResolve` nữa: xem ghi chú ở onConnected bên dưới.
+export function setupEventListeners(api) {
     const ownId = api.getOwnId();
     
     // Lắng nghe sự kiện tin nhắn và gửi đến webhook được cấu hình cho tin nhắn
@@ -64,7 +65,15 @@ export function setupEventListeners(api, loginResolve) {
 
     api.listener.onConnected(() => {
         console.log(`Connected account ${ownId}`);
-        loginResolve('login_success');
+        // KHÔNG resolve promise đăng nhập ở đây. Listener nối được là xong bước
+        // kết nối, nhưng loginZaloAccount còn phải fetchAccountInfo rồi mới đẩy
+        // tài khoản vào zaloAccounts. Resolve sớm khiến bên khôi phục phiên
+        // (app.js) kiểm tra danh sách khi tài khoản chưa kịp vào, kết luận
+        // "đăng nhập không báo lỗi nhưng tài khoản không vào danh sách" rồi
+        // đăng nhập LẦN HAI cùng tài khoản — Zalo chỉ cho một kết nối nên báo
+        // "Another connection is opened, closing this one" và listener chết,
+        // bot không nhận được tin nào nữa (log 18/08). Promise nay do chính
+        // loginZaloAccount resolve sau khi đã lưu tài khoản.
         
         // Gửi thông báo đến tất cả client
         try {
@@ -115,8 +124,11 @@ async function handleRelogin(api) {
         const accountInfo = zaloAccounts.find(acc => acc.ownId === ownId);
         const customProxy = accountInfo?.proxy || null;
         
-        // Tìm file cookie tương ứng
-        const cookiesDir = './data/cookies';
+        // Tìm file cookie tương ứng. PHẢI hỏi getCookiesDir(): thư mục dữ liệu
+        // do người dùng đặt (add-on mặc định /config/zalo_bot), còn đường cứng
+        // './data/cookies' chỉ đúng khi chạy dev — trên add-on nó luôn trượt,
+        // log ghi "Không tìm thấy file cookie" và đăng nhập lại luôn thất bại.
+        const cookiesDir = getCookiesDir();
         const cookieFile = `${cookiesDir}/cred_${ownId}.json`;
         
         if (!fs.existsSync(cookieFile)) {
