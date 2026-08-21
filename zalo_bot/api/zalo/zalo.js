@@ -1291,17 +1291,55 @@ export async function getStickersDetailByAccount(req, res) {
     }
 }
 
+// Tải tệp về rồi ĐẨY LÊN máy chủ Zalo trước khi nhắn, thay vì đưa thẳng địa chỉ
+// người gọi cung cấp.
+//
+// Vì sao phải vòng thế: api.sendVideo của zca-js KHÔNG tải tệp lên. Nó chỉ nhét
+// videoUrl vào nội dung tin, và máy người nhận tự vào lấy MỖI LẦN MỞ. Bên gọi
+// thường chỉ có địa chỉ nội bộ — Home Assistant chẳng hạn, dựng một máy chủ tạm
+// ở địa chỉ LAN sống 90 giây — nên đoạn phim xem được đúng lúc gửi, đúng trong
+// mạng nhà, rồi hỏng vĩnh viễn. Đẩy lên trước thì tệp nằm trên hạ tầng Zalo, xem
+// được mãi và ở đâu cũng mở, không đòi bên gọi phải mở cổng hay có tên miền.
+//
+// Ảnh bìa đi cùng đường: thiếu nó Zalo trả "Tham số không hợp lệ" và tin không đi.
 export async function sendVideoByAccount(req, res) {
+    let duongVideo = null;
+    let duongThumb = null;
     try {
         const { options, threadId, type, accountSelection } = req.body;
         if (!options || !threadId) {
             return res.status(400).json({ error: 'options và threadId là bắt buộc' });
         }
+        if (!options.videoUrl) {
+            return res.status(400).json({ error: 'options.videoUrl là bắt buộc' });
+        }
         const account = getAccountFromSelection(accountSelection);
-        const result = await account.api.sendVideo(options, threadId, type);
+
+        duongVideo = await saveFileFromUrl(options.videoUrl);
+        const [videoDaLen] = await account.api.uploadAttachment([duongVideo], threadId, type);
+        if (!videoDaLen || !videoDaLen.fileUrl) {
+            throw new Error('Zalo không trả về địa chỉ video sau khi tải lên');
+        }
+
+        let thumbnailUrl = options.thumbnailUrl || '';
+        if (thumbnailUrl) {
+            duongThumb = await saveFileFromUrl(thumbnailUrl);
+            const [thumbDaLen] = await account.api.uploadAttachment([duongThumb], threadId, type);
+            // Ảnh trả về ba cỡ; lấy cỡ nào cũng được, ưu tiên bản nhẹ nhất.
+            thumbnailUrl = (thumbDaLen && (thumbDaLen.thumbUrl || thumbDaLen.normalUrl || thumbDaLen.hdUrl)) || '';
+        }
+
+        const result = await account.api.sendVideo(
+            { ...options, videoUrl: videoDaLen.fileUrl, thumbnailUrl },
+            threadId,
+            type
+        );
         res.json({ success: true, data: result, usedAccount: { ownId: account.ownId, phoneNumber: account.phoneNumber } });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
+    } finally {
+        if (duongVideo) removeFile(duongVideo);
+        if (duongThumb) removeFile(duongThumb);
     }
 }
 
