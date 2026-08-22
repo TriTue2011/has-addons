@@ -3,6 +3,17 @@
 Chạy `zalo-server` (Node.js, dùng thư viện `zca-js`) như một add-on của Home
 Assistant, để tự động hoá gửi và nhận tin nhắn Zalo cá nhân.
 
+## Phiên bản và cập nhật
+
+Phiên bản add-on hiện tại là **2026.8.22.1**. Cập nhật trong **Settings →
+Add-ons → Zalo Bot → Update**, sau đó khởi động lại add-on. Cookie đăng nhập,
+webhook và proxy nằm trong `data_directory`, nên việc cập nhật **không** bắt
+quét lại mã QR nếu vẫn dùng cùng thư mục dữ liệu.
+
+Nếu dùng kèm tích hợp HACS, nên cập nhật luôn repo `TriTue2011/zalo_bot` rồi
+khởi động lại Home Assistant. Hai phần được phát hành độc lập, nhưng bản HACS
+mới có kiểm tra kiểu ID tương ứng với gateway mới.
+
 ## Tuỳ chọn
 
 | Tuỳ chọn | Bỏ trống thì sao |
@@ -33,6 +44,27 @@ nên phần lớn sẽ bỏ qua và ở nguyên trạng thái mở.
 Khoá này cố ý chỉ cấp quyền **gửi nội dung** (tin, ảnh, tệp, video, sticker).
 Đọc lịch sử chat, tra người dùng, tạo và sửa nhóm, kết bạn đều phải đăng nhập
 bằng tài khoản admin.
+
+## Giới hạn tài nguyên và phản hồi thường gặp
+
+Gateway có các chốt an toàn để một request lỗi không chiếm hết RAM hoặc ổ đĩa:
+
+| Tình huống | Hành vi |
+|---|---|
+| JSON request lớn hơn 2 MB | Gateway từ chối trước khi route xử lý. |
+| Album vượt 24 ảnh hoặc tổng 100 MB | Trả HTTP `413`; không tải toàn bộ album xuống đĩa. |
+| Video upload quá 180 giây | Trả HTTP `504`; tệp tạm chỉ bị xoá sau khi upload nền thực sự kết thúc. |
+| Đĩa không ghi được lịch sử nhóm | Trả cache cũ hoặc rỗng thay vì làm endpoint lỗi `500`; việc ghi sẽ thử lại nền. |
+
+Khi chạy Docker, có thể chỉnh các giới hạn dành cho môi trường đặc biệt bằng
+biến `IMAGE_BATCH_MAX_ITEMS`, `IMAGE_BATCH_MAX_BYTES`,
+`VIDEO_UPLOAD_TIMEOUT_MS` và `RECONNECT_LOGIN_TIMEOUT_MS`. Chỉ tăng chúng khi
+đã xác nhận máy đủ RAM, ổ đĩa và băng thông.
+
+ID người dùng, nhóm và tin nhắn Zalo được giữ ở dạng **chuỗi** để không mất chữ
+số cuối với ID lớn. Ngược lại, ID poll, sticker album và quick message của
+`zca-js` là số nguyên an toàn; gửi giá trị sai kiểu sẽ bị từ chối thay vì gọi
+SDK với dữ liệu đã bị làm tròn.
 
 ## Chạy bằng Docker, không qua Home Assistant
 
