@@ -1,14 +1,98 @@
-import { GroupEventType } from "zca-js";
 import { getWebhookUrl, triggerN8nWebhook, getCookiesDir } from './utils/helpers.js';
 import { broadcastToWebsocket } from './services/webhookService.js';
 import fs from 'fs';
-import { loginZaloAccount, zaloAccounts } from './api/zalo/zalo.js';
+import path from 'path';
 import { broadcastMessage } from './server.js';
+import { storeGroupMessage } from './utils/groupHistoryStore.js';
+import { reconnectDelay } from './services/reconnectPolicy.js';
+import { beginReconnectAttempt, invalidateReconnectAttempt } from './services/reconnectGuard.js';
+import { withTimeout } from './utils/timeout.js';
 
-// Biến để theo dõi thời gian relogin cho từng tài khoản
+let reconnectLogin = null;
+let accountRegistry = [];
+
+export function configureReconnectDependencies({ login, accounts }) {
+    if (typeof login !== 'function' || !Array.isArray(accounts)) {
+        throw new Error('Reconnect dependencies khong hop le');
+    }
+    reconnectLogin = login;
+    accountRegistry = accounts;
+}
 export const reloginAttempts = new Map();
-// Thời gian tối thiểu giữa các lần thử relogin (5 phút)
-const RELOGIN_COOLDOWN = 5 * 60 * 1000;
+const reconnectStates = new Map();
+
+function reconnectTimeoutMs() {
+    const timeout = Number.parseInt(process.env.RECONNECT_LOGIN_TIMEOUT_MS || '60000', 10);
+    return Number.isSafeInteger(timeout) && timeout > 0 ? timeout : 60000;
+}
+
+function clearReconnectState(ownId) {
+    const state = reconnectStates.get(ownId);
+    if (state?.timer) clearTimeout(state.timer);
+    reconnectStates.delete(ownId);
+    reloginAttempts.delete(ownId);
+}
+
+function scheduleRelogin(api) {
+    const ownId = api?.getOwnId?.();
+    if (!ownId) return;
+    const current = accountRegistry.find((account) => String(account.ownId) === String(ownId));
+    if (current?.api && current.api !== api) return;
+    let state = reconnectStates.get(ownId);
+    if (!state) {
+        state = { attempt: 0, timer: null, running: false, sourceApi: api, generation: 0 };
+        reconnectStates.set(ownId, state);
+    }
+    if (state.running || state.timer) return;
+    const delay = reconnectDelay(state.attempt);
+    console.log(`[Reconnect] Thu lai ${ownId} sau ${Math.round(delay / 1000)}s (lan ${state.attempt + 1}).`);
+    state.timer = setTimeout(() => { void attemptRelogin(ownId); }, delay);
+    state.timer.unref?.();
+}
+
+async function attemptRelogin(ownId) {
+    const state = reconnectStates.get(ownId);
+    if (!state || state.running) return;
+    state.timer = null;
+    state.running = true;
+    const isCurrentAttempt = beginReconnectAttempt(reconnectStates, ownId, state);
+    reloginAttempts.set(ownId, Date.now());
+    try {
+        const account = accountRegistry.find((item) => String(item.ownId) === String(ownId));
+        if (account?.api && account.api !== state.sourceApi) {
+            clearReconnectState(ownId);
+            return;
+        }
+        const credentialPath = path.join(getCookiesDir(), `cred_${ownId}.json`);
+        if (!fs.existsSync(credentialPath)) {
+            console.error(`[Reconnect] Khong co credential cho ${ownId}.`);
+            clearReconnectState(ownId);
+            return;
+        }
+        const credential = JSON.parse(fs.readFileSync(credentialPath, 'utf8'));
+        const hasSavedProxy = Object.prototype.hasOwnProperty.call(credential, 'proxy');
+        const hasAccountProxy = account && Object.prototype.hasOwnProperty.call(account, 'proxy');
+        const savedProxy = hasSavedProxy ? (credential.proxy || null) : (account?.proxy || null);
+        if (!reconnectLogin) throw new Error('Reconnect chua duoc khoi tao');
+        await withTimeout(
+            reconnectLogin(savedProxy, credential, {
+                allowQrFallback: false,
+                autoSelectProxy: !(hasSavedProxy || hasAccountProxy),
+                isCurrentAttempt,
+            }),
+            reconnectTimeoutMs(),
+            'Reconnect login timeout',
+        );
+        clearReconnectState(ownId);
+    } catch (error) {
+        console.error(`[Reconnect] Lan ${state.attempt + 1} loi cho ${ownId}: ${error.message}`);
+        invalidateReconnectAttempt(state);
+        state.running = false;
+        state.attempt += 1;
+        reconnectStates.set(ownId, state);
+        scheduleRelogin(state.sourceApi);
+    }
+}
 
 // Không nhận `loginResolve` nữa: xem ghi chú ở onConnected bên dưới.
 export function setupEventListeners(api) {
@@ -16,6 +100,9 @@ export function setupEventListeners(api) {
     
     // Lắng nghe sự kiện tin nhắn và gửi đến webhook được cấu hình cho tin nhắn
     api.listener.on("message", (msg) => {
+        if (Number(msg?.type) === 1) {
+            storeGroupMessage(ownId, msg);
+        }
         // Thêm ownId vào dữ liệu để webhook biết tin nhắn từ tài khoản nào
         const msgWithOwnId = { ...msg, _accountId: ownId };
 
@@ -64,6 +151,7 @@ export function setupEventListeners(api) {
     });
 
     api.listener.onConnected(() => {
+        clearReconnectState(ownId);
         console.log(`Connected account ${ownId}`);
         // KHÔNG resolve promise đăng nhập ở đây. Listener nối được là xong bước
         // kết nối, nhưng loginZaloAccount còn phải fetchAccountInfo rồi mới đẩy
@@ -86,66 +174,10 @@ export function setupEventListeners(api) {
     api.listener.onClosed(() => {
         console.log(`Closed - API listener đã ngắt kết nối cho tài khoản ${ownId}`);
         
-        // Xử lý đăng nhập lại khi API listener bị đóng
-        handleRelogin(api);
+        scheduleRelogin(api);
     });
     
     api.listener.onError((error) => {
         console.error(`Error on account ${ownId}:`, error);
     });
-}
-
-// Hàm xử lý đăng nhập lại
-async function handleRelogin(api) {
-    try {
-        console.log("Đang thử đăng nhập lại...");
-        
-        // Lấy ownId của tài khoản bị ngắt kết nối
-        const ownId = api.getOwnId();
-        
-        if (!ownId) {
-            console.error("Không thể xác định ownId, không thể đăng nhập lại");
-            return;
-        }
-        
-        // Kiểm tra thời gian relogin gần nhất
-        const lastReloginTime = reloginAttempts.get(ownId);
-        const now = Date.now();
-        
-        if (lastReloginTime && now - lastReloginTime < RELOGIN_COOLDOWN) {
-            console.log(`Bỏ qua việc đăng nhập lại tài khoản ${ownId}, đã thử cách đây ${Math.floor((now - lastReloginTime) / 1000)} giây`);
-            return;
-        }
-        
-        // Cập nhật thời gian relogin
-        reloginAttempts.set(ownId, now);
-        
-        // Tìm thông tin proxy từ mảng zaloAccounts
-        const accountInfo = zaloAccounts.find(acc => acc.ownId === ownId);
-        const customProxy = accountInfo?.proxy || null;
-        
-        // Tìm file cookie tương ứng. PHẢI hỏi getCookiesDir(): thư mục dữ liệu
-        // do người dùng đặt (add-on mặc định /config/zalo_bot), còn đường cứng
-        // './data/cookies' chỉ đúng khi chạy dev — trên add-on nó luôn trượt,
-        // log ghi "Không tìm thấy file cookie" và đăng nhập lại luôn thất bại.
-        const cookiesDir = getCookiesDir();
-        const cookieFile = `${cookiesDir}/cred_${ownId}.json`;
-        
-        if (!fs.existsSync(cookieFile)) {
-            console.error(`Không tìm thấy file cookie cho tài khoản ${ownId}`);
-            return;
-        }
-        
-        // Đọc cookie từ file
-        const cookie = JSON.parse(fs.readFileSync(cookieFile, "utf-8"));
-        
-        // Đăng nhập lại với cookie
-        console.log(`Đang đăng nhập lại tài khoản ${ownId} với proxy ${customProxy || 'không có'}...`);
-        
-        // Thực hiện đăng nhập lại
-        await loginZaloAccount(customProxy, cookie);
-        console.log(`Đã đăng nhập lại thành công tài khoản ${ownId}`);
-    } catch (error) {
-        console.error("Lỗi khi thử đăng nhập lại:", error);
-    }
 }

@@ -2,13 +2,10 @@
 import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
-import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'url';
-import fetch from 'node-fetch';
-import { Readable } from 'stream';
-import { pipeline } from 'stream/promises';
 import { getWebhookUrl as getConfigWebhookUrl } from '../services/webhookService.js';
 import { getDataDirectory, getDataFilePath } from '../config/addon.js';
+import { downloadToTemp } from './download.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -46,7 +43,17 @@ export async function triggerN8nWebhook(msg, webhookUrl) {
     }
     
     try {
-        await axios.post(webhookUrl, msg, { headers: { 'Content-Type': 'application/json' } });
+        const payload = JSON.stringify(msg);
+        const maxBytes = 2 * 1024 * 1024;
+        if (Buffer.byteLength(payload) > maxBytes) {
+            throw new Error(`Webhook payload vuot qua gioi han ${maxBytes} bytes`);
+        }
+        await axios.post(webhookUrl, payload, {
+            headers: { 'Content-Type': 'application/json' },
+            timeout: Number.parseInt(process.env.WEBHOOK_TIMEOUT_MS || '10000', 10),
+            maxBodyLength: maxBytes,
+            maxContentLength: 1024 * 1024,
+        });
         return true;
     } catch (error) {
         console.error("Error sending webhook request:", error.message);
@@ -56,44 +63,11 @@ export async function triggerN8nWebhook(msg, webhookUrl) {
 
 export async function saveFileFromUrl(url) {
     try {
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error(`Failed to fetch file: ${response.statusText}`);
-        }
-
-        const contentDisposition = response.headers.get('content-disposition');
-        let filename;
-
-        if (contentDisposition && contentDisposition.includes('filename=')) {
-            const matches = /filename="?([^"]+)"?/.exec(contentDisposition);
-            if (matches && matches[1]) {
-                filename = matches[1];
-            }
-        }
-
-        if (!filename) {
-            filename = path.basename(new URL(url).pathname);
-        }
-
-        // Tạo một đường dẫn tạm thời an toàn
-        const tempDir = path.join(process.cwd(), 'data', 'temp');
-        if (!fs.existsSync(tempDir)) {
-            fs.mkdirSync(tempDir, { recursive: true });
-        }
-        const tempFilePath = path.join(tempDir, `${Date.now()}-${filename}`);
-
-        if (!response.body) {
-            throw new Error("Response body is empty, cannot save the file.");
-        }
-
-        // Sửa lỗi: response.body từ 'node-fetch' đã là một Node.js stream,
-        // nên có thể dùng trực tiếp với pipeline.
-        await pipeline(
-            response.body,
-            fs.createWriteStream(tempFilePath)
+        const maxBytes = Number.parseInt(
+            process.env.FILE_DOWNLOAD_MAX_BYTES || String(150 * 1024 * 1024),
+            10,
         );
-
-        return tempFilePath;
+        return await downloadToTemp(url, { maxBytes });
     } catch (error) {
         console.error('Error saving file from URL:', error);
         return null;
@@ -105,16 +79,19 @@ export async function saveFileFromUrl(url) {
 // một tệp và mảng đường dẫn chứa N bản của CÙNG một đường dẫn. Zalo nhận đủ N
 // tấm (soAnh báo đúng N) nhưng tấm nào cũng là ảnh tải về CUỐI CÙNG. Hai yêu cầu
 // gửi chạy song song cũng ghi đè lẫn nhau vì lý do này.
-export async function saveImage(url) {
+export async function saveImage(url, maxBytesOverride, { throwOnError = false } = {}) {
     try {
-        const imgPath = path.join(process.cwd(), `temp-${randomUUID()}.png`);
-
-        const { data } = await axios.get(url, { responseType: "arraybuffer" });
-        fs.writeFileSync(imgPath, Buffer.from(data, "utf-8"));
-
-        return imgPath;
+        const configuredMaxBytes = Number.parseInt(
+            process.env.IMAGE_DOWNLOAD_MAX_BYTES || String(25 * 1024 * 1024),
+            10,
+        );
+        const maxBytes = Number.isSafeInteger(maxBytesOverride) && maxBytesOverride > 0
+            ? Math.min(configuredMaxBytes, maxBytesOverride)
+            : configuredMaxBytes;
+        return await downloadToTemp(url, { maxBytes });
     } catch (error) {
-        console.error(error);
+        console.error('Error saving image from URL:', error?.message || error);
+        if (throwOnError) throw error;
         return null;
     }
 }

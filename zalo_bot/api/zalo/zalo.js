@@ -1,15 +1,46 @@
 // api/zalo/zalo.js
 import { Zalo, ThreadType } from 'zca-js';
 import { getPROXIES, getAvailableProxyIndex } from '../../services/proxyService.js';
-import { setupEventListeners } from '../../eventListeners.js';
+import { configureReconnectDependencies, setupEventListeners } from '../../eventListeners.js';
 import { HttpsProxyAgent } from "https-proxy-agent";
 import nodefetch from "node-fetch";
 import fs from 'fs';
 import path from 'path';
-import { saveImage, removeImage, saveFileFromUrl, removeFile } from '../../utils/helpers.js';
+import {
+    getCookiesDir,
+    saveImage,
+    removeImage,
+    saveFileFromUrl,
+    removeFile,
+} from '../../utils/helpers.js';
 import { taiVeVaGuiNhieuAnh as guiTheoLo } from '../../utils/sendImages.js';
-
+import { getCachedGroupHistory } from '../../utils/groupHistoryStore.js';
+import {
+    OperationTimeoutError,
+    cleanupAfterSettled,
+    withTimeout,
+} from '../../utils/timeout.js';
+import { normalizeZcaNumberId } from '../../utils/zaloContract.js';
+import { writeJsonAtomicSync } from '../../utils/atomicFile.js';
 export const zaloAccounts = [];
+configureReconnectDependencies({
+    accounts: zaloAccounts,
+    login: (...args) => loginZaloAccount(...args),
+});
+
+function deferFileCleanup(task, filePath, label) {
+    cleanupAfterSettled(task, () => removeFile(filePath));
+    void task.catch((error) => {
+        console.warn(`[Video] ${label} ket thuc sau timeout: ${error.message}`);
+    });
+}
+
+function imageRequestErrorStatus(error) {
+    if (Number.isInteger(error?.status) && error.status >= 400 && error.status < 500) {
+        return error.status;
+    }
+    return 500;
+}
 
 /** Bốn endpoint gửi nhiều ảnh (user/group × có-chọn-tài-khoản/không) dùng chung
  *  một đường: tải về → chia lô → dọn tệp tạm trong finally. */
@@ -560,7 +591,7 @@ export async function sendImagesToUserByAccount(req, res) {
             }
         });
     } catch (error) {
-        res.status(500).json({
+        res.status(imageRequestErrorStatus(error)).json({
             success: false,
             error: error.message,
             ...(error.chiTiet ? { chiTiet: error.chiTiet } : {}),
@@ -636,7 +667,7 @@ export async function sendImagesToGroupByAccount(req, res) {
             }
         });
     } catch (error) {
-        res.status(500).json({
+        res.status(imageRequestErrorStatus(error)).json({
             success: false,
             error: error.message,
             ...(error.chiTiet ? { chiTiet: error.chiTiet } : {}),
@@ -1021,14 +1052,27 @@ export async function getAllGroupsByAccount(req, res) {
 
 export async function getGroupChatHistoryByAccount(req, res) {
     try {
-        const { groupId, count, accountSelection } = req.body;
+        const { groupId, count = 50, accountSelection } = req.body;
 
         if (!groupId) {
             return res.status(400).json({ error: 'groupId là bắt buộc' });
         }
 
+        const parsedCount = Number.parseInt(count, 10);
+        if (!Number.isSafeInteger(parsedCount) || parsedCount < 1 || parsedCount > 200) {
+            return res.status(400).json({ error: 'count phai la so nguyen tu 1 den 200' });
+        }
         const account = getAccountFromSelection(accountSelection);
-        const result = await account.api.getGroupChatHistory(groupId, count);
+        let result;
+        let source = 'zca-js-2.1.2';
+        let warning;
+        try {
+            result = await account.api.getGroupChatHistory(String(groupId), parsedCount);
+        } catch (error) {
+            result = getCachedGroupHistory(account.ownId, groupId, parsedCount);
+            source = 'local-cache';
+            warning = `Khong lay duoc history truc tiep tu Zalo (${error.message}); dang tra cache local.`;
+        }
 
         // Enrich dName: Zalo API trả dName=null trong history, cần tra qua getUserInfo
         if (result.groupMsgs && result.groupMsgs.length > 0) {
@@ -1065,6 +1109,8 @@ export async function getGroupChatHistoryByAccount(req, res) {
         res.json({
             success: true,
             data: result,
+            source,
+            ...(warning ? { warning } : {}),
             usedAccount: {
                 ownId: account.ownId,
                 phoneNumber: account.phoneNumber
@@ -1255,8 +1301,13 @@ export async function sendLinkByAccount(req, res) {
 export async function sendStickerByAccount(req, res) {
     try {
         const { sticker, threadId, type, accountSelection } = req.body;
-        if (!sticker || !threadId) {
+        if (!sticker || typeof sticker !== 'object' || Array.isArray(sticker) || !threadId) {
             return res.status(400).json({ error: 'sticker và threadId là bắt buộc' });
+        }
+        try {
+            sticker.id = normalizeZcaNumberId(sticker.id, 'sticker.id');
+        } catch (error) {
+            return res.status(400).json({ success: false, error: error.message });
         }
         const account = getAccountFromSelection(accountSelection);
         const result = await account.api.sendSticker(sticker, threadId, type);
@@ -1316,17 +1367,52 @@ export async function sendVideoByAccount(req, res) {
         const account = getAccountFromSelection(accountSelection);
 
         duongVideo = await saveFileFromUrl(options.videoUrl);
-        const [videoDaLen] = await account.api.uploadAttachment([duongVideo], threadId, type);
+        if (!duongVideo) throw new Error('Khong the tai video nguon');
+        const uploadTimeout = Number.parseInt(process.env.VIDEO_UPLOAD_TIMEOUT_MS || '180000', 10);
+        const timeoutMs = Number.isSafeInteger(uploadTimeout) && uploadTimeout > 0
+            ? uploadTimeout : 180000;
+        const videoPath = duongVideo;
+        const videoUpload = account.api.uploadAttachment([videoPath], threadId, type);
+        let videoDaLen;
+        try {
+            [videoDaLen] = await withTimeout(
+                videoUpload, timeoutMs, 'Het thoi gian tai video len Zalo',
+            );
+        } catch (error) {
+            if (error instanceof OperationTimeoutError) {
+                deferFileCleanup(videoUpload, videoPath, 'Upload video');
+                duongVideo = null;
+            }
+            throw error;
+        }
         if (!videoDaLen || !videoDaLen.fileUrl) {
             throw new Error('Zalo không trả về địa chỉ video sau khi tải lên');
         }
 
         let thumbnailUrl = options.thumbnailUrl || '';
         if (thumbnailUrl) {
-            duongThumb = await saveFileFromUrl(thumbnailUrl);
-            const [thumbDaLen] = await account.api.uploadAttachment([duongThumb], threadId, type);
-            // Ảnh trả về ba cỡ; lấy cỡ nào cũng được, ưu tiên bản nhẹ nhất.
-            thumbnailUrl = (thumbDaLen && (thumbDaLen.thumbUrl || thumbDaLen.normalUrl || thumbDaLen.hdUrl)) || '';
+            duongThumb = await saveImage(thumbnailUrl);
+            if (duongThumb) {
+                const thumbnailPath = duongThumb;
+                const thumbnailUpload = account.api.uploadAttachment([thumbnailPath], threadId, type);
+                try {
+                    const [thumbDaLen] = await withTimeout(
+                        thumbnailUpload, Math.min(timeoutMs, 60000),
+                        'Het thoi gian tai thumbnail len Zalo',
+                    );
+                    thumbnailUrl = (thumbDaLen
+                        && (thumbDaLen.thumbUrl || thumbDaLen.normalUrl || thumbDaLen.hdUrl)) || '';
+                } catch (error) {
+                    if (error instanceof OperationTimeoutError) {
+                        deferFileCleanup(thumbnailUpload, thumbnailPath, 'Upload thumbnail');
+                        duongThumb = null;
+                    }
+                    console.warn('[Video] Upload thumbnail loi, tiep tuc bang fallback:', error.message);
+                    thumbnailUrl = '';
+                }
+            } else {
+                thumbnailUrl = '';
+            }
         }
 
         const result = await account.api.sendVideo(
@@ -1336,7 +1422,8 @@ export async function sendVideoByAccount(req, res) {
         );
         res.json({ success: true, data: result, usedAccount: { ownId: account.ownId, phoneNumber: account.phoneNumber } });
     } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+        res.status(error instanceof OperationTimeoutError ? 504 : 500)
+            .json({ success: false, error: error.message });
     } finally {
         if (duongVideo) removeFile(duongVideo);
         if (duongThumb) removeFile(duongThumb);
@@ -2236,7 +2323,7 @@ export async function sendImagesToUser(req, res) {
             canhBao: ketQua.canhBao,
         });
     } catch (error) {
-        res.status(500).json({
+        res.status(imageRequestErrorStatus(error)).json({
             success: false,
             error: error.message,
             ...(error.chiTiet ? { chiTiet: error.chiTiet } : {}),
@@ -2304,7 +2391,7 @@ export async function sendImagesToGroup(req, res) {
             canhBao: ketQua.canhBao,
         });
     } catch (error) {
-        res.status(500).json({
+        res.status(imageRequestErrorStatus(error)).json({
             success: false,
             error: error.message,
             ...(error.chiTiet ? { chiTiet: error.chiTiet } : {}),
@@ -2349,7 +2436,19 @@ export async function sendFile(req, res) {
     }
 }
 
-export async function loginZaloAccount(customProxy, cred) {
+export async function loginZaloAccount(customProxy, cred, options = {}) {
+    const {
+        allowQrFallback = true,
+        autoSelectProxy = true,
+        isCurrentAttempt,
+    } = options;
+    const isCurrent = typeof isCurrentAttempt === 'function' ? isCurrentAttempt : () => true;
+    const loginCredential = cred && typeof cred === 'object'
+        ? (() => {
+            const { proxy: _savedProxy, ...credential } = cred;
+            return credential;
+        })()
+        : cred;
     return new Promise(async (resolve, reject) => {
         let agent;
         let proxyUsed = null;
@@ -2392,7 +2491,7 @@ export async function loginZaloAccount(customProxy, cred) {
         if (useCustomProxy) {
             console.log('Sử dụng proxy tùy chỉnh:', customProxy);
             agent = new HttpsProxyAgent(customProxy);
-        } else {
+        } else if (autoSelectProxy) {
             // Chọn proxy tự động từ danh sách nếu không có proxy do người dùng nhập hợp lệ
             if (proxies.length > 0) {
                 const proxyIndex = getAvailableProxyIndex();
@@ -2509,11 +2608,12 @@ export async function loginZaloAccount(customProxy, cred) {
 
         let api;
         try {
-            if (cred) {
+            if (loginCredential) {
                 try {
-                    api = await zalo.login(cred);
+                    api = await zalo.login(loginCredential);
                 } catch (error) {
                     console.error("Lỗi đăng nhập cookie:", error.message);
+                    if (!allowQrFallback) throw error;
                     console.log('Chuyển sang đăng nhập bằng mã QR...');
                     api = await zalo.loginQR(null, (qrData) => {
                         if (qrData?.data?.image) {
@@ -2538,18 +2638,6 @@ export async function loginZaloAccount(customProxy, cred) {
                 });
             }
 
-            api.listener.onConnected(() => {
-                // Không resolve ở đây — đợi setup xong mới resolve
-            });
-
-            setupEventListeners(api);
-            api.listener.start();
-
-            if (!useCustomProxy && proxyUsed) {
-                proxyUsed.usedCount++;
-                proxyUsed.accounts.push(api);
-            }
-
             const accountInfo = await api.fetchAccountInfo();
             if (!accountInfo?.profile) {
                 throw new Error("Không tìm thấy thông tin profile");
@@ -2558,6 +2646,26 @@ export async function loginZaloAccount(customProxy, cred) {
             const phoneNumber = profile.phoneNumber;
             const ownId = profile.userId;
             const displayName = profile.displayName;
+            const context = await api.getContext();
+            const {imei, cookie, userAgent} = context;
+
+            // Login da timeout trong reconnect co the ket thuc muon. Khong cho
+            // phep no dang ky listener hay ghi de account/cookie cua lan moi.
+            if (!isCurrent()) {
+                try { api.listener.stop?.(); } catch { /* best effort */ }
+                throw new Error('Phien reconnect da het han');
+            }
+
+            api.listener.onConnected(() => {
+                // Không resolve ở đây — đợi setup xong mới resolve
+            });
+            setupEventListeners(api);
+            api.listener.start();
+
+            if (!useCustomProxy && proxyUsed) {
+                proxyUsed.usedCount++;
+                proxyUsed.accounts.push(api);
+            }
 
             const existingAccountIndex = zaloAccounts.findIndex(acc => acc.ownId === api.getOwnId());
             if (existingAccountIndex !== -1) {
@@ -2566,12 +2674,12 @@ export async function loginZaloAccount(customProxy, cred) {
                 zaloAccounts.push({ api: api, ownId: api.getOwnId(), proxy: useCustomProxy ? customProxy : (proxyUsed && proxyUsed.url), phoneNumber: phoneNumber });
             }
 
-            // Lưu cookie
-            const context = await api.getContext();
-            const {imei, cookie, userAgent} = context;
-            const data = { imei, cookie, userAgent };
-
-            const { getCookiesDir } = await import('../../utils/helpers.js');
+            const data = {
+                imei,
+                cookie,
+                userAgent,
+                proxy: useCustomProxy ? customProxy : (proxyUsed && proxyUsed.url) || null,
+            };
             const cookiesDir = getCookiesDir();
 
             if (!fs.existsSync(cookiesDir)) {
@@ -2579,9 +2687,8 @@ export async function loginZaloAccount(customProxy, cred) {
             }
 
             const credFilePath = path.join(cookiesDir, `cred_${ownId}.json`);
-            fs.writeFile(credFilePath, JSON.stringify(data, null, 4), (err) => {
-                if (err) console.error(`Lỗi ghi cookie:`, err.message);
-            });
+            writeJsonAtomicSync(credFilePath, data, 4);
+            try { fs.chmodSync(credFilePath, 0o600); } catch { /* best effort */ }
 
             console.log(`[Zalo] ${displayName} (${phoneNumber}) — đăng nhập thành công`);
             resolve(true);

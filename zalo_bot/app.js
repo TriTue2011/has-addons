@@ -14,6 +14,7 @@ import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { loadHomeAssistantOptions, getDataDirectory } from './config/addon.js';
 import { zaloAccounts, loginZaloAccount } from './api/zalo/zalo.js';
+import { normalizeZaloIdsInPlace } from './utils/zaloContract.js';
 
 // Dành cho ES Module: xác định __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -86,9 +87,21 @@ loadWebhookConfig();
 console.log("Đã tải cấu hình webhook");
 
 // Thiết lập middleware
-app.use(express.json());
+app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true })); // Dùng để parse dữ liệu form
 app.use(cookieParser());
+
+// Zalo user/group/message IDs co the vuot Number.MAX_SAFE_INTEGER nen phai giu
+// chuoi. Rieng poll/quick-message/sticker la API zca-js dung so: contract
+// chuyen va kiem tra dung kieu truoc khi route goi SDK.
+app.use((req, res, next) => {
+  try {
+    if (req.body && typeof req.body === 'object') normalizeZaloIdsInPlace(req.body);
+    next();
+  } catch (error) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+});
 
 // Middleware phát hiện HA ingress proxy — tất cả link phải có prefix này
 app.use((req, res, next) => {
