@@ -149,4 +149,64 @@ test('reconnect timeout vo hieu hoa ket qua cua lan dang nhap cu', () => {
   assert.equal(isCurrentAttempt(), false);
 });
 
+test('bam mat khau khong chan event loop', async () => {
+  // Dat mat khau admin qua env de authService khoi sinh ngau nhien khi tao
+  // users.json trong dataDirectory tam cua bo test nay.
+  process.env.ZALO_SERVER_ADMIN_PASSWORD = 'mat-khau-kiem-thu';
+  const auth = await import('../services/authService.js');
+
+  // pbkdf2Sync chan toan bo event loop: khong timer nao chay duoc trong luc
+  // bam. Do tren may Home Assistant that (Armbian aarch64) la 3.410 ms cho
+  // 600.000 vong, va tich hop HACS goi /api/login lien tuc. Test nay giu cho
+  // duong dang nhap luon dung ban bat dong bo.
+  let nhip = 0;
+  const dem = setInterval(() => { nhip += 1; }, 5);
+  try {
+    const user = await auth.validateUser('admin', 'mat-khau-kiem-thu');
+    assert.ok(user, 'dang nhap dung mat khau phai tra ve user');
+    assert.equal(user.role, 'admin');
+  } finally {
+    clearInterval(dem);
+  }
+  assert.ok(nhip > 0, 'event loop bi chan trong luc bam mat khau');
+
+  assert.equal(await auth.validateUser('admin', 'sai-mat-khau'), null);
+});
+
+test('doi mat khau nang so vong len muc manh', async () => {
+  const auth = await import('../services/authService.js');
+  assert.equal(await auth.addUser('nhanvien', 'mk-cu', 'user'), true);
+  assert.equal(await auth.addUser('nhanvien', 'mk-cu', 'user'), false);
+
+  assert.equal(await auth.changePassword('nhanvien', 'sai', 'mk-moi'), false);
+  assert.equal(await auth.changePassword('nhanvien', 'mk-cu', 'mk-moi'), true);
+  assert.ok(await auth.validateUser('nhanvien', 'mk-moi'));
+  assert.equal(await auth.validateUser('nhanvien', 'mk-cu'), null);
+
+  const ban_ghi = JSON.parse(
+    fs.readFileSync(path.join(dataDirectory, 'cookies', 'users.json'), 'utf8'),
+  ).find((u) => u.username === 'nhanvien');
+  assert.equal(ban_ghi.iterations, 600000);
+});
+
+test('ban ghi cu 1000 vong van dang nhap duoc', async () => {
+  const auth = await import('../services/authService.js');
+  const crypto = await import('node:crypto');
+  const tep = path.join(dataDirectory, 'cookies', 'users.json');
+  const users = JSON.parse(fs.readFileSync(tep, 'utf8'));
+  const salt = crypto.randomBytes(16).toString('hex');
+  users.push({
+    username: 'tai-khoan-cu',
+    salt,
+    hash: crypto.pbkdf2Sync('mk-cu', salt, 1000, 64, 'sha512').toString('hex'),
+    iterations: 1000,
+    role: 'user',
+  });
+  fs.writeFileSync(tep, JSON.stringify(users, null, 2));
+
+  const user = await auth.validateUser('tai-khoan-cu', 'mk-cu');
+  assert.ok(user, 'ban ghi 1000 vong phai xac minh bang dung so vong cua no');
+  assert.equal(user.role, 'user');
+});
+
 test.after(() => fs.rmSync(dataDirectory, { recursive: true, force: true }));

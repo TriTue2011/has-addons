@@ -194,7 +194,7 @@ const __dirname = path.dirname(__filename);
 
 // API xác thực
 // Đăng nhập
-router.post('/login', (req, res) => {
+router.post('/login', async (req, res) => {
   try {
     if (!_loginRateLimit(req, res)) return;
     // KHÔNG log req.body (chứa mật khẩu thô) hay kết quả validateUser.
@@ -204,7 +204,7 @@ router.post('/login', (req, res) => {
       return res.status(400).json({ success: false, message: 'Vui lòng nhập đầy đủ tài khoản và mật khẩu' });
     }
 
-    const user = validateUser(username, password);
+    const user = await validateUser(username, password);
 
     if (!user) {
       _loginRecordFail(req);
@@ -287,14 +287,14 @@ router.get('/users', adminMiddleware, (req, res) => {
 });
 
 // Thêm người dùng mới
-router.post('/users', adminMiddleware, (req, res) => {
+router.post('/users', adminMiddleware, async (req, res) => {
   const { username, password, role } = req.body;
 
   if (!username || !password) {
     return res.status(400).json({ success: false, message: 'Vui lòng nhập đầy đủ tài khoản và mật khẩu' });
   }
 
-  const success = addUser(username, password, role || 'user');
+  const success = await addUser(username, password, role || 'user');
   if (!success) {
     return res.status(400).json({ success: false, message: 'Tài khoản đã tồn tại' });
   }
@@ -324,7 +324,7 @@ router.delete('/users', adminMiddleware, async (req, res) => {
 });
 
 // Đổi mật khẩu
-router.post('/change-password', (req, res) => {
+router.post('/change-password', async (req, res) => {
   if (!req.session.authenticated) {
     return res.status(401).json({ success: false, message: 'Chưa đăng nhập' });
   }
@@ -336,7 +336,7 @@ router.post('/change-password', (req, res) => {
     return res.status(400).json({ success: false, message: 'Vui lòng nhập đầy đủ mật khẩu cũ và mới' });
   }
 
-  const success = changePassword(req.session.username, oldPassword, newPassword);
+  const success = await changePassword(req.session.username, oldPassword, newPassword);
 
   if (!success) {
     return res.status(400).json({ success: false, message: 'Mật khẩu cũ không chính xác' });
@@ -359,7 +359,7 @@ router.get('/check-auth', (req, res) => {
 });
 
 // API đăng nhập đơn giản (không dùng file users.json)
-router.post('/simple-login', (req, res) => {
+router.post('/simple-login', async (req, res) => {
   try {
     if (!_loginRateLimit(req, res)) return;
     // KHÔNG log req.body (chứa mật khẩu).
@@ -375,7 +375,7 @@ router.post('/simple-login', (req, res) => {
       return res.status(400).json({ success: false, message: 'Vui lòng nhập đầy đủ tài khoản và mật khẩu' });
     }
 
-    const user = validateUser(username, password);
+    const user = await validateUser(username, password);
 
     if (user) {
       // Xử lý trường hợp không có req.session
@@ -622,7 +622,7 @@ router.get('/session-test', (req, res) => {
 });
 
 // Thêm một API đăng nhập đơn giản mới để test - simplified
-router.post('/test-login', (req, res) => {
+router.post('/test-login', async (req, res) => {
   // Endpoint dev — chỉ bật khi ZALO_DEV_ENDPOINTS=1; production trả 404.
   if (!DEV_ENDPOINTS) return res.status(404).json({ success: false, message: 'Not found' });
 
@@ -634,7 +634,7 @@ router.post('/test-login', (req, res) => {
       return res.status(400).json({ success: false, message: 'Tài khoản và mật khẩu không được để trống' });
     }
 
-    const user = validateUser(username, password);
+    const user = await validateUser(username, password);
 
     if (user) {
       if (req.session) {
