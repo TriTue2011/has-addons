@@ -131,7 +131,8 @@ import {
     sendReportByAccount,
     removeFriendByAccount,
     getStickersByAccount,
-    getStickersDetailByAccount
+    getStickersDetailByAccount,
+    zaloAccounts,
 } from '../api/zalo/zalo.js';
 import { validateUser, adminMiddleware, addUser, deleteUser, getAllUsers, changePassword } from '../services/authService.js';
 import { getDataDirectory } from '../config/addon.js';
@@ -188,9 +189,50 @@ function _loginRecordSuccess(req) {
   _loginFails.delete(_loginClientIp(req));
 }
 
+// Quét dọn định kỳ: bản cũ không bao giờ xoá mục nào, nên Map lớn dần theo số
+// IP từng gõ sai mật khẩu và không có đường thu lại.
+const _LOGIN_QUET_MS = 30 * 60 * 1000;
+const _loginQuetDon = setInterval(() => {
+  const now = Date.now();
+  for (const [ip, rec] of _loginFails) {
+    const hetKhoa = !rec.lockUntil || rec.lockUntil <= now;
+    const hetCuaSo = now - rec.first > _LOGIN_WINDOW_MS;
+    if (hetKhoa && hetCuaSo) _loginFails.delete(ip);
+  }
+}, _LOGIN_QUET_MS);
+_loginQuetDon.unref?.();
+
+// Cấp cho phiên một ID MỚI ngay khi đăng nhập thành công.
+//
+// Bản cũ gán thẳng req.session.authenticated = true lên phiên đang có. Kẻ tấn
+// công đặt trước được giá trị cookie phiên cho nạn nhân (session fixation) thì
+// sau khi nạn nhân đăng nhập, cái ID nó đã biết trở thành một phiên có quyền.
+// regenerate() cấp ID mới nên ID cũ thành vô giá trị.
+function _taoLaiPhien(req) {
+  return new Promise((resolve, reject) => {
+    req.session.regenerate((error) => (error ? reject(error) : resolve()));
+  });
+}
+
 // Dành cho ES Module: xác định __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Đường kiểm tra sức khoẻ, nhẹ và không cần đăng nhập.
+//
+// Không chạm tới Zalo: chỉ trả lời "tiến trình còn sống và còn nhận được yêu
+// cầu HTTP". Đủ cho HEALTHCHECK của Docker và cho `watchdog` của Supervisor tự
+// khởi động lại add-on khi tiến trình treo — trước đây không có đường nào làm
+// được việc đó.
+router.get('/health', (_req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.json({
+    success: true,
+    status: 'ok',
+    uptime: Math.floor(process.uptime()),
+    accounts: zaloAccounts.length,
+  });
+});
 
 // API xác thực
 // Đăng nhập
@@ -221,7 +263,8 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Thiết lập session
+    // Thiết lập session trên một ID MỚI
+    await _taoLaiPhien(req);
     req.session.authenticated = true;
     req.session.username = user.username;
     req.session.role = user.role;
@@ -385,7 +428,8 @@ router.post('/simple-login', async (req, res) => {
         return res.status(500).json({ success: false, message: 'Lỗi server: session không khả dụng' });
       }
 
-      // Thiết lập session với thông tin người dùng đã xác thực
+      // Thiết lập session với thông tin người dùng đã xác thực, trên ID MỚI
+      await _taoLaiPhien(req);
       req.session.authenticated = true;
       req.session.username = user.username;
       req.session.role = user.role;
@@ -638,6 +682,7 @@ router.post('/test-login', async (req, res) => {
 
     if (user) {
       if (req.session) {
+        await _taoLaiPhien(req);
         req.session.authenticated = true;
         req.session.username = user.username;
         req.session.role = user.role;

@@ -1,7 +1,7 @@
 name: "Zalo Bot"
 description: "Add-on Zalo Bot in Home Assistant"
 url: "https://github.com/TriTue2011/has-addons"
-version: "2026.8.23.2"
+version: "2026.8.23.3"
 slug: "zalo_bot"
 init: false
 map:
@@ -11,6 +11,8 @@ map:
 host_network: true
 ports:
   3000/tcp: null
+# Supervisor tự khởi động lại add-on khi đường này thôi trả lời.
+watchdog: "http://[HOST]:[PORT:3000]/api/health"
 arch:
   - amd64
   - aarch64

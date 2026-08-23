@@ -9,7 +9,6 @@ import routes from './routes/index.js';
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
-import sharp from 'sharp';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { loadHomeAssistantOptions, getDataDirectory } from './config/addon.js';
@@ -102,51 +101,6 @@ app.use((req, res, next) => {
     res.status(400).json({ success: false, error: error.message });
   }
 });
-
-// Middleware phát hiện HA ingress proxy — tất cả link phải có prefix này
-app.use((req, res, next) => {
-  const ingressPath = req.headers['x-ingress-path'] || '';
-  req.ingressPath = ingressPath;
-  res.locals.ingressPath = ingressPath;
-  next();
-});
-
-// ── Generate PWA icons & screenshots ────────────────────────────────────
-(function generateIcons() {
-    const iconsDir = path.join(__dirname, 'public', 'chat', 'icons');
-    if (!fs.existsSync(iconsDir)) fs.mkdirSync(iconsDir, { recursive: true });
-    const srcIcon = path.join(iconsDir, 'zalo.png');
-    if (!fs.existsSync(srcIcon)) return;
-
-    // Icons from zalo.png
-    [192, 512].forEach(size => {
-        const pngPath = path.join(iconsDir, `icon-${size}.png`);
-        // Luôn regenerate để cập nhật icon mới
-        sharp(srcIcon).resize(size, size).png().toFile(pngPath)
-            .then(() => console.log(`[PWA] Icon ${size}x${size} generated`))
-            .catch(e => console.warn(`[PWA] Icon ${size} failed:`, e.message));
-    });
-    // Screenshots
-    const screenshots = [
-        { name: 'screenshot-wide', w: 1280, h: 720, text: 'Zalo Chat' },
-        { name: 'screenshot-narrow', w: 720, h: 1280, text: 'Zalo Chat' }
-    ];
-    screenshots.forEach(({ name, w, h, text }) => {
-        const pngPath = path.join(iconsDir, `${name}.png`);
-        if (fs.existsSync(pngPath)) return;
-        const overlay = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">
-            <defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" style="stop-color:#0068ff"/>
-                <stop offset="100%" style="stop-color:#4d9fff"/>
-            </linearGradient></defs>
-            <rect width="${w}" height="${h}" fill="url(#g)"/>
-            <text x="${w/2}" y="${h/2}" font-family="Inter,sans-serif" font-size="36" font-weight="700" fill="#fff" text-anchor="middle" dominant-baseline="middle">${text}</text>
-        </svg>`;
-        sharp(Buffer.from(overlay)).resize(w, h).png().toFile(pngPath)
-            .then(() => console.log(`[PWA] Screenshot ${name} generated`))
-            .catch(e => console.warn(`[PWA] Screenshot ${name} failed:`, e.message));
-    });
-})();
 
 // SESSION_SECRET: KHÔNG dùng default cứng ('zalo-server-secret-key' đoán được
 // → giả mạo session ký khi service lộ ra mạng). Ưu tiên env; thiếu env thì

@@ -6,7 +6,7 @@ import { zaloAccounts, loginZaloAccount } from '../api/zalo/zalo.js';
 import { proxyService } from '../services/proxyService.js';
 import { adminMiddleware } from '../services/authService.js';
 import dotenv from 'dotenv';
-import { broadcastMessage } from '../server.js';  // Import hàm broadcast tin nhắn
+import { broadcastMessage } from '../services/websocketHub.js';
 import { setDefaultWebhookUrl } from '../services/webhookService.js';
 
 const router = express.Router();

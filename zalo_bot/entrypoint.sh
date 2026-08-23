@@ -1,9 +1,10 @@
 #!/bin/sh
 
-# Cài đặt jq nếu chưa có
+# jq do Dockerfile cài sẵn bằng apk. Bản cũ có nhánh dự phòng gọi apt-get —
+# lệnh không tồn tại trên ảnh Alpine, nên nhánh đó không bao giờ chạy được.
 if ! command -v jq >/dev/null 2>&1; then
-  echo "Installing jq..."
-  apt-get update && apt-get install -y jq
+  echo "LỖI: thiếu jq — không đọc được /data/options.json. Kiểm tra Dockerfile." >&2
+  exit 1
 fi
 
 # Kiểm tra và tạo thư mục dữ liệu

@@ -2,7 +2,7 @@ import { getWebhookUrl, triggerN8nWebhook, getCookiesDir } from './utils/helpers
 import { broadcastToWebsocket } from './services/webhookService.js';
 import fs from 'fs';
 import path from 'path';
-import { broadcastMessage } from './server.js';
+import { broadcastMessage } from './services/websocketHub.js';
 import { storeGroupMessage } from './utils/groupHistoryStore.js';
 import { reconnectDelay } from './services/reconnectPolicy.js';
 import { beginReconnectAttempt, invalidateReconnectAttempt } from './services/reconnectGuard.js';

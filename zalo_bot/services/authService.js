@@ -4,6 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import crypto from 'crypto';
 import { getDataDirectory } from '../config/addon.js';
+import { writeJsonAtomicSync } from '../utils/atomicFile.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -91,7 +92,7 @@ const initUserFile = () => {
         iterations: PBKDF2_ITERS,
         role: 'admin',
       }];
-      fs.writeFileSync(userFilePath, JSON.stringify(users, null, 2));
+      writeJsonAtomicSync(userFilePath, users);
       if (fromEnv) {
         console.log(`Đã tạo users.json với admin '${uname}' (mật khẩu từ ZALO_SERVER_ADMIN_PASSWORD)`);
       } else {
@@ -119,7 +120,7 @@ const initUserFile = () => {
           iterations: PBKDF2_ITERS,
           role: 'admin',
         }];
-        fs.writeFileSync(userFilePath, JSON.stringify(users, null, 2));
+        writeJsonAtomicSync(userFilePath, users);
         if (!fromEnv) {
           console.warn(`[BẢO MẬT] users.json hỏng, đã tạo lại admin '${uname}' với mật khẩu NGẪU NHIÊN:`);
           console.warn(`[BẢO MẬT]   ${password}`);
@@ -155,25 +156,29 @@ const getUsers = () => {
 };
 
 // Thêm người dùng mới
+// Bọc trong withUserLock như deleteUser: hai thao tác cùng lúc trên users.json
+// mà không có khoá thì thao tác sau ghi đè kết quả của thao tác trước.
+// Băm NGOÀI khoá — việc đó tốn hàng trăm mili-giây tới vài giây và không đụng
+// trạng thái chung — rồi mới vào khoá để đọc–sửa–ghi users.json.
+//
+// Bọc trong withUserLock như deleteUser: bản cũ không khoá, nên thêm hai người
+// dùng cùng lúc thì người sau ghi đè kết quả của người trước.
 export const addUser = async (username, password, role = 'user') => {
-  const users = getUsers();
-
-  // Kiểm tra nếu username đã tồn tại
-  if (users.some(user => user.username === username)) {
-    return false;
-  }
-
   const salt = crypto.randomBytes(16).toString('hex');
-  users.push({
-    username,
-    salt,
-    hash: await _hashAsync(password, salt, PBKDF2_ITERS),
-    iterations: PBKDF2_ITERS,
-    role,
-  });
+  const hash = await _hashAsync(password, salt, PBKDF2_ITERS);
 
-  fs.writeFileSync(userFilePath, JSON.stringify(users, null, 2));
-  return true;
+  return withUserLock(() => {
+    const users = getUsers();
+
+    // Kiểm tra nếu username đã tồn tại
+    if (users.some((user) => user.username === username)) {
+      return false;
+    }
+
+    users.push({ username, salt, hash, iterations: PBKDF2_ITERS, role });
+    writeJsonAtomicSync(userFilePath, users);
+    return true;
+  });
 };
 
 const lockFilePath = path.join(getDataDirectory(), 'cookies', 'users.lock');
@@ -222,7 +227,7 @@ export const deleteUser = (username) => {
     }
 
     users.splice(idx, 1);
-    fs.writeFileSync(userFilePath, JSON.stringify(users, null, 2));
+    writeJsonAtomicSync(userFilePath, users);
     return { success: true };
   });
 };
@@ -263,58 +268,47 @@ export const validateUser = async (username, password) => {
 };
 
 // Thay đổi mật khẩu
+// Đọc–kiểm–ghi users.json nằm TRỌN trong withUserLock: không có khoá thì đổi
+// mật khẩu song song với thêm/xoá người dùng sẽ ghi đè lẫn nhau.
+//
+// Hai lần băm (kiểm mật khẩu cũ, sinh mật khẩu mới) đều nằm trong khoá vì lần
+// băm sau phụ thuộc kết quả lần trước — đây là đường hiếm khi đi, không phải
+// đường nóng như đăng nhập.
 export const changePassword = async (username, oldPassword, newPassword) => {
   // KHÔNG log password/độ dài/salt/hash (rò băm + độ dài mật khẩu ra log).
-  // Đọc dữ liệu trực tiếp từ file để đảm bảo dữ liệu mới nhất
-  let users = [];
-  try {
-    const data = fs.readFileSync(userFilePath, { encoding: 'utf8', flag: 'r' });
-    users = JSON.parse(data);
-  } catch (error) {
-    console.error('Error reading users file directly for password change:', error);
-    return false;
-  }
+  return withUserLock(async () => {
+    const users = getUsers();
 
-  const userIndex = users.findIndex(user => user.username === username);
-  if (userIndex === -1) {
-    return false;
-  }
-
-  const user = users[userIndex];
-  const iters = Number(user.iterations) || PBKDF2_LEGACY;
-  const hash = await _hashAsync(oldPassword, user.salt, iters);
-  const stored = Buffer.from(String(user.hash), 'hex');
-  const computed = Buffer.from(hash, 'hex');
-  const ok = stored.length === computed.length && crypto.timingSafeEqual(stored, computed);
-  if (!ok) {
-    return false; // Mật khẩu cũ không chính xác
-  }
-
-  // Cập nhật mật khẩu mới — nâng lên số vòng MẠNH (600000).
-  const salt = crypto.randomBytes(16).toString('hex');
-  const newHash = await _hashAsync(newPassword, salt, PBKDF2_ITERS);
-  users[userIndex].salt = salt;
-  users[userIndex].hash = newHash;
-  users[userIndex].iterations = PBKDF2_ITERS;
-
-  try {
-    // Ghi qua file tạm rồi rename (atomic) — KHÔNG log nội dung.
-    const tempFilePath = path.join(getDataDirectory(), 'cookies', 'users.json.tmp');
-    fs.writeFileSync(tempFilePath, JSON.stringify(users, null, 2), { encoding: 'utf8', flag: 'w' });
-    fs.renameSync(tempFilePath, userFilePath);
-
-    // Verify the file was written correctly
-    const verifyUsers = getUsers();
-    const verifyUser = verifyUsers.find(u => u.username === username);
-    if (!verifyUser || verifyUser.salt !== salt || verifyUser.hash !== newHash) {
-      console.error('Verification failed after password change');
+    const userIndex = users.findIndex((user) => user.username === username);
+    if (userIndex === -1) {
       return false;
     }
-    return true;
-  } catch (error) {
-    console.error('Error writing password change to file:', error);
-    return false;
-  }
+
+    const user = users[userIndex];
+    const iters = Number(user.iterations) || PBKDF2_LEGACY;
+    const hash = await _hashAsync(oldPassword, user.salt, iters);
+    const stored = Buffer.from(String(user.hash), 'hex');
+    const computed = Buffer.from(hash, 'hex');
+    const ok = stored.length === computed.length && crypto.timingSafeEqual(stored, computed);
+    if (!ok) {
+      return false; // Mật khẩu cũ không chính xác
+    }
+
+    // Cập nhật mật khẩu mới — nâng lên số vòng MẠNH (600000).
+    const salt = crypto.randomBytes(16).toString('hex');
+    const newHash = await _hashAsync(newPassword, salt, PBKDF2_ITERS);
+    users[userIndex].salt = salt;
+    users[userIndex].hash = newHash;
+    users[userIndex].iterations = PBKDF2_ITERS;
+
+    try {
+      writeJsonAtomicSync(userFilePath, users);
+      return true;
+    } catch (error) {
+      console.error('Error writing password change to file:', error);
+      return false;
+    }
+  });
 };
 
 /** API key cho HA / gateway (env ZALO_SERVER_API_KEY hoặc CHATGPT2API_AUTH_KEY). */
@@ -332,12 +326,17 @@ function timingSafeEqualStr(a, b) {
   }
 }
 
+// CHỈ nhận khoá qua header.
+//
+// Bản cũ nhận thêm ?api_key=… trên URL. Query string đi vào access log của mọi
+// reverse proxy trên đường, vào lịch sử trình duyệt, và vào header Referer khi
+// trang tải tài nguyên bên ngoài — tức khoá rò ra ba chỗ mà chủ máy không kiểm
+// soát được. Header thì không nằm trong log mặc định của proxy nào.
 function extractApiToken(req) {
   const auth = String(req.headers.authorization || '');
   if (auth.toLowerCase().startsWith('bearer ')) return auth.slice(7).trim();
   const x = req.headers['x-api-key'];
   if (x) return String(x).trim();
-  if (req.query && req.query.api_key) return String(req.query.api_key).trim();
   return '';
 }
 
@@ -377,9 +376,15 @@ export const authMiddleware = (req, res, next) => {
     });
   }
 
-  // Browser request: redirect
-  const prefix = req.ingressPath || '';
-  res.redirect(prefix + '/admin-login');
+  // Browser request: redirect.
+  //
+  // Không cộng tiền tố ingress: config.yaml KHÔNG khai `ingress`, add-on chạy
+  // host_network và mở thẳng cổng 3000. Bản cũ có một middleware đọc
+  // x-ingress-path kèm ghi chú "tất cả link phải có prefix này", nhưng không
+  // view nào dùng tới nó — mọi link và mọi fetch() trong views/ đều là đường
+  // tuyệt đối. Giữ lại nửa cơ chế cùng một ghi chú sai chỉ làm người đọc sau
+  // này tưởng ingress đã chạy được.
+  res.redirect('/admin-login');
 };
 
 // Middleware kiểm tra quyền admin
@@ -447,6 +452,7 @@ export const publicRoutes = [
   '/api/logout', // API đăng xuất
   '/api/check-auth', // API kiểm tra trạng thái xác thực
   '/api/session-test', // API kiểm tra session
+  '/api/health', // Kiểm tra sức khoẻ cho Docker HEALTHCHECK / watchdog
   '/api/account-webhook/', // API webhook có tham số
   '/favicon.ico', // Favicon
   '/ws', // WebSocket

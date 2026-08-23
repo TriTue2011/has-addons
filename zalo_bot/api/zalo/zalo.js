@@ -139,14 +139,17 @@ export function startLoginCheck() {
         });
     }, 10 * 60 * 1000);
     
-    // Thêm xử lý khi process kết thúc để dọn dẹp
-    process.on('SIGTERM', () => {
-        console.log("[Docker] Nhận tín hiệu kết thúc, dừng kiểm tra đăng nhập");
-        if (checkLoginInterval) {
-            clearInterval(checkLoginInterval);
-        }
-    });
 }
+
+// Đăng ký MỘT LẦN ở cấp module. Bản cũ đăng ký bên trong startLoginCheck nên
+// mỗi lần gọi lại hàm đó là thêm một listener, dẫn tới cảnh báo
+// MaxListenersExceededWarning.
+process.once('SIGTERM', () => {
+    console.log("[Docker] Nhận tín hiệu kết thúc, dừng kiểm tra đăng nhập");
+    if (checkLoginInterval) {
+        clearInterval(checkLoginInterval);
+    }
+});
 
 // Alias export cho tương thích với app.js
 export const startLoginStatusCheck = startLoginCheck;

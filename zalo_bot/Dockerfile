@@ -13,14 +13,17 @@ COPY package.json package-lock.json ./
 # nên hai lần build cùng một commit có thể cho hai kết quả khác nhau và một bản
 # zca-js hỏng ở thượng nguồn là vào thẳng image.
 #
-# Trình biên dịch chỉ cần lúc dựng module native (sharp), gỡ ngay sau đó để
-# không nằm lại trong image chạy thật.
-RUN apk add --no-cache --virtual .build-deps python3 make g++ \
-    && npm ci --omit=dev --no-audit --no-fund \
-    && apk del .build-deps
+# Không còn module native nào cần trình biên dịch: sharp đã gỡ (nó chỉ phục vụ
+# một hàm sinh icon PWA không bao giờ chạy vì tệp nguồn không có trong repo).
+RUN npm ci --omit=dev --no-audit --no-fund
 
 COPY . .
 RUN chmod +x entrypoint.sh
 
 EXPOSE 3000
+
+# Supervisor và Docker tự biết tiến trình treo thay vì để nó nằm im.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=90s --retries=3 \
+    CMD wget -qO- "http://127.0.0.1:${PORT:-3000}/api/health" >/dev/null || exit 1
+
 ENTRYPOINT ["./entrypoint.sh"]

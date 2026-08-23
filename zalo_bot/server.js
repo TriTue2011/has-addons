@@ -4,6 +4,13 @@ import { WebSocketServer } from 'ws';
 import app, { sessionMiddleware } from './app.js';
 import { getDataDirectory } from './config/addon.js';
 import { createConnectionLimit } from './services/connectionLimit.js';
+import {
+  broadcastMessage,
+  closeAllWebSocketClients,
+  getWebSocketClientCount,
+  registerWebSocketClient,
+} from './services/websocketHub.js';
+import { flushAllGroupHistorySync } from './utils/groupHistoryStore.js';
 
 const PORT = process.env.PORT || 3000;
 const dataDir = getDataDirectory();
@@ -32,9 +39,9 @@ const _WS_MAX = 50;
 const _WS_ORIGINS = String(process.env.ZALO_WS_ALLOWED_ORIGINS || '')
   .split(',').map(s => s.trim()).filter(Boolean);
 
-// Lưu trữ kết nối WebSocket
-export const webSocketClients = new Set();
-const wsConnectionLimit = createConnectionLimit(_WS_MAX, () => webSocketClients.size);
+// Danh sách client nằm trong services/websocketHub.js — xem ghi chú ở đó về
+// vòng import cũ.
+const wsConnectionLimit = createConnectionLimit(_WS_MAX, getWebSocketClientCount);
 
 function _originOk(req) {
   const origin = req.headers.origin;
@@ -117,51 +124,55 @@ wss.on('connection', (ws) => {
     delete ws._zaloConnectionReserved;
     wsConnectionLimit.confirm();
   }
-  webSocketClients.add(ws);
-  ws.on('close', () => {
-    webSocketClients.delete(ws);
-  });
-  ws.on('error', () => {
-    webSocketClients.delete(ws);
-  });
+  registerWebSocketClient(ws);
 });
 
-// Hàm gửi thông báo đến tất cả client WebSocket
-export function broadcastMessage(message) {
-  webSocketClients.forEach((client) => {
-    if (client.readyState === 1) { // 1 = OPEN
-      client.send(message);
-    }
-  });
-}
+// Giữ lại đường xuất cũ để các module khác không phải đổi.
+export { broadcastMessage };
 
 // Sử dụng HTTP server thay vì app để hỗ trợ WebSocket
 server.listen(PORT, () => {
   console.log(`Server đang chạy tại http://localhost:${PORT}`);
 });
 
-// Xử lý tín hiệu tắt server một cách an toàn
-process.on('SIGTERM', () => {
-  console.log('Nhận tín hiệu SIGTERM (container đang dừng). Đang dọn dẹp...');
-  
-  // Đóng server một cách an toàn
-  server.close(() => {
-    console.log('Server HTTP đã đóng.');
-    process.exit(0);
-  });
-  
-  // Đảm bảo tắt sau 10 giây nếu đóng server bị treo
-  setTimeout(() => {
+// Xử lý tín hiệu tắt server một cách an toàn.
+//
+// Kho lịch sử nhóm gom tin vào bộ đệm rồi mới ghi theo lô có hẹn giờ, nên phải
+// ghi nốt phần chưa ghi TRƯỚC khi thoát. Bản cũ export
+// flushAllGroupHistorySync nhưng không chỗ nào gọi, nên mỗi lần dừng hay cập
+// nhật add-on là mất phần tin nhắn nhóm còn nằm trong bộ đệm.
+//
+// Hai handler cũ tách riêng và SIGINT còn thiếu cả hẹn giờ ép thoát; gộp làm
+// một để hai đường tắt hành xử giống nhau.
+let dangTat = false;
+
+function tatServer(tinHieu) {
+  if (dangTat) return;
+  dangTat = true;
+  console.log(`Nhận tín hiệu ${tinHieu}. Đang dọn dẹp...`);
+
+  try {
+    flushAllGroupHistorySync();
+  } catch (error) {
+    console.error('Lỗi khi ghi nốt lịch sử nhóm:', error.message || error);
+  }
+
+  closeAllWebSocketClients();
+
+  // Hẹn giờ ép thoát cho CẢ hai tín hiệu: server.close() chờ mọi kết nối đang
+  // mở đóng lại, mà WebSocket thì không tự đóng.
+  const epThoat = setTimeout(() => {
     console.error('Tắt server bị buộc do quá thời gian chờ.');
     process.exit(1);
   }, 10000);
-});
+  epThoat.unref?.();
 
-process.on('SIGINT', () => {
-  console.log('Nhận tín hiệu SIGINT (Ctrl+C). Đang dọn dẹp...');
-  
   server.close(() => {
+    clearTimeout(epThoat);
     console.log('Server HTTP đã đóng.');
     process.exit(0);
   });
-});
+}
+
+process.once('SIGTERM', () => tatServer('SIGTERM (container đang dừng)'));
+process.once('SIGINT', () => tatServer('SIGINT (Ctrl+C)'));
