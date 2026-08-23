@@ -35,6 +35,17 @@ nơi thứ hai là nơi thứ nhất bị đá ra ngay, và nó rụng lặng l�
 log dòng `Another connection is opened, closing this one`. Nếu bạn dựng một bản
 để thử nghiệm, hãy dùng tài khoản Zalo khác.
 
+## Biểu tượng
+
+`icon.png` (256×256) và `logo.png` (470×256) lấy nguyên từ
+`brands.home-assistant.io/zalo_bot/` — cùng bộ ảnh mà tích hợp HACS
+`TriTue2011/zalo_bot` đang dùng, nên add-on và tích hợp hiện cùng một biểu
+tượng trong giao diện Home Assistant.
+
+Đổi biểu tượng thì thay hai tệp này trong thư mục add-on. Supervisor đọc chúng
+lúc nạp danh sách add-on; nếu không thấy đổi thì bấm **Reload** ở trang
+Add-on Store.
+
 ## Tuỳ chọn
 
 | Tuỳ chọn | Bỏ trống thì sao |
