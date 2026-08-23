@@ -20,9 +20,74 @@ import {
     cleanupAfterSettled,
     withTimeout,
 } from '../../utils/timeout.js';
-import { normalizeZcaNumberId } from '../../utils/zaloContract.js';
+import {
+    getRequestedMessageTtl,
+    normalizeMessageTtl,
+    normalizeAutoDeleteTtl,
+    normalizeThreadType,
+    normalizeZcaNumberId,
+    withMessageTtl,
+} from '../../utils/zaloContract.js';
+import {
+    configureExpiryDependencies,
+    napTuDia,
+    scheduleUndo,
+} from '../../services/messageExpiry.js';
 import { writeJsonAtomicSync } from '../../utils/atomicFile.js';
 export const zaloAccounts = [];
+configureExpiryDependencies({
+    layApi: (ownId) => zaloAccounts.find(
+        (acc) => String(acc.ownId) === String(ownId),
+    )?.api || null,
+});
+napTuDia();
+
+/**
+ * Hẹn tự thu hồi mọi tin vừa gửi trong một lời gọi.
+ *
+ * Zalo bỏ qua `ttl` theo từng tin — đo thật 23/08/2026, xem
+ * services/messageExpiry.js — nên muốn tin tự mất sau vài phút thì chính bot
+ * phải gọi undo. Một lời gọi có thể đẻ nhiều tin (album ảnh) nên hẹn cho tất cả.
+ */
+function henThuHoi(account, result, threadId, threadType, ttlMs) {
+    if (!Number.isFinite(ttlMs) || ttlMs <= 0) return null;
+    const ids = [];
+    if (result?.message?.msgId) ids.push(result.message.msgId);
+    for (const phan of result?.attachment || []) {
+        if (phan?.msgId) ids.push(phan.msgId);
+    }
+    let ketQua = null;
+    for (const msgId of ids) {
+        ketQua = scheduleUndo({
+            ownId: account.ownId,
+            msgId,
+            threadId: String(threadId),
+            type: threadType,
+            ttlMs,
+        }) || ketQua;
+    }
+    // Xin TTL mà không hẹn được thì phải NÓI RA. Trả null sẽ bị người gọi đọc
+    // thành "không yêu cầu tự xoá", tức im lặng nuốt mất yêu cầu.
+    if (!ketQua) {
+        return {
+            requested: ttlMs,
+            applied: false,
+            scope: 'auto-undo',
+            note: 'Zalo không trả msgId cho tin này nên chưa hẹn được thu hồi.',
+        };
+    }
+    return ketQua;
+}
+
+/** Album đi theo nhiều LÔ, mỗi lô là một phản hồi sendMessage riêng. */
+function henThuHoiAlbum(account, cacLo, threadId, threadType, ttlMs) {
+    if (!Number.isFinite(ttlMs) || ttlMs <= 0) return null;
+    let ketQua = null;
+    for (const lo of Array.isArray(cacLo) ? cacLo : [cacLo]) {
+        ketQua = henThuHoi(account, lo, threadId, threadType, ttlMs) || ketQua;
+    }
+    return ketQua;
+}
 configureReconnectDependencies({
     accounts: zaloAccounts,
     login: (...args) => loginZaloAccount(...args),
@@ -292,18 +357,28 @@ export async function sendMessageByAccount(req, res) {
             }
         }
 
-        const result = await account.api.sendMessage(messageContent, threadId, msgType);
+        // Bản cũ KHÔNG đọc ttl ở đây: gọi bằng REST command theo đúng tài liệu
+        // của chính add-on thì TTL rơi mất im lặng. Đọc cả `body.ttl` lẫn
+        // `message.ttl` vì tích hợp HACS đặt nó lồng trong message.
+        const ttlYeuCau = normalizeMessageTtl(
+            getRequestedMessageTtl(req.body, messageContent),
+        ) ?? 0;
+        messageContent = withMessageTtl(messageContent, ttlYeuCau);
+
+        const result = await account.api.sendMessage(messageContent, String(threadId), msgType);
 
         res.json({
             success: true,
             data: result,
+            messageTtl: henThuHoi(account, result, threadId, msgType, ttlYeuCau),
             usedAccount: {
                 ownId: account.ownId,
                 phoneNumber: account.phoneNumber
             }
         });
     } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+        const status = /ttl/i.test(error?.message || '') ? 400 : 500;
+        res.status(status).json({ success: false, error: error.message });
     }
 }
 
@@ -328,7 +403,7 @@ export async function sendImageByAccount(req, res) {
             {
                 msg: message || "",  // Thêm message support
                 attachments: [imagePath],
-                ttl: ttl ? parseInt(ttl) : 0  // Thêm TTL support
+                ttl: normalizeMessageTtl(ttl) ?? 0
             },
             threadId,
             threadType
@@ -339,6 +414,7 @@ export async function sendImageByAccount(req, res) {
         res.json({
             success: true,
             data: result,
+            messageTtl: henThuHoi(account, result, threadId, threadType, normalizeMessageTtl(ttl) ?? 0),
             usedAccount: {
                 ownId: account.ownId,
                 phoneNumber: account.phoneNumber
@@ -503,7 +579,7 @@ export async function removeUserFromGroupByAccount(req, res) {
 // API gửi hình ảnh đến user với account selection
 export async function sendImageToUserByAccount(req, res) {
     try {
-        const { imagePath: imageUrl, threadId, accountSelection } = req.body;
+        const { imagePath: imageUrl, threadId, accountSelection, ttl } = req.body;
 
         if (!imageUrl || !threadId) {
             return res.status(400).json({ error: 'Đường dẫn hình ảnh và threadId là bắt buộc' });
@@ -530,6 +606,7 @@ export async function sendImageToUserByAccount(req, res) {
         res.json({
             success: true,
             data: result,
+            messageTtl: henThuHoi(account, result, threadId, ThreadType.User, normalizeMessageTtl(ttl) ?? 0),
             usedAccount: {
                 ownId: account.ownId,
                 phoneNumber: account.phoneNumber
@@ -543,7 +620,7 @@ export async function sendImageToUserByAccount(req, res) {
 // API gửi nhiều hình ảnh đến user với account selection
 export async function sendImagesToUserByAccount(req, res) {
     try {
-        const { imagePaths: imageUrls, threadId, accountSelection } = req.body;
+        const { imagePaths: imageUrls, threadId, accountSelection, ttl } = req.body;
 
         if (!imageUrls || !threadId || !Array.isArray(imageUrls) || imageUrls.length === 0) {
             return res.status(400).json({ error: 'Danh sách hình ảnh và threadId là bắt buộc' });
@@ -563,6 +640,7 @@ export async function sendImagesToUserByAccount(req, res) {
         res.json({
             success: true,
             data: ketQua.ketQua,
+            messageTtl: henThuHoiAlbum(account, ketQua.ketQua, threadId, ThreadType.User, normalizeMessageTtl(ttl) ?? 0),
             // Nói ra số lô và giới hạn đang áp dụng: người gọi cần biết vì sao 30
             // ảnh lại thành 5 tin nhắn, thay vì tưởng hệ thống gửi lặp.
             soAnh: ketQua.soAnh,
@@ -586,7 +664,7 @@ export async function sendImagesToUserByAccount(req, res) {
 // API gửi hình ảnh đến nhóm với account selection
 export async function sendImageToGroupByAccount(req, res) {
     try {
-        const { imagePath: imageUrl, threadId, accountSelection } = req.body;
+        const { imagePath: imageUrl, threadId, accountSelection, ttl } = req.body;
 
         if (!imageUrl || !threadId) {
             return res.status(400).json({ error: 'Đường dẫn hình ảnh và threadId là bắt buộc' });
@@ -613,6 +691,7 @@ export async function sendImageToGroupByAccount(req, res) {
         res.json({
             success: true,
             data: result,
+            messageTtl: henThuHoi(account, result, threadId, ThreadType.Group, normalizeMessageTtl(ttl) ?? 0),
             usedAccount: {
                 ownId: account.ownId,
                 phoneNumber: account.phoneNumber
@@ -626,7 +705,7 @@ export async function sendImageToGroupByAccount(req, res) {
 // API gửi nhiều hình ảnh đến nhóm với account selection
 export async function sendImagesToGroupByAccount(req, res) {
     try {
-        const { imagePaths: imageUrls, threadId, accountSelection } = req.body;
+        const { imagePaths: imageUrls, threadId, accountSelection, ttl } = req.body;
 
         if (!imageUrls || !threadId || !Array.isArray(imageUrls) || imageUrls.length === 0) {
             return res.status(400).json({ error: 'Danh sách hình ảnh và threadId là bắt buộc' });
@@ -641,6 +720,7 @@ export async function sendImagesToGroupByAccount(req, res) {
         res.json({
             success: true,
             data: ketQua.ketQua,
+            messageTtl: henThuHoiAlbum(account, ketQua.ketQua, threadId, ThreadType.Group, normalizeMessageTtl(ttl) ?? 0),
             soAnh: ketQua.soAnh,
             soLo: ketQua.soLo,
             maxFilePerMessage: ketQua.maxFile,
@@ -680,7 +760,7 @@ export async function sendFileByAccount(req, res) {
             {
                 msg: message || "", // Có thể gửi kèm tin nhắn
                 attachments: [filePath],
-                ttl: ttl ? parseInt(ttl) : 0  // Thêm TTL support
+                ttl: normalizeMessageTtl(ttl) ?? 0
             },
             threadId,
             threadType
@@ -691,6 +771,7 @@ export async function sendFileByAccount(req, res) {
         res.json({
             success: true,
             data: result,
+            messageTtl: henThuHoi(account, result, threadId, threadType, normalizeMessageTtl(ttl) ?? 0),
             usedAccount: {
                 ownId: account.ownId,
                 phoneNumber: account.phoneNumber
@@ -1830,14 +1911,31 @@ export async function getAutoDeleteChatByAccount(req, res) {
 export async function updateAutoDeleteChatByAccount(req, res) {
     try {
         const { ttl, threadId, type, accountSelection } = req.body;
-        if (!ttl || !threadId) {
+        // `!ttl` coi 0 LÀ THIẾU tham số, mà 0 chính là "tắt tự xoá" — nên bản cũ
+        // không tắt được tự xoá qua API, chỉ bật được.
+        if (ttl === undefined || ttl === null || ttl === '' || !threadId) {
             return res.status(400).json({ error: 'ttl và threadId là bắt buộc' });
         }
         const account = getAccountFromSelection(accountSelection);
-        const result = await account.api.updateAutoDeleteChat(ttl, threadId, type);
-        res.json({ success: true, data: result, usedAccount: { ownId: account.ownId, phoneNumber: account.phoneNumber } });
+        const threadType = normalizeThreadType(type);
+        // Zalo chỉ nhận 0 / 1 ngày / 7 ngày / 14 ngày (enum ChatTTL của zca-js).
+        // Bản cũ đẩy thẳng giá trị thô lên: gửi 5 phút thì Zalo IM LẶNG bỏ qua và
+        // người dùng tưởng đã đặt xong. Nay từ chối rõ ràng bằng 400.
+        const normalizedTtl = normalizeAutoDeleteTtl(ttl);
+        const result = await account.api.updateAutoDeleteChat(normalizedTtl, String(threadId), threadType);
+        res.json({
+            success: true,
+            data: result,
+            autoDelete: {
+                enabled: normalizedTtl !== 0,
+                ttl: normalizedTtl,
+                scope: 'conversation',
+            },
+            usedAccount: { ownId: account.ownId, phoneNumber: account.phoneNumber },
+        });
     } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+        const status = /ttl|type khong hop le/i.test(error.message) ? 400 : 500;
+        res.status(status).json({ success: false, error: error.message });
     }
 }
 

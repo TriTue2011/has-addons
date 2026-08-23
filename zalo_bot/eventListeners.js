@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { broadcastMessage } from './services/websocketHub.js';
 import { storeGroupMessage } from './utils/groupHistoryStore.js';
+import { noteSelfMessage } from './services/messageExpiry.js';
 import { reconnectDelay } from './services/reconnectPolicy.js';
 import { beginReconnectAttempt, invalidateReconnectAttempt } from './services/reconnectGuard.js';
 import { withTimeout } from './utils/timeout.js';
@@ -103,6 +104,9 @@ export function setupEventListeners(api) {
         if (Number(msg?.type) === 1) {
             storeGroupMessage(ownId, msg);
         }
+        // Bản dội về của tin TỰ GỬI là nơi duy nhất lấy được cliMsgId — thứ mà
+        // api.undo đòi nhưng phản hồi lúc gửi không trả. Xem services/messageExpiry.js.
+        if (msg?.isSelf) noteSelfMessage(msg);
         // Thêm ownId vào dữ liệu để webhook biết tin nhắn từ tài khoản nào
         const msgWithOwnId = { ...msg, _accountId: ownId };
 

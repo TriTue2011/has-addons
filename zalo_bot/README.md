@@ -5,7 +5,7 @@ Assistant, để tự động hoá gửi và nhận tin nhắn Zalo cá nhân.
 
 ## Phiên bản và cập nhật
 
-Phiên bản add-on hiện tại là **2026.8.23.3**. Cập nhật trong **Settings →
+Phiên bản add-on hiện tại là **2026.8.24.1**. Cập nhật trong **Settings →
 Add-ons → Zalo Bot → Update** — nhớ bật **Re-pull image**, không thì Supervisor
 dùng lại image cũ — rồi khởi động lại add-on. Cookie đăng nhập, webhook và proxy
 nằm trong `data_directory`, nên việc cập nhật **không** bắt quét lại mã QR nếu
@@ -178,6 +178,56 @@ Danh sách đầy đủ nằm ở trang `/list` của giao diện web.
 JavaScript, nên viết `"threadId": "1234567890123456789"` — bỏ dấu nháy là mất
 chữ số cuối mà không có lỗi nào báo.
 
+### Tin tự xoá sau vài phút
+
+Zalo **không** có tin tự huỷ ngắn hạn. Hai cơ chế nó có:
+
+| Cơ chế | Thực tế |
+|---|---|
+| `ttl` theo từng tin | Gửi lên được, nhưng Zalo **bỏ qua**. Đo thật 23/08/2026: năm mốc từ 1 phút tới 7 ngày, không tin nào tự xoá |
+| Auto-delete cả cuộc trò chuyện | Chạy thật, nhưng chỉ có **0 / 1 ngày / 7 ngày / 14 ngày** |
+
+Nên add-on tự làm: gửi tin có `ttl` thì nó hẹn giờ, hết giờ **tự thu hồi**.
+
+```json
+{ "message": "mã OTP là 123456", "threadId": "…",
+  "accountSelection": "…", "ttl": 300000 }
+```
+
+Phản hồi cho biết đã hẹn được hay chưa:
+
+```json
+"messageTtl": { "requested": 300000, "applied": true,
+                "scope": "auto-undo", "expiresAt": "…" }
+```
+
+**Ba điều phải biết:**
+
+- Thu hồi **để lại dòng "Tin nhắn đã được thu hồi"**. Nội dung mất, nhưng người
+  nhận biết có tin đã bị rút. Không giống tin tự huỷ thật.
+- TTL dưới khoảng 10 giây có thể không kịp: add-on phải chờ Zalo dội tin về mới
+  có `cliMsgId` — thứ mà lệnh thu hồi bắt buộc phải có.
+- Danh sách chờ ghi xuống `message-expiry.json` trong thư mục dữ liệu và nạp lại
+  lúc khởi động, nên cập nhật add-on giữa chừng không làm tin kẹt lại vĩnh viễn.
+
+`ttl` nhận số mili-giây hoặc lời tắt: `1h`…`24h`, `1d`, `7d`, `14d`, `off`.
+Giá trị không hiểu được thì trả `400`, không im lặng bỏ qua.
+
+### Tự xoá cho cả cuộc trò chuyện
+
+`POST /api/updateAutoDeleteChatByAccount` — đây là cơ chế **của Zalo**, xoá sạch
+không để lại dấu vết, nhưng chỉ nhận bốn mốc:
+
+| `ttl` | Nghĩa |
+|---|---|
+| `0` | Tắt |
+| `86400000` | 1 ngày |
+| `604800000` | 7 ngày |
+| `1209600000` | 14 ngày |
+
+Mốc khác trả `400`. Bản trước đẩy thẳng giá trị thô lên và Zalo im lặng bỏ qua,
+nên đặt "5 phút" trông như thành công mà thực ra không có gì xảy ra.
+
 ### Định dạng chữ
 
 Zalo cá nhân nhận **style theo khoảng ký tự**, không phải markdown. Gửi kèm
@@ -248,3 +298,15 @@ Dữ liệu và tài khoản đang có được giữ nguyên, không phải qu�
 - Khoá API thôi nhận qua query string.
 - Đăng nhập cấp mã phiên mới (chống session fixation).
 - Thêm `/api/health` cùng `watchdog` và `HEALTHCHECK`.
+
+## Có gì mới ở 2026.8.24
+
+- **Tin tự xoá sau vài phút** — add-on tự thu hồi khi hết giờ, vì Zalo bỏ qua
+  `ttl` theo từng tin và auto-delete của nó không có mốc nào dưới một ngày.
+  Xem mục "Tin tự xoá sau vài phút" ở trên.
+- **`sendMessageByAccount` nay đọc `ttl`.** Trước đây nó bỏ qua hoàn toàn, nên
+  gọi bằng REST command theo đúng tài liệu này thì TTL rơi mất im lặng.
+- **Tắt được tự xoá cuộc trò chuyện.** `updateAutoDeleteChat` coi `ttl: 0` là
+  thiếu tham số, mà 0 chính là "tắt" — nên bản cũ chỉ bật được, không tắt được.
+- **Giá trị TTL sai bị từ chối bằng `400`** thay vì đẩy lên cho Zalo im lặng bỏ
+  qua.
