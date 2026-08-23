@@ -53,90 +53,69 @@ function tuyChonGuiAnh(req) {
     return { caption, ...(nghiMs ? { nghiMs: Number(nghiMs) } : {}) };
 }
 
-// Chức năng tự động kiểm tra trạng thái đăng nhập (10 phút/lần)
+// Kiểm tra trạng thái đăng nhập định kỳ (10 phút/lần) — CHỈ QUAN SÁT.
+//
+// Vòng này KHÔNG xoá cookie và KHÔNG loại tài khoản khỏi zaloAccounts.
+//
+// Bản cũ coi mọi lần fetchAccountInfo hỏng — kể cả quá hạn chờ 30 giây hay mạng
+// rớt vài giây — là bằng chứng cookie hết hạn, rồi xoá luôn cred_<ownId>.json.
+// Đó là cùng một lỗi mà đoạn khôi phục phiên trong app.js đã chặn: mất mạng là
+// chuyện TẠM THỜI, xoá cookie là mất VĨNH VIỄN (phải quét lại mã QR). Máy chủ
+// còn có đúng kiểu hỏng đó: tường lửa dựng lại iptables SAU Docker rồi xoá mất
+// luật NAT, container mất đường ra Internet vài phút.
+//
+// Việc phục hồi để cho reconnect trong eventListeners.js lo — nó đã có backoff,
+// hạn chờ và guard thế hệ.
+//
+// Bản cũ còn dựng lại zaloAccounts từ ảnh chụp lấy TRƯỚC khi chờ mạng 30 giây,
+// nên ai đăng nhập bằng QR trong khoảng đó bị xoá khỏi danh sách dù phiên vẫn
+// sống. Nay không đụng vào mảng nữa nên hết đường đua đó.
+let dangKiemTraDangNhap = false;
+
 async function checkLoginStatus() {
-    console.log("[Docker] Đang kiểm tra trạng thái đăng nhập của tất cả tài khoản...");
-    
-    if (zaloAccounts.length === 0) {
-        console.log("[Docker] Không có tài khoản nào để kiểm tra");
+    if (dangKiemTraDangNhap) {
+        console.log('[Docker] Bỏ qua kiểm tra: lượt trước vẫn đang chạy.');
         return;
     }
-    
-    // Lấy thư mục lưu cookie (sử dụng dynamic import tương tự như trong loginZaloAccount)
-    const { getCookiesDir } = await import('../../utils/helpers.js');
-    const cookiesDir = getCookiesDir();
-    console.log(`[Docker] Thư mục cookie: ${cookiesDir}`);
-    
-    // Kiểm tra từng tài khoản
-    const checkPromises = zaloAccounts.map(async (account, index) => {
-        try {
-            if (!account || !account.api) {
-                console.log(`[Docker] Tài khoản ${account?.phoneNumber || account?.ownId || 'không xác định'} không có API, bị loại bỏ`);
-                return { account: null, ownId: account?.ownId };
-            }
-            
-            // Lưu ownId để sử dụng sau này nếu cần xóa cookie
-            const ownId = account.ownId;
-            
-            // Thêm timeout để tránh treo container nếu API không phản hồi
-            const timeoutPromise = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Timeout')), 30000)
-            );
-            
-            // Gọi fetchAccountInfo với timeout
-            const accountInfoPromise = account.api.fetchAccountInfo();
-            const accountInfo = await Promise.race([accountInfoPromise, timeoutPromise]);
-            
-            if (accountInfo?.profile) {
-                console.log(`[Docker] Tài khoản ${account.phoneNumber || account.ownId} vẫn đăng nhập thành công`);
-                return { account, ownId };
-            } else {
-                console.log(`[Docker] Tài khoản ${account.phoneNumber || account.ownId} đăng nhập thất bại (không có profile)`);
-                return { account: null, ownId };
-            }
-        } catch (error) {
-            console.error(`[Docker] Lỗi kiểm tra tài khoản ${account?.phoneNumber || account?.ownId || 'không xác định'}:`, error.message);
-            return { account: null, ownId: account?.ownId };
+    dangKiemTraDangNhap = true;
+    try {
+        if (zaloAccounts.length === 0) {
+            console.log('[Docker] Không có tài khoản nào để kiểm tra');
+            return;
         }
-    });
-    
-    // Đợi tất cả promise hoàn thành và lọc ra tài khoản hợp lệ
-    Promise.all(checkPromises)
-        .then(results => {
-            const validResults = results.filter(result => result.account !== null);
-            const invalidResults = results.filter(result => result.account === null && result.ownId);
-            
-            // Cập nhật mảng zaloAccounts với chỉ các tài khoản hợp lệ
-            const removedCount = zaloAccounts.length - validResults.length;
-            
-            if (removedCount > 0) {
-                console.log(`[Docker] Đã loại bỏ ${removedCount} tài khoản không hợp lệ`);
-                
-                // Xóa file cookie của các tài khoản không hợp lệ
-                invalidResults.forEach(result => {
-                    if (result.ownId) {
-                        try {
-                            const cookiePath = path.join(cookiesDir, `cred_${result.ownId}.json`);
-                            if (fs.existsSync(cookiePath)) {
-                                fs.unlinkSync(cookiePath);
-                                console.log(`[Docker] Đã xóa file cookie của tài khoản ${result.ownId}`);
-                            }
-                        } catch (error) {
-                            console.error(`[Docker] Lỗi khi xóa file cookie của tài khoản ${result.ownId}:`, error);
-                        }
-                    }
-                });
-                
-                // Cập nhật danh sách tài khoản
-                zaloAccounts.length = 0;
-                validResults.forEach(result => zaloAccounts.push(result.account));
+
+        console.log('[Docker] Đang kiểm tra trạng thái đăng nhập của tất cả tài khoản...');
+        const ketQua = await Promise.all(zaloAccounts.map(async (account) => {
+            const nhan = account?.phoneNumber || account?.ownId || 'không xác định';
+            if (!account?.api) {
+                console.warn(`[Docker] Tài khoản ${nhan} chưa có API; giữ nguyên credential.`);
+                return false;
             }
-            
-            console.log(`[Docker] Đã hoàn thành kiểm tra: ${validResults.length} tài khoản hợp lệ còn lại`);
-        })
-        .catch(error => {
-            console.error("[Docker] Lỗi khi xử lý kết quả kiểm tra:", error);
-        });
+            try {
+                const accountInfo = await withTimeout(
+                    account.api.fetchAccountInfo(),
+                    30_000,
+                    'Health-check timeout',
+                );
+                if (accountInfo?.profile) {
+                    console.log(`[Docker] Tài khoản ${nhan} vẫn đăng nhập thành công`);
+                    return true;
+                }
+                console.warn(`[Docker] Tài khoản ${nhan} không trả về profile; KHÔNG xoá cookie, chờ reconnect.`);
+                return false;
+            } catch (error) {
+                console.warn(`[Docker] Kiểm tra ${nhan} lỗi: ${error.message}. KHÔNG xoá cookie, chờ reconnect.`);
+                return false;
+            }
+        }));
+
+        const soKhoe = ketQua.filter(Boolean).length;
+        console.log(
+            `[Docker] Hoàn thành kiểm tra: ${soKhoe} khoẻ, ${ketQua.length - soKhoe} cần theo dõi. Cookie giữ nguyên.`,
+        );
+    } finally {
+        dangKiemTraDangNhap = false;
+    }
 }
 
 // Khởi động kiểm tra tự động sau khi server bắt đầu (đảm bảo đã đăng nhập đủ)
@@ -153,11 +132,11 @@ export function startLoginCheck() {
     
     // Thiết lập kiểm tra định kỳ mỗi 10 phút
     checkLoginInterval = setInterval(() => {
-        try {
-            checkLoginStatus();
-        } catch (error) {
+        // checkLoginStatus là hàm async — try/catch quanh lời gọi KHÔNG bắt
+        // được lỗi bên trong nó, phải bắt trên promise.
+        void checkLoginStatus().catch((error) => {
             console.error("[Docker] Lỗi khi chạy kiểm tra đăng nhập:", error);
-        }
+        });
     }, 10 * 60 * 1000);
     
     // Thêm xử lý khi process kết thúc để dọn dẹp
@@ -176,7 +155,9 @@ export const startLoginStatusCheck = startLoginCheck;
 setTimeout(() => {
     try {
         // Kiểm tra ngay lần đầu
-        checkLoginStatus();
+        void checkLoginStatus().catch((error) => {
+            console.error("[Docker] Lỗi khi chạy kiểm tra đăng nhập:", error);
+        });
         
         // Bắt đầu kiểm tra định kỳ
         startLoginCheck();

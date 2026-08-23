@@ -289,12 +289,31 @@ if (fs.existsSync(cookiesDir)) {
                             // VĨNH VIỄN. Không được đổi cái tạm thời thành cái
                             // vĩnh viễn.
                             const LOI_MANG = /ETIMEDOUT|ECONNRESET|ECONNREFUSED|EAI_AGAIN|ENOTFOUND|ENETUNREACH|EHOSTUNREACH|socket hang up|network|timeout|fetch failed/i;
+                            // Proxy nằm TRONG tệp credential, mà loginZaloAccount
+                            // tách nó ra rồi bỏ đi — nên phải tự đọc và truyền lại ở
+                            // đây. Bản cũ truyền null nên khôi phục phiên vừa mất
+                            // proxy đã dùng lúc tạo phiên, vừa để autoSelectProxy tự
+                            // bốc một proxy KHÁC trong proxies.json.
+                            const coProxyLuu = Object.prototype.hasOwnProperty.call(cookie, 'proxy');
+                            const proxyLuu = coProxyLuu ? (cookie.proxy || null) : null;
+
                             let thanhCong = false;
                             let loiCuoi = null;
                             let loiMang = false;
                             for (let lan = 1; lan <= 3; lan++) {
                                 try {
-                                    await loginZaloAccount(null, cookie);
+                                    // allowQrFallback: false — BẮT BUỘC ở đây. Mặc
+                                    // định của loginZaloAccount là true: cookie hỏng
+                                    // thì nó không ném lỗi mà lặng lẽ chuyển sang
+                                    // zalo.loginQR() rồi resolve về một tấm ảnh QR
+                                    // không ai nhìn. Vòng thử lại 3 lần bên dưới vì
+                                    // thế đẻ ra ba tiến trình đăng nhập QR treo lơ
+                                    // lửng cho mỗi tài khoản, rồi vẫn kết luận
+                                    // "cookie không còn hợp lệ" và xoá.
+                                    await loginZaloAccount(proxyLuu, cookie, {
+                                        allowQrFallback: false,
+                                        autoSelectProxy: !coProxyLuu,
+                                    });
                                     if (zaloAccounts.some(a => a.ownId === ownId)) {
                                         thanhCong = true;
                                         break;
