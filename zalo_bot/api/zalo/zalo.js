@@ -16,6 +16,7 @@ import {
 } from '../../utils/helpers.js';
 import { taiVeVaGuiNhieuAnh as guiTheoLo } from '../../utils/sendImages.js';
 import { getCachedGroupHistory } from '../../utils/groupHistoryStore.js';
+import { createVideoThumbnail } from '../../utils/videoThumbnail.js';
 import {
     OperationTimeoutError,
     cleanupAfterSettled,
@@ -221,7 +222,7 @@ process.once('SIGTERM', () => {
 export const startLoginStatusCheck = startLoginCheck;
 
 // Chờ server khởi động hoàn tất trước khi bắt đầu kiểm tra
-setTimeout(() => {
+const loginCheckStartupTimer = setTimeout(() => {
     try {
         // Kiểm tra ngay lần đầu
         void checkLoginStatus().catch((error) => {
@@ -234,6 +235,7 @@ setTimeout(() => {
         console.error("[Docker] Lỗi khi khởi động hệ thống kiểm tra:", error);
     }
 }, 120 * 1000); // Đợi 2 phút sau khi khởi động để đảm bảo tất cả tài khoản đã được khôi phục và container ổn định
+loginCheckStartupTimer.unref?.();
 
 // API để lấy danh sách tài khoản đã đăng nhập
 export async function getLoggedAccounts(req, res) {
@@ -1455,30 +1457,44 @@ export async function sendVideoByAccount(req, res) {
             throw new Error('Zalo không trả về địa chỉ video sau khi tải lên');
         }
 
+        // Anh bia BAT BUOC phai la ANH. Tich hop Home Assistant mac dinh lay chinh
+        // dia chi video lam thumbnailUrl khi nguoi dung khong khai, nen duong nay
+        // gan nhu luon nhan mot tep MP4 — saveImage soi magic bytes roi vut di.
+        // Khong tu trich lay mot khung hinh thi con lai o bia rong, ma Zalo tra
+        // "Tham so khong hop le" khien tin khong di. Do that 24/08/2026: moi lan
+        // gui video tu tep cuc bo deu hong vi dung ly do nay.
         let thumbnailUrl = options.thumbnailUrl || '';
-        if (thumbnailUrl) {
-            duongThumb = await saveImage(thumbnailUrl);
-            if (duongThumb) {
-                const thumbnailPath = duongThumb;
-                const thumbnailUpload = account.api.uploadAttachment([thumbnailPath], threadId, type);
-                try {
-                    const [thumbDaLen] = await withTimeout(
-                        thumbnailUpload, Math.min(timeoutMs, 60000),
-                        'Het thoi gian tai thumbnail len Zalo',
-                    );
-                    thumbnailUrl = (thumbDaLen
-                        && (thumbDaLen.thumbUrl || thumbDaLen.normalUrl || thumbDaLen.hdUrl)) || '';
-                } catch (error) {
-                    if (error instanceof OperationTimeoutError) {
-                        deferFileCleanup(thumbnailUpload, thumbnailPath, 'Upload thumbnail');
-                        duongThumb = null;
-                    }
-                    console.warn('[Video] Upload thumbnail loi, tiep tuc bang fallback:', error.message);
-                    thumbnailUrl = '';
+        let thumbnailSource = thumbnailUrl ? 'custom' : 'auto';
+        // Thumbnail la anh nen dung tran IMAGE_DOWNLOAD_MAX_BYTES (mac dinh 25 MB),
+        // khong de mot URL "thumbnail" an het tran video 150 MB.
+        if (thumbnailUrl) duongThumb = await saveImage(thumbnailUrl);
+        if (!duongThumb) {
+            thumbnailSource = 'auto';
+            duongThumb = await createVideoThumbnail(duongVideo);
+        }
+        if (duongThumb) {
+            const thumbnailPath = duongThumb;
+            const thumbnailUpload = account.api.uploadAttachment([thumbnailPath], threadId, type);
+            try {
+                const [thumbDaLen] = await withTimeout(
+                    thumbnailUpload, Math.min(timeoutMs, 60000),
+                    'Het thoi gian tai thumbnail len Zalo',
+                );
+                // Anh tra ve ba co; uu tien ban nhe nhat.
+                thumbnailUrl = (thumbDaLen
+                    && (thumbDaLen.thumbUrl || thumbDaLen.normalUrl || thumbDaLen.hdUrl)) || '';
+            } catch (error) {
+                if (error instanceof OperationTimeoutError) {
+                    deferFileCleanup(thumbnailUpload, thumbnailPath, 'Upload thumbnail');
+                    duongThumb = null;
                 }
-            } else {
+                console.warn('[Video] Upload thumbnail loi, tiep tuc bang fallback:', error.message);
                 thumbnailUrl = '';
+                thumbnailSource = 'fallback';
             }
+        } else {
+            thumbnailUrl = '';
+            thumbnailSource = 'fallback';
         }
 
         const result = await account.api.sendVideo(
@@ -1486,7 +1502,12 @@ export async function sendVideoByAccount(req, res) {
             threadId,
             type
         );
-        res.json({ success: true, data: result, usedAccount: { ownId: account.ownId, phoneNumber: account.phoneNumber } });
+        res.json({
+            success: true,
+            data: result,
+            thumbnailSource,
+            usedAccount: { ownId: account.ownId, phoneNumber: account.phoneNumber },
+        });
     } catch (error) {
         res.status(error instanceof OperationTimeoutError ? 504 : 500)
             .json({ success: false, error: error.message });

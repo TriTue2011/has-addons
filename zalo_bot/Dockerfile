@@ -3,7 +3,12 @@ FROM node:20-alpine
 WORKDIR /app
 
 # jq: entrypoint.sh đọc /data/options.json để lấy data_directory.
-RUN apk add --no-cache jq
+# ffmpeg: trích một khung hình làm ảnh bìa khi gửi video. Zalo BẮT BUỘC mỗi tin
+# video phải kèm ảnh bìa — thiếu là nó trả "Tham số không hợp lệ" và tin không
+# đi. Mà tích hợp Home Assistant mặc định lấy chính địa chỉ video làm ảnh bìa khi
+# người dùng không khai, nên không có ffmpeg thì MỌI lần gửi video từ tệp cục bộ
+# đều hỏng.
+RUN apk add --no-cache jq ffmpeg
 
 COPY package.json package-lock.json ./
 
