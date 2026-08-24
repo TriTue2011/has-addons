@@ -79,6 +79,23 @@ export async function saveFileFromUrl(url) {
 // một tệp và mảng đường dẫn chứa N bản của CÙNG một đường dẫn. Zalo nhận đủ N
 // tấm (soAnh báo đúng N) nhưng tấm nào cũng là ảnh tải về CUỐI CÙNG. Hai yêu cầu
 // gửi chạy song song cũng ghi đè lẫn nhau vì lý do này.
+
+// Đọc mấy byte đầu của tệp — dùng chung cho các hàm soi định dạng bên dưới.
+function docDauTep(filePath, soByte = 12) {
+    let fd = null;
+    try {
+        const dau = Buffer.alloc(soByte);
+        fd = fs.openSync(filePath, 'r');
+        const doDoc = fs.readSync(fd, dau, 0, soByte, 0);
+        return doDoc > 0 ? dau.subarray(0, doDoc) : null;
+    } catch (error) {
+        console.error('Khong doc duoc dau tep vua tai ve:', error?.message || error);
+        return null;
+    } finally {
+        if (fd !== null) { try { fs.closeSync(fd); } catch { /* da dong */ } }
+    }
+}
+
 /**
  * Tệp tải về có THẬT SỰ là ảnh không — soi mấy byte đầu, không tin phần đuôi tên.
  * Trả về đuôi ứng với định dạng thật ('jpg'|'png'|'gif'|'webp'|'bmp'), hoặc null
@@ -91,26 +108,27 @@ export async function saveFileFromUrl(url) {
  * nhận thấy một ô đen 1280x720. Chặn ở đây thì hỏng ra lỗi, không ra ô đen.
  */
 function duoiAnhThat(filePath) {
-    let fd = null;
-    try {
-        const dau = Buffer.alloc(12);
-        fd = fs.openSync(filePath, 'r');
-        const doDoc = fs.readSync(fd, dau, 0, 12, 0);
-        if (doDoc < 2) return null;
-        if (dau[0] === 0xFF && dau[1] === 0xD8 && dau[2] === 0xFF) return 'jpg'; // JPEG
-        if (dau.subarray(0, 8).equals(
-            Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]))) return 'png'; // PNG
-        if (dau.subarray(0, 4).toString('latin1') === 'GIF8') return 'gif'; // GIF
-        if (dau.subarray(0, 4).toString('latin1') === 'RIFF'
-            && dau.subarray(8, 12).toString('latin1') === 'WEBP') return 'webp'; // WebP
-        if (dau[0] === 0x42 && dau[1] === 0x4D) return 'bmp'; // BMP
-        return null;
-    } catch (error) {
-        console.error('Khong doc duoc tep anh vua tai ve:', error?.message || error);
-        return null;
-    } finally {
-        if (fd !== null) { try { fs.closeSync(fd); } catch { /* da dong */ } }
-    }
+    const dau = docDauTep(filePath);
+    if (!dau || dau.length < 2) return null;
+    if (dau[0] === 0xFF && dau[1] === 0xD8 && dau[2] === 0xFF) return 'jpg'; // JPEG
+    if (dau.subarray(0, 8).equals(
+        Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]))) return 'png'; // PNG
+    if (dau.subarray(0, 4).toString('latin1') === 'GIF8') return 'gif'; // GIF
+    if (dau.subarray(0, 4).toString('latin1') === 'RIFF'
+        && dau.subarray(8, 12).toString('latin1') === 'WEBP') return 'webp'; // WebP
+    if (dau[0] === 0x42 && dau[1] === 0x4D) return 'bmp'; // BMP
+    return null;
+}
+
+/**
+ * Tệp vừa tải có phải MP4 thật không — ISO BMFF mang chữ 'ftyp' ở byte 4..8.
+ * Loại nhánh QuickTime ('qt  ') ra: đó là .mov, đổi tên thành .mp4 là nói dối.
+ */
+function laMp4That(filePath) {
+    const dau = docDauTep(filePath);
+    if (!dau || dau.length < 12) return false;
+    if (dau.subarray(4, 8).toString('latin1') !== 'ftyp') return false;
+    return dau.subarray(8, 12).toString('latin1') !== 'qt  ';
 }
 
 // Đuôi đã coi là khớp sẵn với định dạng thật thì khỏi đổi tên.
@@ -120,6 +138,7 @@ const DUOI_KHOP_SAN = {
     gif: ['gif'],
     webp: ['webp'],
     bmp: ['bmp'],
+    mp4: ['mp4'],
 };
 
 /**
@@ -135,7 +154,7 @@ const DUOI_KHOP_SAN = {
  * dạng share.file, fileExt "cua_nha_last_motion_image", trong khi cùng ảnh đó
  * Telegram nhận đúng là ảnh vì Telegram soi nội dung.
  */
-function doiDuoiChoKhopAnh(duongDan, duoi) {
+function doiDuoiChoKhop(duongDan, duoi) {
     const dangCo = path.extname(duongDan).slice(1).toLowerCase();
     if (DUOI_KHOP_SAN[duoi].includes(dangCo)) return duongDan;
     const duongDanMoi = `${duongDan}.${duoi}`;
@@ -163,12 +182,30 @@ export async function saveImage(url, maxBytesOverride, { throwOnError = false } 
                 + 'trang loi tra ve kem ma 200.',
             );
         }
-        return doiDuoiChoKhopAnh(duongDan, duoi);
+        return doiDuoiChoKhop(duongDan, duoi);
     } catch (error) {
         console.error('Error saving image from URL:', error?.message || error);
         if (throwOnError) throw error;
         return null;
     }
+}
+
+/**
+ * Tải video về và bảo đảm tên tệp tạm kết thúc bằng .mp4 khi nội dung đúng là MP4.
+ *
+ * zca-js chỉ cho đính kèm đi ĐƯỜNG VIDEO khi đuôi tên đúng "mp4"; mọi đuôi khác
+ * rơi vào nhánh "others" và bay lên endpoint asyncfile — tới nơi thành tệp đính
+ * kèm chứ không phải đoạn phim bấm phát được ngay trong khung chat. Mà tên tệp
+ * tạm lấy từ đường dẫn URL, nên URL trỏ tới video mà không mang đuôi .mp4 là
+ * hỏng đúng kiểu ảnh đã hỏng — xem doiDuoiChoKhop.
+ *
+ * Không phải MP4 thì để nguyên: Zalo không có đường video nào khác, và đổi tên
+ * một tệp .mkv thành .mp4 chỉ là đẩy chỗ hỏng xuống máy người nhận.
+ */
+export async function saveVideoFromUrl(url) {
+    const duongDan = await saveFileFromUrl(url);
+    if (!duongDan) return duongDan;
+    return laMp4That(duongDan) ? doiDuoiChoKhop(duongDan, 'mp4') : duongDan;
 }
 
 export function removeImage(imgPath) {

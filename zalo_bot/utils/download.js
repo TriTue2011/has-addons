@@ -13,17 +13,29 @@ function safeFilename(value, fallback = 'download.bin') {
   return basename && basename !== '.' && basename !== '..' ? basename : fallback;
 }
 
+// Đuôi tệp thật thì ngắn và chỉ gồm chữ với số. Cần mẫu này vì path.extname()
+// gọi MỌI THỨ sau dấu chấm cuối là phần mở rộng: đường dẫn ảnh của Home
+// Assistant `/api/image_proxy/image.cua_nha_last_motion_image` vì thế "có đuôi"
+// `.cua_nha_last_motion_image`, đủ để nhảy qua nhánh đọc Content-Type bên dưới
+// và tệp tạm đội nguyên cái tên đó đi lên Zalo. Zalo phân loại đính kèm bằng
+// đuôi tên, nên ảnh thành tệp và video thành tệp.
+const DUOI_TRONG_NHU_THAT = /^\.[a-z0-9]{1,5}$/i;
+
 function filenameFromResponse(url, response) {
   const disposition = response.headers.get('content-disposition') || '';
   const utf8Match = /filename\*=UTF-8''([^;]+)/i.exec(disposition);
   const plainMatch = /filename="?([^";]+)"?/i.exec(disposition);
   let raw = utf8Match?.[1] || plainMatch?.[1] || '';
+  // Tên máy chủ TỰ KHAI thì tin nguyên vẹn; tên ĐOÁN TỪ đường dẫn URL mới phải soi.
+  const mayChuTuKhai = Boolean(raw);
   if (utf8Match?.[1]) {
     try { raw = decodeURIComponent(raw); } catch { /* keep raw */ }
   }
   if (!raw) raw = path.basename(new URL(url).pathname);
   let safe = safeFilename(raw);
-  if (!path.extname(safe)) {
+  const duoiDangCo = path.extname(safe);
+  const tinDuoi = mayChuTuKhai ? Boolean(duoiDangCo) : DUOI_TRONG_NHU_THAT.test(duoiDangCo);
+  if (!tinDuoi) {
     const contentType = String(response.headers.get('content-type') || '')
       .split(';', 1)[0].trim().toLowerCase();
     const extensions = {
@@ -31,7 +43,12 @@ function filenameFromResponse(url, response) {
       'image/webp': '.webp', 'video/mp4': '.mp4', 'audio/mpeg': '.mp3',
       'audio/ogg': '.ogg',
     };
-    safe += extensions[contentType] || '.bin';
+    const duoiTheoKieu = extensions[contentType];
+    // Không có đuôi nào thì vẫn phải đặt một cái. Còn đuôi trời ơi thì chỉ chữa
+    // khi Content-Type nói rõ đó là gì — không rõ thì để nguyên tên gốc, đắp
+    // thêm ".bin" chỉ làm tên tệp người nhận thấy xấu đi mà chẳng mở được hơn.
+    if (duoiTheoKieu) safe += duoiTheoKieu;
+    else if (!duoiDangCo) safe += '.bin';
   }
   return safe;
 }

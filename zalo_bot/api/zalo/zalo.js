@@ -11,6 +11,7 @@ import {
     saveImage,
     removeImage,
     saveFileFromUrl,
+    saveVideoFromUrl,
     removeFile,
 } from '../../utils/helpers.js';
 import { taiVeVaGuiNhieuAnh as guiTheoLo } from '../../utils/sendImages.js';
@@ -1431,7 +1432,7 @@ export async function sendVideoByAccount(req, res) {
         }
         const account = getAccountFromSelection(accountSelection);
 
-        duongVideo = await saveFileFromUrl(options.videoUrl);
+        duongVideo = await saveVideoFromUrl(options.videoUrl);
         if (!duongVideo) throw new Error('Khong the tai video nguon');
         const uploadTimeout = Number.parseInt(process.env.VIDEO_UPLOAD_TIMEOUT_MS || '180000', 10);
         const timeoutMs = Number.isSafeInteger(uploadTimeout) && uploadTimeout > 0
