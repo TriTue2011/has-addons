@@ -2648,28 +2648,30 @@ export async function loginZaloAccount(customProxy, cred, options = {}) {
                                 return { width, height, size: stats.size };
                             }
                             
-                            // Nếu không xác định được kích thước, sử dụng kích thước mặc định
-                            console.warn('Không thể xác định kích thước ảnh từ header, sử dụng kích thước mặc định');
+                            // Header không cho ra kích thước — rất có thể tệp
+                            // này không phải ảnh. Không có đường lui nào nữa.
+                            console.warn('Không đọc được kích thước ảnh từ header của tệp');
                         }
                     } catch (err) {
                         console.warn(`Không thể đọc thông tin file ${filePath}: ${err.message}`);
                     }
                 }
                 
-                // Nếu là URL hoặc không đọc được file
-                // Sử dụng kích thước mặc định cho ảnh hiện đại
-                return {
-                    width: 1280,
-                    height: 720,
-                    size: fs.existsSync(filePath) ? fs.statSync(filePath).size : 300000
-                };
+                // Đọc không ra kích thước thì TỪ CHỐI, không bịa 1280x720.
+                //
+                // Bịa số nghĩa là một tệp không phải ảnh vẫn đi được lên Zalo.
+                // Đo thật 24/08/2026: add-on tải nhầm trang admin-login của
+                // chính nó (3.918 byte HTML) về dưới tên .jpg, hàm này bịa
+                // 1280x720, tin gửi đi trót lọt, và người nhận thấy một ô đen
+                // đúng tỉ lệ 1280x720 — không có lỗi nào ở đâu cả.
+                //
+                // Trả null thì zca-js ném ZaloApiError("Failed to get image
+                // metadata"), lỗi nói thẳng ra tận Home Assistant.
+                console.error(`Không đọc được kích thước ảnh: ${filePath} — từ chối gửi.`);
+                return null;
             } catch (error) {
-                console.error(`Lỗi khi lấy metadata cho ảnh: ${error.message}`);
-                return {
-                    width: 1280,
-                    height: 720,
-                    size: 300000
-                };
+                console.error(`Lỗi khi lấy metadata cho ảnh ${filePath}: ${error.message}`);
+                return null;
             }
         };
         

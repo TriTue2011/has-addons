@@ -376,6 +376,22 @@ export const authMiddleware = (req, res, next) => {
     });
   }
 
+  // Đòi một TỆP (đường dẫn có phần mở rộng) mà chưa đăng nhập: trả 401, đừng
+  // trả trang đăng nhập.
+  //
+  // Vì sao: trang HTML kèm mã 200 là thứ mọi bộ tải về đều nuốt. Sự cố
+  // 24/08/2026: tích hợp HA xin /san_snapshot1.jpg, chỗ này redirect sang
+  // /admin-login, add-on lưu 3.918 byte HTML đó thành .jpg rồi đẩy lên Zalo —
+  // người nhận thấy một ô đen và không ai thấy lỗi ở đâu cả. Route UI không có
+  // phần mở rộng nên luồng đăng nhập bằng trình duyệt không đổi.
+  if (/\.[a-z0-9]{2,5}$/i.test(req.path)) {
+    return res.status(401).json({
+      success: false,
+      message: `Tệp ${req.path} cần đăng nhập, hoặc không nằm trong thư mục dùng chung /zalo_bot.`,
+      code: 'UNAUTHORIZED',
+    });
+  }
+
   // Browser request: redirect.
   //
   // Không cộng tiền tố ingress: config.yaml KHÔNG khai `ingress`, add-on chạy
@@ -461,6 +477,13 @@ export const publicRoutes = [
   '/chat/icons/*', // PWA icons
   '/chat/css/*', // Chat CSS
   '/chat/js/*', // Chat JS
+  // Ảnh dùng chung với Home Assistant: /config/www/zalo_bot, được phơi ở
+  // cuối app.js bằng express.static('/zalo_bot'). Tích hợp HA chép ảnh
+  // camera vào đây rồi đưa URL cho add-on tự tải về trước khi gửi Zalo,
+  // nên đường này PHẢI qua được mà không cần đăng nhập. Thiếu dòng này thì
+  // add-on trả HTML trang admin-login thay cho tấm ảnh, và Zalo hiện ô đen.
+  // Không lộ thêm gì: chính Home Assistant đã phơi thư mục đó ở /local/zalo_bot.
+  '/zalo_bot/*',
 
   // Legacy: các API Zalo từng public. Khi ZALO_SERVER_API_KEY /
   // CHATGPT2API_AUTH_KEY được set, isPublicRoute sẽ KHÔNG coi chúng public
