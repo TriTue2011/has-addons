@@ -2,14 +2,16 @@
 
 from homeassistant.const import CONF_URL, Platform
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import YouTubePlayerClient
-from .const import CONF_TOKEN
+from .const import CONF_TOKEN, DOMAIN
 from .coordinator import YouTubePlayerConfigEntry, YouTubePlayerCoordinator
 from .frontend import async_register_frontend
 from .services import async_register_services
 
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 PLATFORMS: list[Platform] = [Platform.MEDIA_PLAYER, Platform.SENSOR]
 
 

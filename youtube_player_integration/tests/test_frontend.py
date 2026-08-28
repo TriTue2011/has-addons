@@ -49,6 +49,33 @@ class LovelaceCardContractTests(unittest.TestCase):
         self.assertIn("play_on_players:", services)
         self.assertIn("multiple: true", services)
 
+    def test_manifest_key_order_matches_hassfest(self):
+        manifest = json.loads(
+            (COMPONENT_DIR / "manifest.json").read_text(encoding="utf-8")
+        )
+
+        self.assertEqual(
+            [
+                "domain",
+                "name",
+                "codeowners",
+                "config_flow",
+                "dependencies",
+                "documentation",
+                "integration_type",
+                "iot_class",
+                "issue_tracker",
+                "requirements",
+                "version",
+            ],
+            list(manifest),
+        )
+
+    def test_init_declares_config_entry_only_schema(self):
+        init_source = (COMPONENT_DIR / "__init__.py").read_text(encoding="utf-8")
+
+        self.assertIn("CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)", init_source)
+
 
 if __name__ == "__main__":
     unittest.main()
