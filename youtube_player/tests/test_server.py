@@ -110,6 +110,18 @@ class YouTubePlayerHttpTests(unittest.TestCase):
         _, history = self.request("/api/history")
         self.assertEqual([], history["items"])
 
+    def test_history_can_be_cleared(self):
+        self.request(
+            "/api/history", method="POST", payload={"target": "dQw4w9WgXcQ"}
+        )
+
+        status, body = self.request("/api/history", method="DELETE")
+
+        self.assertEqual(200, status)
+        self.assertEqual({"items": []}, body)
+        _, history = self.request("/api/history")
+        self.assertEqual([], history["items"])
+
 
 if __name__ == "__main__":
     unittest.main()

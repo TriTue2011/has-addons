@@ -99,6 +99,13 @@ class PlayerServer(ThreadingHTTPServer):
             )
             temporary_path.replace(self.history_path)
 
+    def clear_history(self):
+        with self.history_lock:
+            self.data_dir.mkdir(parents=True, exist_ok=True)
+            temporary_path = self.history_path.with_suffix(".json.tmp")
+            temporary_path.write_text("[]\n", encoding="utf-8")
+            temporary_path.replace(self.history_path)
+
 
 class PlayerHandler(BaseHTTPRequestHandler):
     server: PlayerServer
@@ -135,6 +142,13 @@ class PlayerHandler(BaseHTTPRequestHandler):
 
         self.server.add_history(target)
         self.send_json(201, target)
+
+    def do_DELETE(self):
+        if urlsplit(self.path).path != "/api/history":
+            self.send_json(404, {"error": "not_found"})
+            return
+        self.server.clear_history()
+        self.send_json(200, {"items": []})
 
     def send_json(self, status, payload):
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
