@@ -1,4 +1,5 @@
 import importlib.util
+import io
 import json
 import subprocess
 import sys
@@ -48,6 +49,7 @@ class YouTubeMetadataSearchTests(unittest.TestCase):
         self.assertEqual(
             [
                 {
+                    "source": "youtube",
                     "kind": "video",
                     "id": "dQw4w9WgXcQ",
                     "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
@@ -86,6 +88,87 @@ class YouTubeMetadataSearchTests(unittest.TestCase):
             "https://i.ytimg.com/vi/M7lc1UVf-VE/hqdefault.jpg",
             results[0]["thumbnail"],
         )
+
+    def test_parse_zing_payload_returns_public_song_metadata(self):
+        payload = {
+            "data": {
+                "items": [
+                    {
+                        "keywords": [{"type": 0, "keyword": "da lab"}],
+                    },
+                    {
+                        "suggestions": [
+                            {
+                                "type": 1,
+                                "id": "ZZ90FD0B",
+                                "title": "Thức Giấc",
+                                "thumb": "https://photo-resize-zmp3.zmdcdn.me/cover.jpg",
+                                "duration": 269,
+                                "link": "https://zingmp3.vn/bai-hat/Thuc-Giac-Da-LAB/ZZ90FD0B.html",
+                                "status": 1,
+                                "playStatus": 2,
+                                "artists": [{"name": "Da LAB"}],
+                            },
+                            {"type": 4, "id": "IWZAWB8O", "name": "Da LAB"},
+                        ]
+                    },
+                ]
+            }
+        }
+
+        self.assertEqual(
+            [
+                {
+                    "source": "zing",
+                    "kind": "song",
+                    "id": "ZZ90FD0B",
+                    "url": "https://zingmp3.vn/bai-hat/Thuc-Giac-Da-LAB/ZZ90FD0B.html",
+                    "title": "Thức Giấc",
+                    "channel": "Da LAB",
+                    "duration": 269,
+                    "thumbnail": "https://photo-resize-zmp3.zmdcdn.me/cover.jpg",
+                }
+            ],
+            self.search.parse_zing_payload(payload, limit=10),
+        )
+
+    def test_parse_zing_payload_rejects_lookalike_domains(self):
+        payload = {
+            "data": {
+                "items": [
+                    {
+                        "suggestions": [
+                            {
+                                "type": 1,
+                                "id": "ZZ90FD0B",
+                                "title": "Unsafe result",
+                                "link": (
+                                    "https://notzingmp3.vn/bai-hat/Unsafe/"
+                                    "ZZ90FD0B.html"
+                                ),
+                            }
+                        ]
+                    }
+                ]
+            }
+        }
+
+        self.assertEqual([], self.search.parse_zing_payload(payload, limit=10))
+
+    def test_search_zing_uses_public_suggestion_endpoint(self):
+        payload = json.dumps({"err": 0, "data": {"items": []}}).encode()
+        response = io.BytesIO(payload)
+        response.headers = {}
+        with patch.object(self.search, "urlopen", return_value=response) as open_url:
+            results = self.search.search_zing("Da LAB", limit=7)
+
+        self.assertEqual([], results)
+        request = open_url.call_args.args[0]
+        self.assertEqual(
+            "https://ac.zingmp3.vn/v1/web/ac-suggestions?query=Da+LAB&num=7",
+            request.full_url,
+        )
+        self.assertEqual("application/json", request.get_header("Accept"))
 
     def test_search_rejects_empty_or_oversized_queries(self):
         for query in ("", "x" * 121):

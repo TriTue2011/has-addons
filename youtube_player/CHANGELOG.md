@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.4.0 - 2026-08-28
+
+### Added
+
+- Nguồn tìm kiếm Zing công khai và stream URL ký hạn dùng cho loa trong LAN.
+- Action Home Assistant phát tới một hoặc nhiều `media_player`, kèm âm lượng.
+- Lovelace card riêng cho chọn nguồn, tìm kiếm, chọn loa, phát và dừng.
+
+### Fixed
+
+- Entity giữ config entry trong runtime, tránh lỗi polling trên trang thiết bị.
+
 ## 0.3.0 - 2026-08-28
 
 ### Added

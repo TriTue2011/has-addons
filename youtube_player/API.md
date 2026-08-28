@@ -27,8 +27,9 @@ Kiểm tra xác thực, phiên bản API và capability. Response thành công:
   "success": true,
   "status": "ok",
   "api_version": "1",
-  "app_version": "0.3.0",
-  "capabilities": ["history", "play", "search", "status", "stop"]
+  "app_version": "0.4.0",
+  "capabilities": ["history", "play", "search", "status", "stop", "zing_stream"],
+  "sources": ["youtube", "zing"]
 }
 ```
 
@@ -41,13 +42,29 @@ Trả về `state` (`idle` hoặc `playing`), mục đang phát và `history_cou
 Trả về `{ "success": true, "items": [...], "total": 1 }`. Mỗi mục chứa
 `kind`, `id` và URL nhúng privacy-enhanced đã chuẩn hóa.
 
-### `GET /api/integration/search?q=QUERY&limit=20`
+### `GET /api/integration/search?source=SOURCE&q=QUERY&limit=20`
 
 Tìm tối đa 30 kết quả bài hát và trả metadata gồm `id`, `url`, `title`,
-`channel`, `duration` và `thumbnail`. Endpoint dùng `yt-dlp` ở chế độ
+`channel`, `duration` và `thumbnail`. Nguồn YouTube dùng `yt-dlp` ở chế độ
 `--flat-playlist --skip-download`: không cần YouTube Data API key, không tải
-hoặc relay nội dung media. Vì đây là nguồn metadata không chính thức, thay đổi
-từ YouTube có thể tạm thời làm tìm kiếm gián đoạn.
+hoặc relay nội dung media. `source` nhận `youtube` hoặc `zing`; mặc định là
+`youtube`. Zing dùng endpoint gợi ý web công khai và chỉ trả metadata, không
+khẳng định bài đó phát được cho tới bước tạo stream.
+
+### `POST /api/integration/stream`
+
+```json
+{
+  "source": "zing",
+  "target": "https://zingmp3.vn/bai-hat/Ten-Bai-Hat/SONGID.html"
+}
+```
+
+Chỉ nhận URL bài Zing công khai. Server kiểm tra trước khả năng resolve rồi trả
+`stream_url` có chữ ký, hạn dùng một giờ và `media_content_type`. Loa có thể tải
+URL này mà không cần biết bearer token. URL được relay qua add-on, hỗ trợ Range,
+không lưu tệp và không chuyển mã. `public_base_url`/`PUBLIC_BASE_URL` phải là URL
+LAN mà loa truy cập được. YouTube không được hỗ trợ ở endpoint này.
 
 ### `POST /api/integration/play`
 
@@ -68,5 +85,7 @@ Dừng và xóa nội dung khỏi trang web player đang mở. Request không c�
 - `400 {"error":"invalid_youtube_target"}`: URL hoặc ID không được hỗ trợ.
 - `401 {"error":"invalid_auth"}`: thiếu hoặc sai Bearer token.
 - `502 {"error":"search_unavailable"}`: nguồn metadata tìm kiếm tạm lỗi.
+- `502 {"error":"stream_unavailable"}`: bài Zing không công khai, là VIP hoặc
+  provider hiện không resolve được.
 - `503 {"error":"integration_not_configured"}`: server được tạo thủ công mà
   không có token; tiến trình Docker/add-on bình thường luôn tự sinh token.

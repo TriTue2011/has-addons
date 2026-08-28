@@ -8,5 +8,8 @@ configuration:
   integration_token:
     name: Integration token
     description: Optional bearer token for the Home Assistant integration. Leave empty to generate one in /data.
+  public_base_url:
+    name: LAN playback URL
+    description: HTTP(S) URL such as http://IP:8099 reachable by speakers; required for Zing playback.
 network:
   8099/TCP: Direct web interface; it does not need to be exposed when using Ingress.

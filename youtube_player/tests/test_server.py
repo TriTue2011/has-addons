@@ -1,3 +1,4 @@
+import io
 import json
 import os
 import socket
@@ -15,7 +16,11 @@ from unittest.mock import patch
 APP_DIR = Path(__file__).resolve().parents[1] / "app"
 sys.path.insert(0, str(APP_DIR))
 
-from server import create_server, resolve_integration_token  # noqa: E402
+from server import (  # noqa: E402
+    StreamUnavailableError,
+    create_server,
+    resolve_integration_token,
+)
 
 
 class YouTubePlayerHttpTests(unittest.TestCase):
@@ -28,6 +33,7 @@ class YouTubePlayerHttpTests(unittest.TestCase):
             app_title="Test Player",
             max_history=2,
             integration_token="test-integration-token",
+            public_base_url="http://172.16.10.200:8099",
         )
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
@@ -146,6 +152,153 @@ class YouTubePlayerHttpTests(unittest.TestCase):
         self.assertEqual("dQw4w9WgXcQ", body["items"][0]["id"])
         search_youtube.assert_called_once_with("Rick Astley", limit=5)
 
+    @patch("server.search_zing")
+    def test_integration_can_select_the_zing_search_provider(self, search_zing):
+        search_zing.return_value = [
+            {
+                "source": "zing",
+                "kind": "song",
+                "id": "ZZ90FD0B",
+                "url": "https://zingmp3.vn/bai-hat/Thuc-Giac/ZZ90FD0B.html",
+                "title": "Thức Giấc",
+                "channel": "Da LAB",
+                "duration": 269,
+                "thumbnail": "https://photo-resize-zmp3.zmdcdn.me/cover.jpg",
+            }
+        ]
+
+        status, body = self.request(
+            "/api/integration/search?source=zing&q=Da+LAB&limit=5",
+            headers={"Authorization": "Bearer test-integration-token"},
+        )
+
+        self.assertEqual(200, status)
+        self.assertEqual("zing", body["source"])
+        self.assertEqual("ZZ90FD0B", body["items"][0]["id"])
+        search_zing.assert_called_once_with("Da LAB", limit=5)
+
+    def test_integration_rejects_unknown_search_provider(self):
+        with self.assertRaises(urllib.error.HTTPError) as raised:
+            self.request(
+                "/api/integration/search?source=unknown&q=music",
+                headers={"Authorization": "Bearer test-integration-token"},
+            )
+
+        self.assertEqual(400, raised.exception.code)
+        self.assertEqual(
+            {"error": "invalid_search_source"}, json.load(raised.exception)
+        )
+
+    @patch("server.resolve_zing_stream")
+    def test_integration_creates_a_short_lived_zing_stream_url(self, resolve):
+        resolve.return_value = {
+            "url": "https://audio.zmdcdn.me/song.mp3",
+            "headers": {},
+            "content_type": "audio/mpeg",
+        }
+        status, body = self.request(
+            "/api/integration/stream",
+            method="POST",
+            payload={
+                "source": "zing",
+                "target": (
+                    "https://zingmp3.vn/bai-hat/Thuc-Giac-Da-LAB/ZZ90FD0B.html"
+                ),
+            },
+            headers={"Authorization": "Bearer test-integration-token"},
+        )
+
+        self.assertEqual(200, status)
+        self.assertEqual("zing", body["source"])
+        self.assertEqual("audio/mpeg", body["media_content_type"])
+        self.assertTrue(
+            body["stream_url"].startswith(
+                "http://172.16.10.200:8099/api/stream/"
+            )
+        )
+        resolve.assert_called_once()
+
+    @patch("server.urlopen")
+    @patch("server.resolve_zing_stream")
+    def test_signed_stream_relays_audio_and_range_requests(
+        self, resolve, open_upstream
+    ):
+        resolve.return_value = {
+            "url": "https://audio.zmdcdn.me/song.mp3",
+            "headers": {"Referer": "https://zingmp3.vn/"},
+            "content_type": "audio/mpeg",
+        }
+        upstream = io.BytesIO(b"MP3!")
+        upstream.headers = {
+            "Content-Type": "audio/mpeg",
+            "Content-Length": "4",
+            "Content-Range": "bytes 0-3/4",
+            "Accept-Ranges": "bytes",
+        }
+        upstream.getcode = lambda: 206
+        open_upstream.return_value = upstream
+        _, created = self.request(
+            "/api/integration/stream",
+            method="POST",
+            payload={
+                "source": "zing",
+                "target": "https://zingmp3.vn/bai-hat/Thuc-Giac/ZZ90FD0B.html",
+            },
+            headers={"Authorization": "Bearer test-integration-token"},
+        )
+        token = created["stream_url"].rsplit("/", 1)[-1]
+        request = urllib.request.Request(
+            f"{self.base_url}/api/stream/{token}",
+            headers={"Range": "bytes=0-3"},
+        )
+
+        with urllib.request.urlopen(request, timeout=2) as response:
+            self.assertEqual(206, response.status)
+            self.assertEqual("audio/mpeg", response.headers["Content-Type"])
+            self.assertEqual(b"MP3!", response.read())
+
+        upstream_request = open_upstream.call_args.args[0]
+        self.assertEqual("bytes=0-3", upstream_request.get_header("Range"))
+
+    @patch("server.resolve_zing_stream")
+    def test_stream_creation_reports_an_unplayable_zing_result(self, resolve):
+        resolve.side_effect = StreamUnavailableError("stream_provider_failed")
+        with self.assertRaises(urllib.error.HTTPError) as raised:
+            self.request(
+                "/api/integration/stream",
+                method="POST",
+                payload={
+                    "source": "zing",
+                    "target": "https://zingmp3.vn/bai-hat/Thuc-Giac/ZZ90FD0B.html",
+                },
+                headers={"Authorization": "Bearer test-integration-token"},
+            )
+
+        self.assertEqual(502, raised.exception.code)
+        self.assertEqual({"error": "stream_unavailable"}, json.load(raised.exception))
+
+    def test_public_stream_rejects_an_invalid_signature(self):
+        with self.assertRaises(urllib.error.HTTPError) as raised:
+            self.request("/api/stream/not-a-valid-token")
+
+        self.assertEqual(403, raised.exception.code)
+        self.assertEqual({"error": "invalid_stream_token"}, json.load(raised.exception))
+
+    def test_stream_api_does_not_accept_youtube_targets(self):
+        with self.assertRaises(urllib.error.HTTPError) as raised:
+            self.request(
+                "/api/integration/stream",
+                method="POST",
+                payload={
+                    "source": "youtube",
+                    "target": "https://youtube.com/watch?v=dQw4w9WgXcQ",
+                },
+                headers={"Authorization": "Bearer test-integration-token"},
+            )
+
+        self.assertEqual(400, raised.exception.code)
+        self.assertEqual({"error": "unsupported_stream_source"}, json.load(raised.exception))
+
     def test_video_url_is_normalized_and_persisted(self):
         status, target = self.request(
             "/api/history",
@@ -257,7 +410,11 @@ class YouTubePlayerHttpTests(unittest.TestCase):
 
         _, config = self.request("/api/config")
         self.assertEqual(
-            {"app_title": "Test Player", "max_history": 2},
+            {
+                "app_title": "Test Player",
+                "max_history": 2,
+                "sources": ["youtube", "zing"],
+            },
             config,
         )
 
@@ -300,7 +457,12 @@ class YouTubePlayerHttpTests(unittest.TestCase):
                 self.fail(f"server did not start: {output}")
 
             self.assertEqual(
-                {"app_title": "Configured Player", "max_history": 3}, config
+                {
+                    "app_title": "Configured Player",
+                    "max_history": 3,
+                    "sources": ["youtube", "zing"],
+                },
+                config,
             )
         finally:
             process.terminate()

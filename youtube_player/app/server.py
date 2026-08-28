@@ -3,13 +3,24 @@ import json
 import os
 import re
 import secrets
+import shutil
 import signal
 import threading
+import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
+from urllib.request import Request, urlopen
 
-from search import SearchUnavailableError, search_youtube
+from search import SearchUnavailableError, search_youtube, search_zing
+from streaming import (
+    InvalidStreamTokenError,
+    StreamUnavailableError,
+    build_signed_stream_url,
+    normalize_public_base_url,
+    resolve_zing_stream,
+    verify_stream_token,
+)
 
 VIDEO_ID = re.compile(r"^[A-Za-z0-9_-]{11}$")
 PLAYLIST_ID = re.compile(r"^[A-Za-z0-9_-]{10,80}$")
@@ -28,7 +39,7 @@ STATIC_FILES = {
     "/app.js": ("app.js", "text/javascript; charset=utf-8"),
     "/favicon.svg": ("favicon.svg", "image/svg+xml"),
 }
-APP_VERSION = "0.3.0"
+APP_VERSION = "0.4.0"
 API_VERSION = "1"
 
 
@@ -92,15 +103,21 @@ class PlayerServer(ThreadingHTTPServer):
         app_title,
         max_history,
         integration_token,
+        public_base_url="",
     ):
         super().__init__(address, handler)
         self.data_dir = Path(data_dir)
         self.app_title = app_title
         self.max_history = max_history
         self.integration_token = integration_token
+        self.public_base_url = (
+            normalize_public_base_url(public_base_url) if public_base_url else ""
+        )
         self.history_lock = threading.Lock()
         self.player_lock = threading.Lock()
         self.search_lock = threading.Lock()
+        self.stream_lock = threading.Lock()
+        self.stream_cache = {}
         self.current_item = None
 
     @property
@@ -156,10 +173,39 @@ class PlayerServer(ThreadingHTTPServer):
         with self.player_lock:
             self.current_item = None
 
-    def search(self, query, limit):
+    def search(self, source, query, limit):
         """Run one metadata search at a time to bound child processes."""
         with self.search_lock:
-            return search_youtube(query, limit=limit)
+            if source == "youtube":
+                return search_youtube(query, limit=limit)
+            if source == "zing":
+                return search_zing(query, limit=limit)
+            raise ValueError("invalid_search_source")
+
+    def create_stream_url(self, target_url):
+        """Create a signed LAN URL a speaker can fetch without HA credentials."""
+        if not self.public_base_url:
+            raise ValueError("public_base_url_required")
+        return build_signed_stream_url(
+            self.public_base_url,
+            target_url,
+            self.integration_token,
+            ttl=3600,
+        )
+
+    def prepare_stream(self, target_url):
+        """Resolve and briefly cache one stream before giving it to a speaker."""
+        with self.stream_lock:
+            cached = self.stream_cache.get(target_url)
+            if cached and cached[0] >= time.monotonic():
+                return dict(cached[1])
+            resolved = resolve_zing_stream(target_url)
+            self.stream_cache[target_url] = (time.monotonic() + 120, dict(resolved))
+            return resolved
+
+    def resolve_stream(self, target_url):
+        """Return the prepared stream, resolving again after cache expiry."""
+        return self.prepare_stream(target_url)
 
 
 class PlayerHandler(BaseHTTPRequestHandler):
@@ -183,8 +229,12 @@ class PlayerHandler(BaseHTTPRequestHandler):
                 {
                     "app_title": self.server.app_title,
                     "max_history": self.server.max_history,
+                    "sources": ["youtube", "zing"],
                 },
             )
+            return
+        if path.startswith("/api/stream/"):
+            self.proxy_stream(path.removeprefix("/api/stream/"))
             return
         if path.startswith("/api/integration/") and not self.authorize_integration():
             return
@@ -196,27 +246,46 @@ class PlayerHandler(BaseHTTPRequestHandler):
                     "status": "ok",
                     "api_version": API_VERSION,
                     "app_version": APP_VERSION,
-                    "capabilities": ["history", "play", "search", "status", "stop"],
+                    "capabilities": [
+                        "history",
+                        "play",
+                        "search",
+                        "status",
+                        "stop",
+                        "zing_stream",
+                    ],
+                    "sources": ["youtube", "zing"],
                 },
             )
             return
         if path == "/api/integration/search":
             query_values = parse_qs(request_url.query)
             query = str(query_values.get("q", [""])[0]).strip()
+            source = str(query_values.get("source", ["youtube"])[0]).strip().lower()
             try:
                 limit = int(query_values.get("limit", ["20"])[0])
                 if not 1 <= len(query) <= 120 or not 1 <= limit <= 30:
                     raise ValueError
-                items = self.server.search(query, limit)
-            except ValueError:
-                self.send_json(400, {"error": "invalid_search_query"})
+                items = self.server.search(source, query, limit)
+            except ValueError as error:
+                error_code = (
+                    "invalid_search_source"
+                    if str(error) == "invalid_search_source"
+                    else "invalid_search_query"
+                )
+                self.send_json(400, {"error": error_code})
                 return
             except SearchUnavailableError:
                 self.send_json(502, {"error": "search_unavailable"})
                 return
             self.send_json(
                 200,
-                {"success": True, "items": items, "total": len(items)},
+                {
+                    "success": True,
+                    "source": source,
+                    "items": items,
+                    "total": len(items),
+                },
             )
             return
         if path == "/api/integration/status":
@@ -250,6 +319,49 @@ class PlayerHandler(BaseHTTPRequestHandler):
         if path == "/api/integration/stop":
             self.server.stop()
             self.send_json(200, {"success": True, "state": "idle"})
+            return
+        if path == "/api/integration/stream":
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+                if length < 1 or length > 4096:
+                    raise ValueError("invalid_request")
+                payload = json.loads(self.rfile.read(length))
+                if not isinstance(payload, dict):
+                    raise ValueError("invalid_request")
+                if payload.get("source") != "zing":
+                    raise ValueError("unsupported_stream_source")
+                target_url = payload.get("target")
+                resolved = self.server.prepare_stream(target_url)
+                stream_url = self.server.create_stream_url(target_url)
+            except StreamUnavailableError:
+                self.send_json(502, {"error": "stream_unavailable"})
+                return
+            except ValueError as error:
+                error_code = str(error)
+                if error_code == "public_base_url_required":
+                    self.send_json(409, {"error": error_code})
+                    return
+                if error_code not in {
+                    "invalid_request",
+                    "invalid_zing_target",
+                    "unsupported_stream_source",
+                }:
+                    error_code = "invalid_request"
+                self.send_json(400, {"error": error_code})
+                return
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                self.send_json(400, {"error": "invalid_request"})
+                return
+            self.send_json(
+                200,
+                {
+                    "success": True,
+                    "source": "zing",
+                    "stream_url": stream_url,
+                    "media_content_type": resolved.get("content_type", "audio/mpeg"),
+                    "expires_in": 3600,
+                },
+            )
             return
         if path not in {"/api/history", "/api/integration/play"}:
             self.send_json(404, {"error": "not_found"})
@@ -286,6 +398,46 @@ class PlayerHandler(BaseHTTPRequestHandler):
     def send_json(self, status, payload):
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         self.send_bytes(status, body, "application/json; charset=utf-8")
+
+    def proxy_stream(self, token):
+        """Resolve and relay a signed public Zing audio request to a speaker."""
+        if not token or len(token) > 4096:
+            self.send_json(403, {"error": "invalid_stream_token"})
+            return
+        response_started = False
+        try:
+            target_url = verify_stream_token(token, self.server.integration_token)
+            resolved = self.server.resolve_stream(target_url)
+            headers = {**resolved["headers"], "Accept-Encoding": "identity"}
+            if range_header := self.headers.get("Range"):
+                if not re.fullmatch(r"bytes=\d*-\d*", range_header):
+                    self.send_json(400, {"error": "invalid_range"})
+                    return
+                headers["Range"] = range_header
+            request = Request(resolved["url"], headers=headers)
+            with urlopen(request, timeout=30) as response:
+                self.send_response(response.getcode() or 200)
+                self.send_header(
+                    "Content-Type",
+                    response.headers.get(
+                        "Content-Type", resolved.get("content_type", "audio/mpeg")
+                    ),
+                )
+                for header in ("Content-Length", "Content-Range", "Accept-Ranges"):
+                    if value := response.headers.get(header):
+                        self.send_header(header, value)
+                self.send_header("Cache-Control", "private, no-store")
+                self.send_header("X-Content-Type-Options", "nosniff")
+                self.end_headers()
+                response_started = True
+                shutil.copyfileobj(response, self.wfile, length=64 * 1024)
+        except InvalidStreamTokenError:
+            self.send_json(403, {"error": "invalid_stream_token"})
+        except (BrokenPipeError, ConnectionResetError):
+            return
+        except (StreamUnavailableError, OSError):
+            if not response_started:
+                self.send_json(502, {"error": "stream_unavailable"})
 
     def authorize_integration(self):
         token = self.server.integration_token
@@ -327,7 +479,14 @@ class PlayerHandler(BaseHTTPRequestHandler):
 
 
 def create_server(
-    *, host, port, data_dir, app_title, max_history, integration_token=""
+    *,
+    host,
+    port,
+    data_dir,
+    app_title,
+    max_history,
+    integration_token="",
+    public_base_url="",
 ):
     return PlayerServer(
         (host, port),
@@ -336,6 +495,7 @@ def create_server(
         app_title=app_title,
         max_history=max_history,
         integration_token=integration_token,
+        public_base_url=public_base_url,
     )
 
 
@@ -394,6 +554,9 @@ def main():
         data_dir,
         os.environ.get("INTEGRATION_TOKEN") or options.get("integration_token", ""),
     )
+    public_base_url = os.environ.get("PUBLIC_BASE_URL") or options.get(
+        "public_base_url", ""
+    )
     server = create_server(
         host=host,
         port=port,
@@ -401,6 +564,7 @@ def main():
         app_title=str(app_title),
         max_history=max_history,
         integration_token=str(integration_token),
+        public_base_url=str(public_base_url),
     )
 
     def request_shutdown(_signal_number, _frame):

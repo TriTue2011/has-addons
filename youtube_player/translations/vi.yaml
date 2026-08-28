@@ -8,5 +8,8 @@ configuration:
   integration_token:
     name: Token tích hợp
     description: Bearer token tùy chọn cho custom integration. Để trống để tự sinh và lưu trong /data.
+  public_base_url:
+    name: URL phát trong mạng LAN
+    description: URL HTTP(S) dạng http://IP:8099 mà loa có thể truy cập; bắt buộc khi phát Zing.
 network:
   8099/TCP: Giao diện web trực tiếp; không cần mở khi dùng Ingress.

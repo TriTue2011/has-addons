@@ -10,6 +10,9 @@
 - API có xác thực để custom integration điều khiển giao diện đang mở.
 - Tìm kiếm danh sách bài hát bằng metadata-only `yt-dlp`, không cần YouTube
   Data API key và không tải nội dung media.
+- Tìm kiếm metadata Zing và relay luồng của bài công khai tới loa bằng URL ký
+  hạn dùng. Không hỗ trợ bài VIP hoặc nội dung bị giới hạn quyền.
+- Custom card chọn một hoặc nhiều `media_player`, đặt âm lượng, phát và dừng.
 
 Đây là ứng dụng clean-room độc lập. Nó không chứa mã nguồn, tài nguyên hoặc cơ
 chế cấp phép từ YouTube Pro.
@@ -35,10 +38,17 @@ mở trong LAN tin cậy và không forward cổng này ra Internet.
 | `app_title` | `TriTue YouTube Player` | Tên hiển thị trên giao diện |
 | `max_history` | `20` | Số mục lịch sử, từ 1 đến 100 |
 | `integration_token` | để trống | Token bảo mật cho custom integration; để trống thì app tự sinh và lưu trong `/data` |
+| `public_base_url` | để trống | URL LAN dạng `http://IP-máy-chạy-add-on:8099` mà loa truy cập được; bắt buộc để phát Zing |
 
 Token tích hợp xuất hiện trong log khi app khởi động. Nó chỉ dùng để xác thực
 kết nối trong hệ thống của bạn và không phải license key. Không đăng token công
 khai hoặc đặt nó trong URL.
+
+Để phát Zing, công bố cổng `8099` trong tab **Network** và đặt
+`public_base_url` thành địa chỉ LAN thật, ví dụ `http://172.16.10.200:8099`.
+Không dùng hostname nội bộ `36f3bad2-youtube-player` ở ô này vì loa không phân
+giải được hostname đó. URL phát công khai có chữ ký và tự hết hạn; không mở cổng
+8099 ra Internet.
 
 ## Chạy bằng Docker Compose
 
@@ -56,13 +66,14 @@ Khi image đã được phát hành lên GHCR, bỏ phần `build` trong Compose
 tải image dựng sẵn:
 
 ```bash
-docker pull ghcr.io/tritue2011/youtube-player:0.3.0
+docker pull ghcr.io/tritue2011/youtube-player:0.4.0
 docker run -d \
   --name tritue-youtube-player \
   --restart unless-stopped \
   -p 8099:8099 \
+  -e PUBLIC_BASE_URL='http://IP-máy-Docker:8099' \
   -v tritue-youtube-player-data:/data \
-  ghcr.io/tritue2011/youtube-player:0.3.0
+  ghcr.io/tritue2011/youtube-player:0.4.0
 ```
 
 Xem token tự sinh bằng `docker logs tritue-youtube-player`. Nếu muốn tự đặt
@@ -77,13 +88,17 @@ token, thêm `-e INTEGRATION_TOKEN='<chuỗi-ngẫu-nhiên-dài>'` khi chạy co
 
 Chi tiết request và response nằm trong [API.md](API.md).
 
-## Giới hạn của phiên bản 0.3.0
+## Giới hạn của phiên bản 0.4.0
 
-- Không resolve, tải xuống hoặc proxy luồng âm thanh/video.
+- Không tách hoặc proxy âm thanh YouTube. YouTube chỉ phát qua trang nhúng hoặc
+  ứng dụng Cast chính thức.
 - Việc phát nội dung phụ thuộc khả năng truy cập YouTube của trình duyệt.
 - Search dùng metadata không chính thức nên có thể cần cập nhật `yt-dlp` khi
   YouTube thay đổi giao diện nội bộ.
 - Google Cast phát bằng ứng dụng YouTube chính thức và có thể có quảng cáo.
+- Search Zing dựa trên endpoint web công khai nhưng không có tài liệu chính
+  thức. Playback phụ thuộc extractor Zing của `yt-dlp`; bài VIP bị từ chối và
+  thay đổi phía Zing có thể làm bài công khai tạm thời không phát được.
 - Entity không thuộc Google Cast chỉ phát được URL YouTube nếu integration của
   thiết bị đó tự hỗ trợ URL.
 - Khi không chọn thiết bị đích, trạng thái `media_player` là trạng thái giả định

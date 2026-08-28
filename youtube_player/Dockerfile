@@ -1,7 +1,7 @@
 ARG BUILD_FROM=python:3.13-alpine3.22
 FROM ${BUILD_FROM}
 
-ARG BUILD_VERSION=0.3.0
+ARG BUILD_VERSION=0.4.0
 ARG BUILD_ARCH
 
 LABEL \
@@ -9,7 +9,7 @@ LABEL \
     io.hass.version="${BUILD_VERSION}" \
     io.hass.arch="${BUILD_ARCH}" \
     org.opencontainers.image.title="TriTue YouTube Player" \
-    org.opencontainers.image.description="A clean-room YouTube embed player for Docker and Home Assistant." \
+    org.opencontainers.image.description="A clean-room YouTube and public Zing music source for Home Assistant." \
     org.opencontainers.image.source="https://github.com/TriTue2011/has-addons" \
     org.opencontainers.image.licenses="MIT"
 
