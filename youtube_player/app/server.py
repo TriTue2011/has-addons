@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 import json
+import hmac
 import os
 import re
+import secrets
 import signal
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -26,6 +28,8 @@ STATIC_FILES = {
     "/app.js": ("app.js", "text/javascript; charset=utf-8"),
     "/favicon.svg": ("favicon.svg", "image/svg+xml"),
 }
+APP_VERSION = "0.2.0"
+API_VERSION = "1"
 
 
 def normalize_target(raw_target):
@@ -70,12 +74,24 @@ def normalize_target(raw_target):
 
 
 class PlayerServer(ThreadingHTTPServer):
-    def __init__(self, address, handler, *, data_dir, app_title, max_history):
+    def __init__(
+        self,
+        address,
+        handler,
+        *,
+        data_dir,
+        app_title,
+        max_history,
+        integration_token,
+    ):
         super().__init__(address, handler)
         self.data_dir = Path(data_dir)
         self.app_title = app_title
         self.max_history = max_history
+        self.integration_token = integration_token
         self.history_lock = threading.Lock()
+        self.player_lock = threading.Lock()
+        self.current_item = None
 
     @property
     def history_path(self):
@@ -116,6 +132,20 @@ class PlayerServer(ThreadingHTTPServer):
             temporary_path.write_text("[]\n", encoding="utf-8")
             temporary_path.replace(self.history_path)
 
+    def get_player(self):
+        with self.player_lock:
+            item = dict(self.current_item) if self.current_item else None
+        return {"state": "playing" if item else "idle", "item": item}
+
+    def play(self, target):
+        self.add_history(target)
+        with self.player_lock:
+            self.current_item = dict(target)
+
+    def stop(self):
+        with self.player_lock:
+            self.current_item = None
+
 
 class PlayerHandler(BaseHTTPRequestHandler):
     server: PlayerServer
@@ -128,6 +158,9 @@ class PlayerHandler(BaseHTTPRequestHandler):
         if path == "/api/history":
             self.send_json(200, {"items": self.server.load_history()})
             return
+        if path == "/api/player":
+            self.send_json(200, self.server.get_player())
+            return
         if path == "/api/config":
             self.send_json(
                 200,
@@ -137,6 +170,40 @@ class PlayerHandler(BaseHTTPRequestHandler):
                 },
             )
             return
+        if path.startswith("/api/integration/") and not self.authorize_integration():
+            return
+        if path == "/api/integration/health":
+            self.send_json(
+                200,
+                {
+                    "success": True,
+                    "status": "ok",
+                    "api_version": API_VERSION,
+                    "app_version": APP_VERSION,
+                    "capabilities": ["history", "play", "status", "stop"],
+                },
+            )
+            return
+        if path == "/api/integration/status":
+            player = self.server.get_player()
+            self.send_json(
+                200,
+                {
+                    "success": True,
+                    "api_version": API_VERSION,
+                    "app_version": APP_VERSION,
+                    "state": player["state"],
+                    "item": player["item"],
+                    "history_count": len(self.server.load_history()),
+                },
+            )
+            return
+        if path == "/api/integration/history":
+            items = self.server.load_history()
+            self.send_json(
+                200, {"success": True, "items": items, "total": len(items)}
+            )
+            return
         if path in STATIC_FILES:
             filename, content_type = STATIC_FILES[path]
             self.send_file(STATIC_DIR / filename, content_type)
@@ -144,7 +211,14 @@ class PlayerHandler(BaseHTTPRequestHandler):
         self.send_json(404, {"error": "not_found"})
 
     def do_POST(self):
-        if urlsplit(self.path).path != "/api/history":
+        path = urlsplit(self.path).path
+        if path.startswith("/api/integration/") and not self.authorize_integration():
+            return
+        if path == "/api/integration/stop":
+            self.server.stop()
+            self.send_json(200, {"success": True, "state": "idle"})
+            return
+        if path not in {"/api/history", "/api/integration/play"}:
             self.send_json(404, {"error": "not_found"})
             return
         try:
@@ -163,8 +237,11 @@ class PlayerHandler(BaseHTTPRequestHandler):
             self.send_json(400, {"error": "invalid_request"})
             return
 
-        self.server.add_history(target)
-        self.send_json(201, target)
+        self.server.play(target)
+        if path == "/api/integration/play":
+            self.send_json(200, {"success": True, "item": target})
+        else:
+            self.send_json(201, target)
 
     def do_DELETE(self):
         if urlsplit(self.path).path != "/api/history":
@@ -176,6 +253,17 @@ class PlayerHandler(BaseHTTPRequestHandler):
     def send_json(self, status, payload):
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         self.send_bytes(status, body, "application/json; charset=utf-8")
+
+    def authorize_integration(self):
+        token = self.server.integration_token
+        if not token:
+            self.send_json(503, {"error": "integration_not_configured"})
+            return False
+        provided = self.headers.get("Authorization", "")
+        if not hmac.compare_digest(provided, f"Bearer {token}"):
+            self.send_json(401, {"error": "invalid_auth"})
+            return False
+        return True
 
     def send_file(self, path, content_type):
         try:
@@ -205,13 +293,16 @@ class PlayerHandler(BaseHTTPRequestHandler):
         print(f"{self.address_string()} - {message % args}", flush=True)
 
 
-def create_server(*, host, port, data_dir, app_title, max_history):
+def create_server(
+    *, host, port, data_dir, app_title, max_history, integration_token=""
+):
     return PlayerServer(
         (host, port),
         PlayerHandler,
         data_dir=data_dir,
         app_title=app_title,
         max_history=max_history,
+        integration_token=integration_token,
     )
 
 
@@ -232,6 +323,29 @@ def bounded_integer(value, default, minimum, maximum):
     return parsed if minimum <= parsed <= maximum else default
 
 
+def resolve_integration_token(data_dir, configured_token):
+    token = str(configured_token or "").strip()
+    if token:
+        return token
+
+    data_path = Path(data_dir)
+    token_path = data_path / "integration_token"
+    try:
+        stored_token = token_path.read_text(encoding="utf-8").strip()
+    except OSError:
+        stored_token = ""
+    if stored_token:
+        return stored_token
+
+    data_path.mkdir(parents=True, exist_ok=True)
+    token = secrets.token_urlsafe(32)
+    temporary_path = token_path.with_suffix(".tmp")
+    temporary_path.write_text(token, encoding="utf-8")
+    temporary_path.chmod(0o600)
+    temporary_path.replace(token_path)
+    return token
+
+
 def main():
     data_dir = Path(os.environ.get("DATA_DIR", "/data"))
     options = read_options(data_dir)
@@ -243,12 +357,17 @@ def main():
     max_history = bounded_integer(
         os.environ.get("MAX_HISTORY", options.get("max_history")), 20, 1, 100
     )
+    integration_token = resolve_integration_token(
+        data_dir,
+        os.environ.get("INTEGRATION_TOKEN") or options.get("integration_token", ""),
+    )
     server = create_server(
         host=host,
         port=port,
         data_dir=data_dir,
         app_title=str(app_title),
         max_history=max_history,
+        integration_token=str(integration_token),
     )
 
     def request_shutdown(_signal_number, _frame):
@@ -257,6 +376,11 @@ def main():
     signal.signal(signal.SIGTERM, request_shutdown)
     signal.signal(signal.SIGINT, request_shutdown)
     print(f"TriTue YouTube Player listening on {host}:{port}", flush=True)
+    print(
+        "Integration API token (security credential, not a license key): "
+        f"{integration_token}",
+        flush=True,
+    )
     try:
         server.serve_forever()
     finally:

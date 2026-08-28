@@ -2,6 +2,10 @@
 
 Trình phát YouTube clean-room cho Docker và Home Assistant. Bản này dùng trình
 nhúng chính thức ở chế độ tăng cường riêng tư, không tải xuống hoặc relay nội
-dung YouTube và không cần license key của phần mềm khác.
+dung YouTube và không cần license key của phần mềm khác. API có Bearer token tự
+sinh để custom integration kết nối an toàn; đây là thông tin xác thực, không
+phải license key.
 
 Hỗ trợ `amd64` và `aarch64`.
+
+Xem [DOCS.md](DOCS.md) để cài đặt và [API.md](API.md) để phát triển integration.

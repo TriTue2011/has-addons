@@ -8,6 +8,7 @@ const historySummary = document.querySelector("#history-summary");
 const clearHistory = document.querySelector("#clear-history");
 const formMessage = document.querySelector("#form-message");
 const connectionStatus = document.querySelector("#connection-status");
+let currentEmbedUrl = "";
 
 async function api(path, options = {}) {
   const response = await fetch(path, {
@@ -22,10 +23,24 @@ async function api(path, options = {}) {
 }
 
 function play(target) {
+  if (currentEmbedUrl === target.embed_url && !player.hidden) {
+    return;
+  }
+  currentEmbedUrl = target.embed_url;
   player.src = target.embed_url;
   player.hidden = false;
   emptyPlayer.hidden = true;
   input.value = target.id;
+}
+
+function stopPlayer() {
+  if (!currentEmbedUrl && player.hidden) {
+    return;
+  }
+  currentEmbedUrl = "";
+  player.src = "";
+  player.hidden = true;
+  emptyPlayer.hidden = false;
 }
 
 function renderHistory(items) {
@@ -49,7 +64,18 @@ function renderHistory(items) {
     kind.textContent = target.kind === "playlist" ? "Playlist" : "Video";
 
     button.append(identifier, kind);
-    button.addEventListener("click", () => play(target));
+    button.addEventListener("click", async () => {
+      try {
+        const selected = await api("api/history", {
+          method: "POST",
+          body: JSON.stringify({ target: target.id }),
+        });
+        play(selected);
+        await refreshHistory();
+      } catch (_error) {
+        historySummary.textContent = "Không thể phát mục đã chọn.";
+      }
+    });
     item.append(button);
     historyList.append(item);
   }
@@ -58,6 +84,19 @@ function renderHistory(items) {
 async function refreshHistory() {
   const history = await api("api/history");
   renderHistory(history.items);
+}
+
+async function refreshPlayer() {
+  const previousEmbedUrl = currentEmbedUrl;
+  const playerState = await api("api/player");
+  if (playerState.state === "playing" && playerState.item) {
+    play(playerState.item);
+    if (previousEmbedUrl !== playerState.item.embed_url) {
+      await refreshHistory();
+    }
+  } else {
+    stopPlayer();
+  }
 }
 
 form.addEventListener("submit", async (event) => {
@@ -97,7 +136,11 @@ clearHistory.addEventListener("click", async () => {
 
 async function initialize() {
   try {
-    const [config] = await Promise.all([api("api/config"), refreshHistory()]);
+    const [config] = await Promise.all([
+      api("api/config"),
+      refreshHistory(),
+      refreshPlayer(),
+    ]);
     document.querySelector("#app-title").textContent = config.app_title;
     document.title = config.app_title;
     connectionStatus.textContent = "Sẵn sàng";
@@ -109,3 +152,13 @@ async function initialize() {
 }
 
 initialize();
+setInterval(async () => {
+  try {
+    await refreshPlayer();
+    connectionStatus.textContent = "Sẵn sàng";
+    connectionStatus.dataset.ready = "true";
+  } catch (_error) {
+    connectionStatus.textContent = "Mất kết nối";
+    delete connectionStatus.dataset.ready;
+  }
+}, 2000);

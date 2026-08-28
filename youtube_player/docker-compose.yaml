@@ -2,7 +2,7 @@ services:
   youtube-player:
     build:
       context: .
-    image: ghcr.io/tritue2011/youtube-player:0.1.0
+    image: ghcr.io/tritue2011/youtube-player:0.2.0
     container_name: tritue-youtube-player
     restart: unless-stopped
     ports:
@@ -10,5 +10,7 @@ services:
     environment:
       APP_TITLE: "TriTue YouTube Player"
       MAX_HISTORY: "20"
+      # Optional. When empty, a stable token is generated in /data and logged.
+      INTEGRATION_TOKEN: ""
     volumes:
       - ./data:/data

@@ -15,7 +15,7 @@ from pathlib import Path
 APP_DIR = Path(__file__).resolve().parents[1] / "app"
 sys.path.insert(0, str(APP_DIR))
 
-from server import create_server  # noqa: E402
+from server import create_server, resolve_integration_token  # noqa: E402
 
 
 class YouTubePlayerHttpTests(unittest.TestCase):
@@ -27,6 +27,7 @@ class YouTubePlayerHttpTests(unittest.TestCase):
             data_dir=Path(self.temp_dir.name),
             app_title="Test Player",
             max_history=2,
+            integration_token="test-integration-token",
         )
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
@@ -38,14 +39,14 @@ class YouTubePlayerHttpTests(unittest.TestCase):
         self.thread.join(timeout=2)
         self.temp_dir.cleanup()
 
-    def request(self, path, *, method="GET", payload=None):
+    def request(self, path, *, method="GET", payload=None, headers=None):
         body = None
-        headers = {}
+        request_headers = dict(headers or {})
         if payload is not None:
             body = json.dumps(payload).encode()
-            headers["Content-Type"] = "application/json"
+            request_headers["Content-Type"] = "application/json"
         request = urllib.request.Request(
-            f"{self.base_url}{path}", data=body, headers=headers, method=method
+            f"{self.base_url}{path}", data=body, headers=request_headers, method=method
         )
         with urllib.request.urlopen(request, timeout=2) as response:
             return response.status, json.load(response)
@@ -55,6 +56,74 @@ class YouTubePlayerHttpTests(unittest.TestCase):
 
         self.assertEqual(200, status)
         self.assertEqual({"status": "ok"}, body)
+
+    def test_integration_token_is_created_once_and_reused(self):
+        token = resolve_integration_token(Path(self.temp_dir.name), "")
+        reused = resolve_integration_token(Path(self.temp_dir.name), "")
+
+        self.assertEqual(token, reused)
+        self.assertGreaterEqual(len(token), 32)
+        self.assertEqual(
+            token,
+            (Path(self.temp_dir.name) / "integration_token").read_text(
+                encoding="utf-8"
+            ),
+        )
+
+    def test_integration_api_requires_bearer_authentication(self):
+        for headers in ({}, {"Authorization": "Bearer wrong-token"}):
+            with self.subTest(headers=headers):
+                with self.assertRaises(urllib.error.HTTPError) as raised:
+                    self.request("/api/integration/health", headers=headers)
+                self.assertEqual(401, raised.exception.code)
+                self.assertEqual(
+                    {"error": "invalid_auth"}, json.load(raised.exception)
+                )
+
+        status, body = self.request(
+            "/api/integration/health",
+            headers={"Authorization": "Bearer test-integration-token"},
+        )
+
+        self.assertEqual(200, status)
+        self.assertEqual("ok", body["status"])
+        self.assertEqual("1", body["api_version"])
+        self.assertIn("play", body["capabilities"])
+
+    def test_integration_can_play_and_read_status_and_history(self):
+        headers = {"Authorization": "Bearer test-integration-token"}
+
+        status, played = self.request(
+            "/api/integration/play",
+            method="POST",
+            payload={"target": "https://youtu.be/dQw4w9WgXcQ"},
+            headers=headers,
+        )
+
+        self.assertEqual(200, status)
+        self.assertTrue(played["success"])
+        self.assertEqual("dQw4w9WgXcQ", played["item"]["id"])
+
+        _, player = self.request("/api/player")
+        self.assertEqual("playing", player["state"])
+        self.assertEqual("dQw4w9WgXcQ", player["item"]["id"])
+
+        _, integration_status = self.request(
+            "/api/integration/status", headers=headers
+        )
+        self.assertEqual("playing", integration_status["state"])
+        self.assertEqual(1, integration_status["history_count"])
+
+        _, history = self.request("/api/integration/history", headers=headers)
+        self.assertEqual(1, history["total"])
+        self.assertEqual("dQw4w9WgXcQ", history["items"][0]["id"])
+
+        _, stopped = self.request(
+            "/api/integration/stop", method="POST", headers=headers
+        )
+        self.assertTrue(stopped["success"])
+        _, player = self.request("/api/player")
+        self.assertEqual({"state": "idle", "item": None}, player)
 
     def test_video_url_is_normalized_and_persisted(self):
         status, target = self.request(
@@ -138,6 +207,7 @@ class YouTubePlayerHttpTests(unittest.TestCase):
         with urllib.request.urlopen(f"{self.base_url}/app.js", timeout=2) as response:
             script = response.read().decode("utf-8")
         self.assertIn('api("api/history")', script)
+        self.assertIn('api("api/player")', script)
 
         with urllib.request.urlopen(
             f"{self.base_url}/favicon.svg", timeout=2

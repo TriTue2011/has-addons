@@ -7,6 +7,7 @@
 - Lưu lịch sử trong `/data`, không mất khi container khởi động lại.
 - Giao diện responsive, dùng được qua Home Assistant Ingress.
 - Không cần API key hoặc license key.
+- API có xác thực để custom integration điều khiển giao diện đang mở.
 
 Đây là ứng dụng clean-room độc lập. Nó không chứa mã nguồn, tài nguyên hoặc cơ
 chế cấp phép từ YouTube Pro.
@@ -27,6 +28,11 @@ trực tiếp.
 |---|---:|---|
 | `app_title` | `TriTue YouTube Player` | Tên hiển thị trên giao diện |
 | `max_history` | `20` | Số mục lịch sử, từ 1 đến 100 |
+| `integration_token` | để trống | Token bảo mật cho custom integration; để trống thì app tự sinh và lưu trong `/data` |
+
+Token tích hợp xuất hiện trong log khi app khởi động. Nó chỉ dùng để xác thực
+kết nối trong hệ thống của bạn và không phải license key. Không đăng token công
+khai hoặc đặt nó trong URL.
 
 ## Chạy bằng Docker Compose
 
@@ -44,18 +50,31 @@ Khi image đã được phát hành lên GHCR, bỏ phần `build` trong Compose
 tải image dựng sẵn:
 
 ```bash
-docker pull ghcr.io/tritue2011/youtube-player:0.1.0
+docker pull ghcr.io/tritue2011/youtube-player:0.2.0
 docker run -d \
   --name tritue-youtube-player \
   --restart unless-stopped \
   -p 8099:8099 \
   -v tritue-youtube-player-data:/data \
-  ghcr.io/tritue2011/youtube-player:0.1.0
+  ghcr.io/tritue2011/youtube-player:0.2.0
 ```
 
-## Giới hạn của phiên bản 0.1.0
+Xem token tự sinh bằng `docker logs tritue-youtube-player`. Nếu muốn tự đặt
+token, thêm `-e INTEGRATION_TOKEN='<chuỗi-ngẫu-nhiên-dài>'` khi chạy container.
+
+## Kết nối custom integration
+
+- Add-on cùng Home Assistant: URL nội bộ là `http://local_youtube_player:8099`.
+- Docker ở máy khác: URL là `http://<IP-máy-Docker>:8099`.
+- Token: lấy trong log hoặc giá trị `integration_token`/`INTEGRATION_TOKEN` đã đặt.
+
+Chi tiết request và response nằm trong [API.md](API.md).
+
+## Giới hạn của phiên bản 0.2.0
 
 - Chưa tìm kiếm YouTube ngay trong ứng dụng.
 - Chưa điều khiển `media_player`, Cast hoặc AirPlay.
 - Không resolve, tải xuống hoặc proxy luồng âm thanh/video.
 - Việc phát nội dung phụ thuộc khả năng truy cập YouTube của trình duyệt.
+- Lệnh từ integration điều khiển trang web player đang mở; phiên bản này chưa
+  phát trực tiếp trên loa hoặc TV nếu không có trình duyệt mở.

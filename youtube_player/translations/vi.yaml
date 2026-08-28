@@ -5,5 +5,8 @@ configuration:
   max_history:
     name: Số mục lịch sử
     description: Số video hoặc playlist được lưu gần đây, từ 1 đến 100.
+  integration_token:
+    name: Token tích hợp
+    description: Bearer token tùy chọn cho custom integration. Để trống để tự sinh và lưu trong /data.
 network:
   8099/TCP: Giao diện web trực tiếp; không cần mở khi dùng Ingress.

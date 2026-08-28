@@ -5,5 +5,8 @@ configuration:
   max_history:
     name: History size
     description: Number of recent videos or playlists to retain, from 1 to 100.
+  integration_token:
+    name: Integration token
+    description: Optional bearer token for the Home Assistant integration. Leave empty to generate one in /data.
 network:
   8099/TCP: Direct web interface; it does not need to be exposed when using Ingress.
