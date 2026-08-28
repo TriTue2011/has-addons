@@ -26,6 +26,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
+  overflow-x: hidden;
 }
 
 button,
@@ -67,8 +68,9 @@ main {
 
 .site-header {
   display: flex;
-  align-items: end;
+  align-items: start;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 1rem;
   padding-block: 1.5rem 1rem;
 }
@@ -129,6 +131,7 @@ main {
   display: flex;
   align-items: start;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 1rem;
   margin-bottom: 1rem;
 }
@@ -222,6 +225,10 @@ input::placeholder {
   background: var(--surface-raised);
 }
 
+.history-heading .secondary {
+  width: 100%;
+}
+
 .history-list {
   display: grid;
   gap: 0.5rem;
@@ -240,6 +247,13 @@ input::placeholder {
   background: var(--surface-raised);
   color: var(--text);
   text-align: left;
+}
+
+.history-item button span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .history-item button:hover {
@@ -272,6 +286,10 @@ input::placeholder {
 
   .input-row {
     grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .history-heading .secondary {
+    width: auto;
   }
 }
 

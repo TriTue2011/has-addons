@@ -139,6 +139,11 @@ class YouTubePlayerHttpTests(unittest.TestCase):
             script = response.read().decode("utf-8")
         self.assertIn('api("api/history")', script)
 
+        with urllib.request.urlopen(
+            f"{self.base_url}/favicon.svg", timeout=2
+        ) as response:
+            self.assertEqual("image/svg+xml", response.headers["Content-Type"])
+
         _, config = self.request("/api/config")
         self.assertEqual(
             {"app_title": "Test Player", "max_history": 2},
