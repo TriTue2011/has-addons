@@ -21,6 +21,7 @@ class YouTubePlayerEntity(CoordinatorEntity[YouTubePlayerCoordinator]):
         entry: YouTubePlayerConfigEntry,
     ) -> None:
         super().__init__(coordinator)
+        self.entry = entry
         server_id = entry.unique_id or entry.entry_id
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, server_id)},
