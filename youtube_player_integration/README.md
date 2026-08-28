@@ -20,7 +20,7 @@ Custom integration clean-room kết nối Home Assistant với TriTue YouTube Pl
 3. Tải **TriTue YouTube Player**, rồi khởi động lại Home Assistant.
 4. Thêm integration trong **Settings → Devices & services**.
 
-URL mặc định `http://30fff174-youtube-player:8099` dành cho app được cài từ
+URL mặc định `http://36f3bad2-youtube-player:8099` dành cho app được cài từ
 `https://github.com/TriTue2011/has-addons`. Nếu cài app local, dùng
 `http://local-youtube-player:8099`. Nếu chạy Docker, dùng
 `http://<IP-máy-Docker>:8099`.

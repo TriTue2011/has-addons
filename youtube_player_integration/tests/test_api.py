@@ -1,4 +1,5 @@
 import asyncio
+import hashlib
 import importlib.util
 import sys
 import tempfile
@@ -11,6 +12,7 @@ import aiohttp
 ROOT = Path(__file__).resolve().parents[2]
 SERVER_APP_DIR = ROOT / "youtube_player" / "app"
 API_MODULE_PATH = ROOT / "custom_components" / "tritue_youtube_player" / "api.py"
+CONST_MODULE_PATH = API_MODULE_PATH.with_name("const.py")
 sys.path.insert(0, str(SERVER_APP_DIR))
 
 from server import create_server
@@ -28,7 +30,28 @@ def load_api_module():
     return module
 
 
+def load_const_module():
+    spec = importlib.util.spec_from_file_location(
+        "tritue_youtube_player_const", CONST_MODULE_PATH
+    )
+    if spec is None or spec.loader is None:
+        raise RuntimeError("unable_to_load_const_module")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 class YouTubePlayerClientTests(unittest.IsolatedAsyncioTestCase):
+    def test_default_addon_hostname_matches_supervisor_repository_hash(self):
+        repository_url = "https://github.com/TriTue2011/has-addons"
+        repository_hash = hashlib.sha1(repository_url.lower().encode()).hexdigest()[:8]
+        constants = load_const_module()
+
+        self.assertEqual(
+            f"http://{repository_hash}-youtube-player:8099",
+            constants.DEFAULT_ADDON_URL,
+        )
+
     async def asyncSetUp(self):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.server = create_server(

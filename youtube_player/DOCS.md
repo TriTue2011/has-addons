@@ -65,7 +65,7 @@ token, thêm `-e INTEGRATION_TOKEN='<chuỗi-ngẫu-nhiên-dài>'` khi chạy co
 
 ## Kết nối custom integration
 
-- App cài từ repository này: URL nội bộ là `http://30fff174-youtube-player:8099`.
+- App cài từ repository này: URL nội bộ là `http://36f3bad2-youtube-player:8099`.
 - App cài trong thư mục local: URL nội bộ là `http://local-youtube-player:8099`.
 - Docker ở máy khác: URL là `http://<IP-máy-Docker>:8099`.
 - Token: lấy trong log hoặc giá trị `integration_token`/`INTEGRATION_TOKEN` đã đặt.

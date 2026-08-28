@@ -1,7 +1,7 @@
 # Integration API v1
 
 API này là hợp đồng clean-room giữa TriTue YouTube Player và custom integration
-Home Assistant. Base URL là `http://30fff174-youtube-player:8099` khi cài app
+Home Assistant. Base URL là `http://36f3bad2-youtube-player:8099` khi cài app
 từ repository này, hoặc `http://<host>:8099` khi chạy Docker.
 
 ## Xác thực
