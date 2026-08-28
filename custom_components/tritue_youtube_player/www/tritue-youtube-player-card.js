@@ -408,7 +408,8 @@ class TriTueYouTubePlayerCard extends HTMLElement {
       return;
     }
     try {
-      await this._hass.callService("media_player", "media_stop", { entity_id: entityIds });
+      const stopTargets = [...entityIds, this._config.entity];
+      await this._hass.callService("media_player", "media_stop", { entity_id: stopTargets });
       this._setStatus(`Đã gửi lệnh dừng tới ${entityIds.length} thiết bị.`);
     } catch (error) {
       this._setStatus(error?.message || "Không thể dừng thiết bị.", true);

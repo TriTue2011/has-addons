@@ -105,9 +105,9 @@ def parse_zing_payload(payload, *, limit):
                 or song_host.endswith(".zingmp3.vn")
             )
             or not parsed_url.path.startswith("/bai-hat/")
-            or entry.get("status", 1) != 1
-            or entry.get("privacy", 1) != 1
-            or entry.get("playStatus", 2) == 0
+            or entry.get("status") != 1
+            or entry.get("privacy") != 1
+            or entry.get("playStatus") != 2
         ):
             continue
         artists = entry.get("artists") or []

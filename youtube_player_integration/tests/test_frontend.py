@@ -34,6 +34,7 @@ class LovelaceCardContractTests(unittest.TestCase):
         self.assertIn('callService("tritue_youtube_player", "play_on_players"', script)
         self.assertIn('callService("media_player", "volume_set"', script)
         self.assertIn('callService("media_player", "media_stop"', script)
+        self.assertIn("const stopTargets = [...entityIds, this._config.entity]", script)
         self.assertIn('aria-label="Tìm tên bài hát hoặc ca sĩ"', script)
         self.assertIn('aria-label="Âm lượng các thiết bị đã chọn"', script)
         self.assertNotIn("eval(", script)

@@ -106,6 +106,7 @@ class YouTubeMetadataSearchTests(unittest.TestCase):
                                 "duration": 269,
                                 "link": "https://zingmp3.vn/bai-hat/Thuc-Giac-Da-LAB/ZZ90FD0B.html",
                                 "status": 1,
+                                "privacy": 1,
                                 "playStatus": 2,
                                 "artists": [{"name": "Da LAB"}],
                             },
@@ -144,6 +145,29 @@ class YouTubeMetadataSearchTests(unittest.TestCase):
                                 "title": "Unsafe result",
                                 "link": (
                                     "https://notzingmp3.vn/bai-hat/Unsafe/"
+                                    "ZZ90FD0B.html"
+                                ),
+                            }
+                        ]
+                    }
+                ]
+            }
+        }
+
+        self.assertEqual([], self.search.parse_zing_payload(payload, limit=10))
+
+    def test_parse_zing_payload_requires_explicit_public_playback_flags(self):
+        payload = {
+            "data": {
+                "items": [
+                    {
+                        "suggestions": [
+                            {
+                                "type": 1,
+                                "id": "ZZ90FD0B",
+                                "title": "Unknown entitlement",
+                                "link": (
+                                    "https://zingmp3.vn/bai-hat/Unknown/"
                                     "ZZ90FD0B.html"
                                 ),
                             }

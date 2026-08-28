@@ -65,7 +65,7 @@ class YouTubePlayerClient:
             "POST",
             "/api/integration/stream",
             json={"source": source, "target": target},
-            request_timeout=15,
+            request_timeout=35,
         )
 
     async def async_play(self, target: str) -> dict[str, Any]:

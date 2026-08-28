@@ -11,6 +11,8 @@
 ### Fixed
 
 - Entity giữ config entry trong runtime, tránh lỗi polling trên trang thiết bị.
+- Chỉ tạo luồng Zing cho kết quả có cờ phát công khai và được server tìm thấy
+  trong 60 phút gần nhất; card dừng cả loa đã chọn lẫn player nguồn.
 
 ## 0.3.0 - 2026-08-28
 

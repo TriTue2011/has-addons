@@ -65,6 +65,9 @@ Chỉ nhận URL bài Zing công khai. Server kiểm tra trước khả năng re
 URL này mà không cần biết bearer token. URL được relay qua add-on, hỗ trợ Range,
 không lưu tệp và không chuyển mã. `public_base_url`/`PUBLIC_BASE_URL` phải là URL
 LAN mà loa truy cập được. YouTube không được hỗ trợ ở endpoint này.
+URL đích phải nằm trong kết quả Zing công khai mà chính server trả về trong vòng
+60 phút gần nhất; URL nhập trực tiếp hoặc kết quả thiếu cờ quyền phát sẽ bị từ
+chối.
 
 ### `POST /api/integration/play`
 
@@ -84,6 +87,8 @@ Dừng và xóa nội dung khỏi trang web player đang mở. Request không c�
 - `400 {"error":"invalid_request"}`: JSON/body không hợp lệ.
 - `400 {"error":"invalid_youtube_target"}`: URL hoặc ID không được hỗ trợ.
 - `401 {"error":"invalid_auth"}`: thiếu hoặc sai Bearer token.
+- `403 {"error":"unverified_zing_target"}`: URL Zing không thuộc kết quả tìm
+  kiếm công khai gần nhất hoặc metadata không xác nhận quyền phát công khai.
 - `502 {"error":"search_unavailable"}`: nguồn metadata tìm kiếm tạm lỗi.
 - `502 {"error":"stream_unavailable"}`: bài Zing không công khai, là VIP hoặc
   provider hiện không resolve được.

@@ -57,6 +57,11 @@ class YouTubePlayerHttpTests(unittest.TestCase):
         with urllib.request.urlopen(request, timeout=2) as response:
             return response.status, json.load(response)
 
+    def remember_public_zing_target(self, target):
+        self.server.remember_public_zing_results(
+            [{"source": "zing", "kind": "song", "url": target}]
+        )
+
     def test_health_reports_ready(self):
         status, body = self.request("/api/health")
 
@@ -191,6 +196,8 @@ class YouTubePlayerHttpTests(unittest.TestCase):
 
     @patch("server.resolve_zing_stream")
     def test_integration_creates_a_short_lived_zing_stream_url(self, resolve):
+        target = "https://zingmp3.vn/bai-hat/Thuc-Giac-Da-LAB/ZZ90FD0B.html"
+        self.remember_public_zing_target(target)
         resolve.return_value = {
             "url": "https://audio.zmdcdn.me/song.mp3",
             "headers": {},
@@ -201,9 +208,7 @@ class YouTubePlayerHttpTests(unittest.TestCase):
             method="POST",
             payload={
                 "source": "zing",
-                "target": (
-                    "https://zingmp3.vn/bai-hat/Thuc-Giac-Da-LAB/ZZ90FD0B.html"
-                ),
+                "target": target,
             },
             headers={"Authorization": "Bearer test-integration-token"},
         )
@@ -218,11 +223,40 @@ class YouTubePlayerHttpTests(unittest.TestCase):
         )
         resolve.assert_called_once()
 
+    @patch("server.resolve_zing_stream")
+    def test_stream_api_rejects_a_zing_url_not_returned_by_search(self, resolve):
+        resolve.return_value = {
+            "url": "https://audio.zmdcdn.me/song.mp3",
+            "headers": {},
+            "content_type": "audio/mpeg",
+        }
+
+        with self.assertRaises(urllib.error.HTTPError) as raised:
+            self.request(
+                "/api/integration/stream",
+                method="POST",
+                payload={
+                    "source": "zing",
+                    "target": (
+                        "https://zingmp3.vn/bai-hat/Unverified/ZZ90FD0B.html"
+                    ),
+                },
+                headers={"Authorization": "Bearer test-integration-token"},
+            )
+
+        self.assertEqual(403, raised.exception.code)
+        self.assertEqual(
+            {"error": "unverified_zing_target"}, json.load(raised.exception)
+        )
+        resolve.assert_not_called()
+
     @patch("server.urlopen")
     @patch("server.resolve_zing_stream")
     def test_signed_stream_relays_audio_and_range_requests(
         self, resolve, open_upstream
     ):
+        target = "https://zingmp3.vn/bai-hat/Thuc-Giac/ZZ90FD0B.html"
+        self.remember_public_zing_target(target)
         resolve.return_value = {
             "url": "https://audio.zmdcdn.me/song.mp3",
             "headers": {"Referer": "https://zingmp3.vn/"},
@@ -242,7 +276,7 @@ class YouTubePlayerHttpTests(unittest.TestCase):
             method="POST",
             payload={
                 "source": "zing",
-                "target": "https://zingmp3.vn/bai-hat/Thuc-Giac/ZZ90FD0B.html",
+                "target": target,
             },
             headers={"Authorization": "Bearer test-integration-token"},
         )
@@ -262,6 +296,8 @@ class YouTubePlayerHttpTests(unittest.TestCase):
 
     @patch("server.resolve_zing_stream")
     def test_stream_creation_reports_an_unplayable_zing_result(self, resolve):
+        target = "https://zingmp3.vn/bai-hat/Thuc-Giac/ZZ90FD0B.html"
+        self.remember_public_zing_target(target)
         resolve.side_effect = StreamUnavailableError("stream_provider_failed")
         with self.assertRaises(urllib.error.HTTPError) as raised:
             self.request(
@@ -269,7 +305,7 @@ class YouTubePlayerHttpTests(unittest.TestCase):
                 method="POST",
                 payload={
                     "source": "zing",
-                    "target": "https://zingmp3.vn/bai-hat/Thuc-Giac/ZZ90FD0B.html",
+                    "target": target,
                 },
                 headers={"Authorization": "Bearer test-integration-token"},
             )

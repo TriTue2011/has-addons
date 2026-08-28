@@ -100,7 +100,9 @@ data:
 YouTube dùng Cast/trình phát chính thức và không relay audio. Với Zing, add-on
 chỉ relay bài công khai mà extractor hiện tại giải được, từ chối VIP. Hãy đặt
 `public_base_url` trong add-on thành URL LAN `http://IP:8099` mà tất cả loa truy
-cập được. Endpoint web của Zing không có tài liệu chính thức nên có thể thay đổi.
+cập được. Phải chọn bài từ kết quả search của card/API; URL Zing nhập trực tiếp
+sẽ bị từ chối. Endpoint web của Zing không có tài liệu chính thức nên có thể
+thay đổi.
 
 Trạng thái của entity là **assumed state**: nó phản ánh lệnh phát/dừng gần nhất
 mà server đã nhận, không phải telemetry từ video bên trong iframe. Vì vậy entity

@@ -19,6 +19,7 @@ from streaming import (
     build_signed_stream_url,
     normalize_public_base_url,
     resolve_zing_stream,
+    validate_zing_target,
     verify_stream_token,
 )
 
@@ -116,7 +117,9 @@ class PlayerServer(ThreadingHTTPServer):
         self.history_lock = threading.Lock()
         self.player_lock = threading.Lock()
         self.search_lock = threading.Lock()
+        self.zing_result_lock = threading.Lock()
         self.stream_lock = threading.Lock()
+        self.zing_result_cache = {}
         self.stream_cache = {}
         self.current_item = None
 
@@ -179,8 +182,43 @@ class PlayerServer(ThreadingHTTPServer):
             if source == "youtube":
                 return search_youtube(query, limit=limit)
             if source == "zing":
-                return search_zing(query, limit=limit)
+                results = search_zing(query, limit=limit)
+                self.remember_public_zing_results(results)
+                return results
             raise ValueError("invalid_search_source")
+
+    def remember_public_zing_results(self, results, *, ttl=3600):
+        """Temporarily authorize Zing URLs that passed public search filters."""
+        now = time.monotonic()
+        with self.zing_result_lock:
+            self.zing_result_cache = {
+                url: expiry
+                for url, expiry in self.zing_result_cache.items()
+                if expiry > now
+            }
+            for item in results:
+                if (
+                    not isinstance(item, dict)
+                    or item.get("source") != "zing"
+                    or item.get("kind") != "song"
+                ):
+                    continue
+                try:
+                    target_url = validate_zing_target(item.get("url"))
+                except ValueError:
+                    continue
+                self.zing_result_cache[target_url] = now + int(ttl)
+
+    def require_public_zing_result(self, target_url):
+        """Accept only a Zing URL recently returned by public search."""
+        target_url = validate_zing_target(target_url)
+        now = time.monotonic()
+        with self.zing_result_lock:
+            expiry = self.zing_result_cache.get(target_url, 0)
+            if expiry <= now:
+                self.zing_result_cache.pop(target_url, None)
+                raise ValueError("unverified_zing_target")
+        return target_url
 
     def create_stream_url(self, target_url):
         """Create a signed LAN URL a speaker can fetch without HA credentials."""
@@ -195,6 +233,11 @@ class PlayerServer(ThreadingHTTPServer):
 
     def prepare_stream(self, target_url):
         """Resolve and briefly cache one stream before giving it to a speaker."""
+        target_url = self.require_public_zing_result(target_url)
+        return self._resolve_stream(target_url)
+
+    def _resolve_stream(self, target_url):
+        """Resolve and briefly cache one already validated Zing stream."""
         with self.stream_lock:
             cached = self.stream_cache.get(target_url)
             if cached and cached[0] >= time.monotonic():
@@ -205,7 +248,7 @@ class PlayerServer(ThreadingHTTPServer):
 
     def resolve_stream(self, target_url):
         """Return the prepared stream, resolving again after cache expiry."""
-        return self.prepare_stream(target_url)
+        return self._resolve_stream(validate_zing_target(target_url))
 
 
 class PlayerHandler(BaseHTTPRequestHandler):
@@ -340,6 +383,9 @@ class PlayerHandler(BaseHTTPRequestHandler):
                 error_code = str(error)
                 if error_code == "public_base_url_required":
                     self.send_json(409, {"error": error_code})
+                    return
+                if error_code == "unverified_zing_target":
+                    self.send_json(403, {"error": error_code})
                     return
                 if error_code not in {
                     "invalid_request",

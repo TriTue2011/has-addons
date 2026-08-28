@@ -30,6 +30,9 @@ Cổng `8099` mặc định không được công bố ra LAN vì Ingress đã c
 có xác thực. Chỉ đặt host port trong tab Network khi bạn thực sự cần truy cập
 trực tiếp. Giao diện `IP:8099` không có màn hình đăng nhập riêng, vì vậy chỉ nên
 mở trong LAN tin cậy và không forward cổng này ra Internet.
+Ai truy cập được cổng này có thể xem/xóa lịch sử và điều khiển iframe của Web
+UI. Bearer token vẫn bảo vệ API integration; Web UI công khai không thể tự gọi
+service loa của Home Assistant.
 
 ### Tùy chọn
 
@@ -99,6 +102,8 @@ Chi tiết request và response nằm trong [API.md](API.md).
 - Search Zing dựa trên endpoint web công khai nhưng không có tài liệu chính
   thức. Playback phụ thuộc extractor Zing của `yt-dlp`; bài VIP bị từ chối và
   thay đổi phía Zing có thể làm bài công khai tạm thời không phát được.
+- Luồng Zing chỉ được tạo từ kết quả tìm kiếm công khai trong 60 phút gần nhất;
+  URL nhập trực tiếp và metadata thiếu cờ quyền phát bị từ chối.
 - Entity không thuộc Google Cast chỉ phát được URL YouTube nếu integration của
   thiết bị đó tự hỗ trợ URL.
 - Khi không chọn thiết bị đích, trạng thái `media_player` là trạng thái giả định
