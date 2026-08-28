@@ -63,10 +63,17 @@ jobs:
         uses: home-assistant/actions/hassfest@f4ca6f671bd429efb108c0f2fa0ae8af0215986c
 
       - name: Run HACS validation
+        if: ${{ github.event.repository.private == false }}
         uses: hacs/action@d556e736723344f83838d08488c983a15381059a
         with:
           category: integration
           ignore: brands
+
+      - name: Explain private repository limitation
+        if: ${{ github.event.repository.private }}
+        run: >-
+          echo "::notice::HACS validation is unavailable for private repositories;
+          Hassfest still validates the integration."
 
   lint:
     name: Lint Home Assistant app

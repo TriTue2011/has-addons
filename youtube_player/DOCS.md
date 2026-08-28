@@ -18,6 +18,9 @@ chế cấp phép từ YouTube Pro.
 2. Cài **TriTue YouTube Player**.
 3. Khởi động app và chọn **Open Web UI**.
 
+Repository phải là public để App Store tải trực tiếp. Nếu repository còn
+private, hãy dùng bản Docker hoặc cài app local cho tới khi đổi visibility.
+
 Cổng `8099` mặc định không được công bố ra LAN vì Ingress đã cung cấp giao diện
 có xác thực. Chỉ đặt host port trong tab Network khi bạn thực sự cần truy cập
 trực tiếp. Giao diện `IP:8099` không có màn hình đăng nhập riêng, vì vậy chỉ nên

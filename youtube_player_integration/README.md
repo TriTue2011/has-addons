@@ -15,10 +15,16 @@ Custom integration clean-room kết nối Home Assistant với TriTue YouTube Pl
 
 ## Cài qua HACS
 
+HACS không hỗ trợ private GitHub repository. Các bước dưới đây dùng được sau khi
+repository `TriTue2011/has-addons` được chuyển thành **public**:
+
 1. Trong HACS, mở **Custom repositories**.
 2. Thêm `https://github.com/TriTue2011/has-addons` với loại **Integration**.
 3. Tải **TriTue YouTube Player**, rồi khởi động lại Home Assistant.
 4. Thêm integration trong **Settings → Devices & services**.
+
+Khi repository còn private, dùng cách cài thủ công phía trên. CI luôn chạy
+Hassfest; HACS validation sẽ tự được bật khi repository trở thành public.
 
 URL mặc định `http://36f3bad2-youtube-player:8099` dành cho app được cài từ
 `https://github.com/TriTue2011/has-addons`. Nếu cài app local, dùng
