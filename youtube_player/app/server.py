@@ -8,6 +8,7 @@ from urllib.parse import parse_qs, urlsplit
 
 
 VIDEO_ID = re.compile(r"^[A-Za-z0-9_-]{11}$")
+PLAYLIST_ID = re.compile(r"^[A-Za-z0-9_-]{10,80}$")
 YOUTUBE_HOSTS = {
     "youtube.com",
     "www.youtube.com",
@@ -20,6 +21,7 @@ YOUTUBE_HOSTS = {
 def normalize_target(raw_target):
     target = str(raw_target or "").strip()
     video_id = target if VIDEO_ID.fullmatch(target) else None
+    playlist_id = None
 
     if video_id is None:
         parsed = urlsplit(target)
@@ -30,6 +32,20 @@ def normalize_target(raw_target):
             video_id = parsed.path.strip("/").split("/", 1)[0]
         elif parsed.path == "/watch":
             video_id = parse_qs(parsed.query).get("v", [""])[0]
+        elif parsed.path.startswith(("/shorts/", "/embed/")):
+            video_id = parsed.path.rstrip("/").rsplit("/", 1)[-1]
+        elif parsed.path == "/playlist":
+            playlist_id = parse_qs(parsed.query).get("list", [""])[0]
+
+    if PLAYLIST_ID.fullmatch(playlist_id or ""):
+        return {
+            "kind": "playlist",
+            "id": playlist_id,
+            "embed_url": (
+                "https://www.youtube-nocookie.com/embed/videoseries"
+                f"?list={playlist_id}&autoplay=1"
+            ),
+        }
 
     if not VIDEO_ID.fullmatch(video_id or ""):
         raise ValueError("invalid_youtube_target")

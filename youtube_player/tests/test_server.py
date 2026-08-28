@@ -74,6 +74,32 @@ class YouTubePlayerHttpTests(unittest.TestCase):
         )
         self.assertEqual([target], persisted)
 
+    def test_playlist_and_short_urls_are_supported_and_history_is_bounded(self):
+        _, playlist = self.request(
+            "/api/history",
+            method="POST",
+            payload={"target": "https://youtube.com/playlist?list=PL1234567890abc"},
+        )
+        self.assertEqual("playlist", playlist["kind"])
+        self.assertEqual(
+            "https://www.youtube-nocookie.com/embed/videoseries?list=PL1234567890abc&autoplay=1",
+            playlist["embed_url"],
+        )
+
+        self.request(
+            "/api/history",
+            method="POST",
+            payload={"target": "https://youtube.com/shorts/aqz-KE-bpKQ"},
+        )
+        _, newest = self.request(
+            "/api/history", method="POST", payload={"target": "M7lc1UVf-VE"}
+        )
+
+        _, history = self.request("/api/history")
+        self.assertEqual(2, len(history["items"]))
+        self.assertEqual(newest, history["items"][0])
+        self.assertEqual("aqz-KE-bpKQ", history["items"][1]["id"])
+
 
 if __name__ == "__main__":
     unittest.main()
