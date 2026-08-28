@@ -51,6 +51,29 @@ class YouTubePlayerHttpTests(unittest.TestCase):
         self.assertEqual(200, status)
         self.assertEqual({"status": "ok"}, body)
 
+    def test_video_url_is_normalized_and_persisted(self):
+        status, target = self.request(
+            "/api/history",
+            method="POST",
+            payload={"target": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
+        )
+
+        self.assertEqual(201, status)
+        self.assertEqual("video", target["kind"])
+        self.assertEqual("dQw4w9WgXcQ", target["id"])
+        self.assertEqual(
+            "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=1",
+            target["embed_url"],
+        )
+
+        _, history = self.request("/api/history")
+        self.assertEqual([target], history["items"])
+
+        persisted = json.loads(
+            (Path(self.temp_dir.name) / "history.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual([target], persisted)
+
 
 if __name__ == "__main__":
     unittest.main()
