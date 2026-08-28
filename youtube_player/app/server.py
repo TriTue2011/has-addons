@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import json
+import os
 import re
+import signal
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -210,3 +212,55 @@ def create_server(*, host, port, data_dir, app_title, max_history):
         app_title=app_title,
         max_history=max_history,
     )
+
+
+def read_options(data_dir):
+    path = Path(data_dir) / "options.json"
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return value if isinstance(value, dict) else {}
+
+
+def bounded_integer(value, default, minimum, maximum):
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return default
+    return parsed if minimum <= parsed <= maximum else default
+
+
+def main():
+    data_dir = Path(os.environ.get("DATA_DIR", "/data"))
+    options = read_options(data_dir)
+    host = os.environ.get("HOST", "0.0.0.0")
+    port = bounded_integer(os.environ.get("PORT"), 8099, 1, 65535)
+    app_title = os.environ.get("APP_TITLE") or options.get(
+        "app_title", "TriTue YouTube Player"
+    )
+    max_history = bounded_integer(
+        os.environ.get("MAX_HISTORY", options.get("max_history")), 20, 1, 100
+    )
+    server = create_server(
+        host=host,
+        port=port,
+        data_dir=data_dir,
+        app_title=str(app_title),
+        max_history=max_history,
+    )
+
+    def request_shutdown(_signal_number, _frame):
+        threading.Thread(target=server.shutdown, daemon=True).start()
+
+    signal.signal(signal.SIGTERM, request_shutdown)
+    signal.signal(signal.SIGINT, request_shutdown)
+    print(f"TriTue YouTube Player listening on {host}:{port}", flush=True)
+    try:
+        server.serve_forever()
+    finally:
+        server.server_close()
+
+
+if __name__ == "__main__":
+    main()

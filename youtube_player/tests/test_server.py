@@ -1,7 +1,11 @@
 import json
+import os
+import socket
+import subprocess
 import sys
 import tempfile
 import threading
+import time
 import unittest
 import urllib.error
 import urllib.request
@@ -140,6 +144,53 @@ class YouTubePlayerHttpTests(unittest.TestCase):
             {"app_title": "Test Player", "max_history": 2},
             config,
         )
+
+    def test_process_reads_home_assistant_options(self):
+        with socket.socket() as listener:
+            listener.bind(("127.0.0.1", 0))
+            port = listener.getsockname()[1]
+
+        options_path = Path(self.temp_dir.name) / "options.json"
+        options_path.write_text(
+            json.dumps({"app_title": "Configured Player", "max_history": 3}),
+            encoding="utf-8",
+        )
+        environment = {
+            **os.environ,
+            "HOST": "127.0.0.1",
+            "PORT": str(port),
+            "DATA_DIR": self.temp_dir.name,
+        }
+        process = subprocess.Popen(
+            [sys.executable, str(APP_DIR / "server.py")],
+            env=environment,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+        )
+        try:
+            deadline = time.monotonic() + 3
+            while time.monotonic() < deadline:
+                try:
+                    with urllib.request.urlopen(
+                        f"http://127.0.0.1:{port}/api/config", timeout=0.2
+                    ) as response:
+                        config = json.load(response)
+                    break
+                except (urllib.error.URLError, ConnectionError):
+                    time.sleep(0.05)
+            else:
+                output = process.stdout.read() if process.stdout else ""
+                self.fail(f"server did not start: {output}")
+
+            self.assertEqual(
+                {"app_title": "Configured Player", "max_history": 3}, config
+            )
+        finally:
+            process.terminate()
+            process.wait(timeout=2)
+            if process.stdout:
+                process.stdout.close()
 
 
 if __name__ == "__main__":
