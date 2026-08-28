@@ -9,6 +9,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
+from search import SearchUnavailableError, search_youtube
+
 VIDEO_ID = re.compile(r"^[A-Za-z0-9_-]{11}$")
 PLAYLIST_ID = re.compile(r"^[A-Za-z0-9_-]{10,80}$")
 YOUTUBE_HOSTS = {
@@ -26,7 +28,7 @@ STATIC_FILES = {
     "/app.js": ("app.js", "text/javascript; charset=utf-8"),
     "/favicon.svg": ("favicon.svg", "image/svg+xml"),
 }
-APP_VERSION = "0.2.0"
+APP_VERSION = "0.3.0"
 API_VERSION = "1"
 
 
@@ -43,11 +45,29 @@ def normalize_target(raw_target):
         if host == "youtu.be":
             video_id = parsed.path.strip("/").split("/", 1)[0]
         elif parsed.path == "/watch":
-            video_id = parse_qs(parsed.query).get("v", [""])[0]
+            query = parse_qs(parsed.query)
+            video_id = query.get("v", [""])[0]
+            playlist_id = query.get("list", [""])[0]
         elif parsed.path.startswith(("/shorts/", "/embed/")):
             video_id = parsed.path.rstrip("/").rsplit("/", 1)[-1]
         elif parsed.path == "/playlist":
             playlist_id = parse_qs(parsed.query).get("list", [""])[0]
+
+    if VIDEO_ID.fullmatch(video_id or ""):
+        target = {
+            "kind": "video",
+            "id": video_id,
+            "embed_url": (
+                f"https://www.youtube-nocookie.com/embed/{video_id}?autoplay=1"
+            ),
+        }
+        if PLAYLIST_ID.fullmatch(playlist_id or ""):
+            target["playlist_id"] = playlist_id
+            target["embed_url"] = (
+                f"https://www.youtube-nocookie.com/embed/{video_id}"
+                f"?list={playlist_id}&autoplay=1"
+            )
+        return target
 
     if PLAYLIST_ID.fullmatch(playlist_id or ""):
         return {
@@ -59,14 +79,7 @@ def normalize_target(raw_target):
             ),
         }
 
-    if not VIDEO_ID.fullmatch(video_id or ""):
-        raise ValueError("invalid_youtube_target")
-
-    return {
-        "kind": "video",
-        "id": video_id,
-        "embed_url": (f"https://www.youtube-nocookie.com/embed/{video_id}?autoplay=1"),
-    }
+    raise ValueError("invalid_youtube_target")
 
 
 class PlayerServer(ThreadingHTTPServer):
@@ -87,6 +100,7 @@ class PlayerServer(ThreadingHTTPServer):
         self.integration_token = integration_token
         self.history_lock = threading.Lock()
         self.player_lock = threading.Lock()
+        self.search_lock = threading.Lock()
         self.current_item = None
 
     @property
@@ -142,12 +156,18 @@ class PlayerServer(ThreadingHTTPServer):
         with self.player_lock:
             self.current_item = None
 
+    def search(self, query, limit):
+        """Run one metadata search at a time to bound child processes."""
+        with self.search_lock:
+            return search_youtube(query, limit=limit)
+
 
 class PlayerHandler(BaseHTTPRequestHandler):
     server: PlayerServer
 
     def do_GET(self):
-        path = urlsplit(self.path).path
+        request_url = urlsplit(self.path)
+        path = request_url.path
         if path == "/api/health":
             self.send_json(200, {"status": "ok"})
             return
@@ -176,8 +196,27 @@ class PlayerHandler(BaseHTTPRequestHandler):
                     "status": "ok",
                     "api_version": API_VERSION,
                     "app_version": APP_VERSION,
-                    "capabilities": ["history", "play", "status", "stop"],
+                    "capabilities": ["history", "play", "search", "status", "stop"],
                 },
+            )
+            return
+        if path == "/api/integration/search":
+            query_values = parse_qs(request_url.query)
+            query = str(query_values.get("q", [""])[0]).strip()
+            try:
+                limit = int(query_values.get("limit", ["20"])[0])
+                if not 1 <= len(query) <= 120 or not 1 <= limit <= 30:
+                    raise ValueError
+                items = self.server.search(query, limit)
+            except ValueError:
+                self.send_json(400, {"error": "invalid_search_query"})
+                return
+            except SearchUnavailableError:
+                self.send_json(502, {"error": "search_unavailable"})
+                return
+            self.send_json(
+                200,
+                {"success": True, "items": items, "total": len(items)},
             )
             return
         if path == "/api/integration/status":

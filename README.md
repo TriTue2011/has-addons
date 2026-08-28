@@ -8,8 +8,9 @@ Repository này có thêm bộ YouTube Player clean-room gồm hai phần:
 | Custom integration | HACS hoặc `/config/custom_components` | [`youtube_player_integration`](youtube_player_integration/) |
 
 Player hỗ trợ URL video, Shorts và playlist qua trang nhúng privacy-enhanced,
-có API token nội bộ để Home Assistant phát/dừng và đọc lịch sử. Không cần
-license key và không chứa mã nguồn của YouTube Pro.
+có API token nội bộ, tìm kiếm danh sách bài hát và custom integration chuyển
+lệnh phát tới Google Cast/`media_player` đã chọn. Không cần license key và không
+chứa mã nguồn của YouTube Pro.
 
 ---
 

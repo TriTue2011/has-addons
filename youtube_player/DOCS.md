@@ -8,6 +8,8 @@
 - Giao diện responsive, dùng được qua Home Assistant Ingress.
 - Không cần API key hoặc license key.
 - API có xác thực để custom integration điều khiển giao diện đang mở.
+- Tìm kiếm danh sách bài hát bằng metadata-only `yt-dlp`, không cần YouTube
+  Data API key và không tải nội dung media.
 
 Đây là ứng dụng clean-room độc lập. Nó không chứa mã nguồn, tài nguyên hoặc cơ
 chế cấp phép từ YouTube Pro.
@@ -54,13 +56,13 @@ Khi image đã được phát hành lên GHCR, bỏ phần `build` trong Compose
 tải image dựng sẵn:
 
 ```bash
-docker pull ghcr.io/tritue2011/youtube-player:0.2.0
+docker pull ghcr.io/tritue2011/youtube-player:0.3.0
 docker run -d \
   --name tritue-youtube-player \
   --restart unless-stopped \
   -p 8099:8099 \
   -v tritue-youtube-player-data:/data \
-  ghcr.io/tritue2011/youtube-player:0.2.0
+  ghcr.io/tritue2011/youtube-player:0.3.0
 ```
 
 Xem token tự sinh bằng `docker logs tritue-youtube-player`. Nếu muốn tự đặt
@@ -75,13 +77,14 @@ token, thêm `-e INTEGRATION_TOKEN='<chuỗi-ngẫu-nhiên-dài>'` khi chạy co
 
 Chi tiết request và response nằm trong [API.md](API.md).
 
-## Giới hạn của phiên bản 0.2.0
+## Giới hạn của phiên bản 0.3.0
 
-- Chưa tìm kiếm YouTube ngay trong ứng dụng.
-- Chưa điều khiển `media_player`, Cast hoặc AirPlay.
 - Không resolve, tải xuống hoặc proxy luồng âm thanh/video.
 - Việc phát nội dung phụ thuộc khả năng truy cập YouTube của trình duyệt.
-- Lệnh từ integration điều khiển trang web player đang mở; phiên bản này chưa
-  phát trực tiếp trên loa hoặc TV nếu không có trình duyệt mở.
-- Trạng thái `media_player` là trạng thái giả định từ lệnh gần nhất, không phải
-  phản hồi phát thực tế của YouTube iframe.
+- Search dùng metadata không chính thức nên có thể cần cập nhật `yt-dlp` khi
+  YouTube thay đổi giao diện nội bộ.
+- Google Cast phát bằng ứng dụng YouTube chính thức và có thể có quảng cáo.
+- Entity không thuộc Google Cast chỉ phát được URL YouTube nếu integration của
+  thiết bị đó tự hỗ trợ URL.
+- Khi không chọn thiết bị đích, trạng thái `media_player` là trạng thái giả định
+  từ lệnh gần nhất, không phải phản hồi thực tế của YouTube iframe.

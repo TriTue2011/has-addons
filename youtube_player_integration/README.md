@@ -1,7 +1,7 @@
 # TriTue YouTube Player Integration
 
 Custom integration clean-room kết nối Home Assistant với TriTue YouTube Player
-`0.2.0` trở lên, chạy dưới dạng Home Assistant App hoặc Docker độc lập.
+`0.3.0` trở lên, chạy dưới dạng Home Assistant App hoặc Docker độc lập.
 
 ## Cài thủ công để kiểm thử
 
@@ -33,8 +33,15 @@ URL mặc định `http://36f3bad2-youtube-player:8099` dành cho app được c
 
 ## Sử dụng
 
-Integration tạo một entity `media_player` và một sensor đếm lịch sử. Có thể gửi
-video, Shorts, playlist hoặc video ID bằng action chuẩn của Home Assistant:
+Integration tạo một entity `media_player` và một sensor đếm lịch sử. Mở
+**Settings → Devices & services → TriTue YouTube Player → Configure** để chọn
+loa/màn hình `media_player` mặc định. Google Cast dùng trực tiếp ứng dụng
+YouTube Cast chính thức; entity thuộc integration khác sẽ nhận URL YouTube và
+chỉ phát được nếu entity đó hỗ trợ URL này.
+
+Entity hỗ trợ **Browse media** và **Search media**. Tìm kiếm trả danh sách bài
+hát từ YouTube Music để chọn và phát lên thiết bị mặc định, không cần YouTube
+Data API key. Có thể gửi video, Shorts, playlist hoặc video ID bằng action chuẩn:
 
 ```yaml
 action: media_player.play_media
@@ -45,8 +52,13 @@ data:
   media_content_type: video
 ```
 
-Dùng action `media_player.media_stop` để dừng. Lệnh điều khiển trang web player
-đang mở qua Ingress hoặc `IP:8099`; nó chưa phát trực tiếp lên loa/TV.
+Dùng action `media_player.media_stop` để dừng cả trang web player và thiết bị
+đích. Nếu không chọn thiết bị mặc định, integration giữ hành vi cũ và chỉ điều
+khiển trang web player đang mở qua Ingress hoặc `IP:8099`.
+
+Đối với Google Cast, playlist phải là URL `watch` có cả video bắt đầu và ID
+playlist, ví dụ `https://www.youtube.com/watch?v=VIDEO_ID&list=PLAYLIST_ID`.
+Ứng dụng YouTube chính thức có thể hiển thị quảng cáo như bình thường.
 
 Trạng thái của entity là **assumed state**: nó phản ánh lệnh phát/dừng gần nhất
 mà server đã nhận, không phải telemetry từ video bên trong iframe. Vì vậy entity

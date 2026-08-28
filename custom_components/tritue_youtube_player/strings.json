@@ -41,6 +41,17 @@
       "reconfigure_successful": "The player connection was updated."
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Playback output",
+        "description": "Choose the physical media_player that will receive songs selected from this integration. Google Cast entities use the official YouTube Cast app.",
+        "data": {
+          "target_entity_id": "Default speaker or display"
+        }
+      }
+    }
+  },
   "entity": {
     "media_player": {
       "player": {"name": "Player"}
@@ -51,6 +62,10 @@
   },
   "exceptions": {
     "invalid_target": {"message": "The YouTube URL or identifier is not supported."},
-    "communication_error": {"message": "The player server did not accept the command."}
+    "communication_error": {"message": "The player server did not accept the command."},
+    "search_error": {"message": "YouTube Music search is temporarily unavailable."},
+    "target_unavailable": {"message": "The selected playback entity is unavailable. Open Configure and choose another media_player."},
+    "invalid_target_entity": {"message": "The integration's virtual player cannot be selected as its own output."},
+    "cast_playlist_requires_video": {"message": "Google Cast needs a playlist URL containing both v=VIDEO_ID and list=PLAYLIST_ID."}
   }
 }

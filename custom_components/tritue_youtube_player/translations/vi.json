@@ -41,6 +41,17 @@
       "reconfigure_successful": "Đã cập nhật kết nối player."
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Thiết bị phát",
+        "description": "Chọn media_player vật lý nhận bài hát từ integration này. Entity Google Cast sẽ dùng ứng dụng YouTube Cast chính thức.",
+        "data": {
+          "target_entity_id": "Loa hoặc màn hình mặc định"
+        }
+      }
+    }
+  },
   "entity": {
     "media_player": {
       "player": {"name": "Trình phát"}
@@ -51,6 +62,10 @@
   },
   "exceptions": {
     "invalid_target": {"message": "URL hoặc mã YouTube không được hỗ trợ."},
-    "communication_error": {"message": "Máy chủ player không nhận lệnh."}
+    "communication_error": {"message": "Máy chủ player không nhận lệnh."},
+    "search_error": {"message": "Tìm kiếm YouTube Music đang tạm thời không hoạt động."},
+    "target_unavailable": {"message": "Entity phát đã chọn không khả dụng. Hãy mở Cấu hình và chọn media_player khác."},
+    "invalid_target_entity": {"message": "Không thể chọn chính media player ảo của integration làm đầu ra."},
+    "cast_playlist_requires_video": {"message": "Google Cast cần URL playlist chứa cả v=VIDEO_ID và list=PLAYLIST_ID."}
   }
 }

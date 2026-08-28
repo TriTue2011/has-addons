@@ -1,6 +1,6 @@
 name: "TriTue YouTube Player"
 description: "Phát video, Shorts và playlist YouTube qua Docker hoặc Home Assistant Ingress"
-version: "0.2.0"
+version: "0.3.0"
 slug: "youtube_player"
 url: "https://github.com/TriTue2011/has-addons/tree/main/youtube_player"
 arch:

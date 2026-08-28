@@ -6,6 +6,7 @@ import tempfile
 import threading
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import aiohttp
 
@@ -15,7 +16,7 @@ API_MODULE_PATH = ROOT / "custom_components" / "tritue_youtube_player" / "api.py
 CONST_MODULE_PATH = API_MODULE_PATH.with_name("const.py")
 sys.path.insert(0, str(SERVER_APP_DIR))
 
-from server import create_server
+from server import create_server  # noqa: E402
 
 
 def load_api_module():
@@ -91,6 +92,23 @@ class YouTubePlayerClientTests(unittest.IsolatedAsyncioTestCase):
 
         history = await self.client.async_history()
         self.assertEqual(1, history["total"])
+
+        with patch(
+            "server.search_youtube",
+            return_value=[
+                {
+                    "kind": "video",
+                    "id": "M7lc1UVf-VE",
+                    "url": "https://www.youtube.com/watch?v=M7lc1UVf-VE",
+                    "title": "YouTube Developers Live",
+                    "channel": "Google for Developers",
+                    "duration": 120,
+                    "thumbnail": "https://img.example/cover.jpg",
+                }
+            ],
+        ):
+            search = await self.client.async_search("YouTube Developers", limit=5)
+        self.assertEqual("M7lc1UVf-VE", search["items"][0]["id"])
 
         stopped = await self.client.async_stop()
         self.assertEqual("idle", stopped["state"])

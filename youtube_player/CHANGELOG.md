@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.0 - 2026-08-28
+
+### Added
+
+- Tìm kiếm metadata bài hát không cần YouTube Data API key bằng `yt-dlp` ở chế
+  độ không tải nội dung.
+- Giữ video khởi đầu và playlist ID để Home Assistant có thể phát playlist qua
+  ứng dụng YouTube Cast chính thức.
+
 ## 0.2.0 - 2026-08-28
 
 ### Added

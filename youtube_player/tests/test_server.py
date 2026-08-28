@@ -10,11 +10,12 @@ import unittest
 import urllib.error
 import urllib.request
 from pathlib import Path
+from unittest.mock import patch
 
 APP_DIR = Path(__file__).resolve().parents[1] / "app"
 sys.path.insert(0, str(APP_DIR))
 
-from server import create_server, resolve_integration_token
+from server import create_server, resolve_integration_token  # noqa: E402
 
 
 class YouTubePlayerHttpTests(unittest.TestCase):
@@ -120,6 +121,31 @@ class YouTubePlayerHttpTests(unittest.TestCase):
         _, player = self.request("/api/player")
         self.assertEqual({"state": "idle", "item": None}, player)
 
+    @patch("server.search_youtube")
+    def test_integration_can_search_music_metadata(self, search_youtube):
+        search_youtube.return_value = [
+            {
+                "kind": "video",
+                "id": "dQw4w9WgXcQ",
+                "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                "title": "Never Gonna Give You Up",
+                "channel": "Rick Astley",
+                "duration": 213,
+                "thumbnail": "https://img.example/cover.jpg",
+            }
+        ]
+
+        status, body = self.request(
+            "/api/integration/search?q=Rick+Astley&limit=5",
+            headers={"Authorization": "Bearer test-integration-token"},
+        )
+
+        self.assertEqual(200, status)
+        self.assertTrue(body["success"])
+        self.assertEqual(1, body["total"])
+        self.assertEqual("dQw4w9WgXcQ", body["items"][0]["id"])
+        search_youtube.assert_called_once_with("Rick Astley", limit=5)
+
     def test_video_url_is_normalized_and_persisted(self):
         status, target = self.request(
             "/api/history",
@@ -168,6 +194,26 @@ class YouTubePlayerHttpTests(unittest.TestCase):
         self.assertEqual(2, len(history["items"]))
         self.assertEqual(newest, history["items"][0])
         self.assertEqual("aqz-KE-bpKQ", history["items"][1]["id"])
+
+    def test_watch_url_preserves_playlist_context_for_cast(self):
+        _, target = self.request(
+            "/api/history",
+            method="POST",
+            payload={
+                "target": (
+                    "https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=PL1234567890abc"
+                )
+            },
+        )
+
+        self.assertEqual("video", target["kind"])
+        self.assertEqual("dQw4w9WgXcQ", target["id"])
+        self.assertEqual("PL1234567890abc", target["playlist_id"])
+        self.assertEqual(
+            "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ"
+            "?list=PL1234567890abc&autoplay=1",
+            target["embed_url"],
+        )
 
     def test_invalid_payload_has_a_stable_error_contract(self):
         with self.assertRaises(urllib.error.HTTPError) as raised:

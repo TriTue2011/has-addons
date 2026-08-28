@@ -6,11 +6,18 @@ from collections.abc import Mapping
 from typing import Any
 
 import voluptuous as vol
-from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
+from homeassistant.config_entries import (
+    ConfigEntry,
+    ConfigFlow,
+    ConfigFlowResult,
+    OptionsFlowWithReload,
+)
 from homeassistant.const import CONF_TOKEN, CONF_URL
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import (
+    EntitySelector,
+    EntitySelectorConfig,
     TextSelector,
     TextSelectorConfig,
     TextSelectorType,
@@ -23,7 +30,13 @@ from .api import (
     YouTubePlayerApiError,
     YouTubePlayerClient,
 )
-from .const import API_VERSION, DEFAULT_ADDON_URL, DOMAIN, LOGGER
+from .const import (
+    API_VERSION,
+    CONF_TARGET_ENTITY_ID,
+    DEFAULT_ADDON_URL,
+    DOMAIN,
+    LOGGER,
+)
 
 
 class InvalidUrlError(ValueError):
@@ -80,6 +93,14 @@ class TriTueYouTubePlayerConfigFlow(ConfigFlow, domain=DOMAIN):
     """Configure a Docker or Home Assistant App player instance."""
 
     VERSION = 1
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(
+        config_entry: ConfigEntry,
+    ) -> YouTubePlayerOptionsFlow:
+        """Create the output media player options flow."""
+        return YouTubePlayerOptionsFlow()
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -194,4 +215,29 @@ class TriTueYouTubePlayerConfigFlow(ConfigFlow, domain=DOMAIN):
                 }
             ),
             errors=errors,
+        )
+
+
+class YouTubePlayerOptionsFlow(OptionsFlowWithReload):
+    """Configure the physical media player used for playback."""
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Select or clear the default playback target."""
+        if user_input is not None:
+            return self.async_create_entry(data=user_input)
+
+        schema = vol.Schema(
+            {
+                vol.Optional(CONF_TARGET_ENTITY_ID): EntitySelector(
+                    EntitySelectorConfig(domain="media_player")
+                )
+            }
+        )
+        return self.async_show_form(
+            step_id="init",
+            data_schema=self.add_suggested_values_to_schema(
+                schema, self.config_entry.options
+            ),
         )

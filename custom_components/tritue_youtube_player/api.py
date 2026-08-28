@@ -46,6 +46,15 @@ class YouTubePlayerClient:
         """Return the bounded server-side playback history."""
         return await self._async_request("GET", "/api/integration/history")
 
+    async def async_search(self, query: str, *, limit: int = 20) -> dict[str, Any]:
+        """Search YouTube Music metadata without a YouTube API key."""
+        return await self._async_request(
+            "GET",
+            "/api/integration/search",
+            params={"q": query, "limit": limit},
+            request_timeout=35,
+        )
+
     async def async_play(self, target: str) -> dict[str, Any]:
         """Send a YouTube URL or identifier to the web player."""
         return await self._async_request(
@@ -60,12 +69,13 @@ class YouTubePlayerClient:
         self, method: str, path: str, **kwargs: Any
     ) -> dict[str, Any]:
         headers = {"Authorization": f"Bearer {self._token}"}
+        request_timeout = kwargs.pop("request_timeout", 10)
         try:
             async with self._session.request(
                 method,
                 f"{self.base_url}{path}",
                 headers=headers,
-                timeout=aiohttp.ClientTimeout(total=10),
+                timeout=aiohttp.ClientTimeout(total=request_timeout),
                 **kwargs,
             ) as response:
                 try:

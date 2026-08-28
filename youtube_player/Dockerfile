@@ -1,7 +1,7 @@
 ARG BUILD_FROM=python:3.13-alpine3.22
 FROM ${BUILD_FROM}
 
-ARG BUILD_VERSION=0.2.0
+ARG BUILD_VERSION=0.3.0
 ARG BUILD_ARCH
 
 LABEL \
@@ -20,6 +20,7 @@ ENV HOST="0.0.0.0" \
     PYTHONUNBUFFERED="1"
 
 WORKDIR /app
+RUN pip install --no-cache-dir "yt-dlp==2026.8.19"
 COPY app/ /app/
 
 EXPOSE 8099
