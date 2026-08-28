@@ -123,8 +123,14 @@ class PlayerHandler(BaseHTTPRequestHandler):
                 raise ValueError("invalid_request")
             payload = json.loads(self.rfile.read(length))
             target = normalize_target(payload.get("target"))
-        except (AttributeError, json.JSONDecodeError, UnicodeDecodeError, ValueError) as error:
-            self.send_json(400, {"error": str(error) or "invalid_request"})
+        except ValueError as error:
+            error_code = str(error)
+            if error_code not in {"invalid_request", "invalid_youtube_target"}:
+                error_code = "invalid_request"
+            self.send_json(400, {"error": error_code})
+            return
+        except (AttributeError, json.JSONDecodeError, UnicodeDecodeError):
+            self.send_json(400, {"error": "invalid_request"})
             return
 
         self.server.add_history(target)

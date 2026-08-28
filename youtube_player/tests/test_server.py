@@ -3,6 +3,7 @@ import sys
 import tempfile
 import threading
 import unittest
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -99,6 +100,15 @@ class YouTubePlayerHttpTests(unittest.TestCase):
         self.assertEqual(2, len(history["items"]))
         self.assertEqual(newest, history["items"][0])
         self.assertEqual("aqz-KE-bpKQ", history["items"][1]["id"])
+
+    def test_invalid_payload_has_a_stable_error_contract(self):
+        with self.assertRaises(urllib.error.HTTPError) as raised:
+            self.request("/api/history", method="POST", payload=[])
+
+        self.assertEqual(400, raised.exception.code)
+        self.assertEqual({"error": "invalid_request"}, json.load(raised.exception))
+        _, history = self.request("/api/history")
+        self.assertEqual([], history["items"])
 
 
 if __name__ == "__main__":
