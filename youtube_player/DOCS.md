@@ -20,7 +20,8 @@ chế cấp phép từ YouTube Pro.
 
 Cổng `8099` mặc định không được công bố ra LAN vì Ingress đã cung cấp giao diện
 có xác thực. Chỉ đặt host port trong tab Network khi bạn thực sự cần truy cập
-trực tiếp.
+trực tiếp. Giao diện `IP:8099` không có màn hình đăng nhập riêng, vì vậy chỉ nên
+mở trong LAN tin cậy và không forward cổng này ra Internet.
 
 ### Tùy chọn
 
@@ -64,7 +65,8 @@ token, thêm `-e INTEGRATION_TOKEN='<chuỗi-ngẫu-nhiên-dài>'` khi chạy co
 
 ## Kết nối custom integration
 
-- Add-on cùng Home Assistant: URL nội bộ là `http://local_youtube_player:8099`.
+- App cài từ repository này: URL nội bộ là `http://30fff174-youtube-player:8099`.
+- App cài trong thư mục local: URL nội bộ là `http://local-youtube-player:8099`.
 - Docker ở máy khác: URL là `http://<IP-máy-Docker>:8099`.
 - Token: lấy trong log hoặc giá trị `integration_token`/`INTEGRATION_TOKEN` đã đặt.
 

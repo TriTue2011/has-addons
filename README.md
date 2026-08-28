@@ -1,3 +1,18 @@
+# ▶ TriTue YouTube Player
+
+Repository này có thêm bộ YouTube Player clean-room gồm hai phần:
+
+| Phần | Cài ở đâu | Tài liệu |
+|---|---|---|
+| Docker/Home Assistant App | App Store hoặc Docker | [`youtube_player`](youtube_player/) |
+| Custom integration | HACS hoặc `/config/custom_components` | [`youtube_player_integration`](youtube_player_integration/) |
+
+Player hỗ trợ URL video, Shorts và playlist qua trang nhúng privacy-enhanced,
+có API token nội bộ để Home Assistant phát/dừng và đọc lịch sử. Không cần
+license key và không chứa mã nguồn của YouTube Pro.
+
+---
+
 # 💬 Zalo Bot cho Home Assistant
 
 Gửi và nhận tin nhắn **Zalo cá nhân** ngay trong Home Assistant: báo động, nhắc
