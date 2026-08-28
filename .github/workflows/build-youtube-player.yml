@@ -1,0 +1,130 @@
+name: Build YouTube Player
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "youtube_player/**"
+      - ".github/workflows/build-youtube-player.yml"
+  push:
+    branches: [main]
+    paths:
+      - "youtube_player/**"
+      - ".github/workflows/build-youtube-player.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test application
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7.0.1
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Run HTTP behavior tests
+        run: python -m unittest discover -s youtube_player/tests -v
+
+      - name: Check Python and JavaScript syntax
+        run: |
+          python -m py_compile youtube_player/app/server.py
+          node --check youtube_player/app/static/app.js
+
+  lint:
+    name: Lint Home Assistant app
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7.0.1
+
+      - name: Run Home Assistant app linter
+        uses: frenck/action-addon-linter@v2.21
+        with:
+          path: ./youtube_player
+
+  prepare:
+    name: Prepare multi-architecture build
+    runs-on: ubuntu-latest
+    outputs:
+      architectures: ${{ steps.info.outputs.architectures }}
+      build_matrix: ${{ steps.matrix.outputs.matrix }}
+      version: ${{ steps.info.outputs.version }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7.0.1
+
+      - name: Read app configuration
+        id: info
+        uses: home-assistant/actions/helpers/info@master
+        with:
+          path: ./youtube_player
+
+      - name: Prepare build matrix
+        id: matrix
+        uses: home-assistant/builder/actions/prepare-multi-arch-matrix@2026.06.0
+        with:
+          architectures: ${{ steps.info.outputs.architectures }}
+          image-name: youtube-player
+          registry-prefix: ghcr.io/tritue2011
+
+  build:
+    name: Build ${{ matrix.arch }} image
+    needs: [test, lint, prepare]
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+      id-token: write
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.prepare.outputs.build_matrix) }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Build image
+        uses: home-assistant/builder/actions/build-image@2026.06.0
+        with:
+          arch: ${{ matrix.arch }}
+          container-registry-password: ${{ secrets.GITHUB_TOKEN }}
+          context: ./youtube_player
+          image: ${{ matrix.image }}
+          image-tags: |
+            ${{ needs.prepare.outputs.version }}
+            latest
+          labels: |
+            io.hass.type=app
+            io.hass.name=TriTue YouTube Player
+            io.hass.description=Clean-room YouTube player for Docker and Home Assistant
+            io.hass.url=https://github.com/TriTue2011/has-addons/tree/main/youtube_player
+          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          version: ${{ needs.prepare.outputs.version }}
+
+  manifest:
+    name: Publish multi-architecture manifest
+    needs: [prepare, build]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      packages: write
+    steps:
+      - name: Publish manifest
+        uses: home-assistant/builder/actions/publish-multi-arch-manifest@2026.06.0
+        with:
+          architectures: ${{ needs.prepare.outputs.architectures }}
+          container-registry-password: ${{ secrets.GITHUB_TOKEN }}
+          image-name: youtube-player
+          image-tags: |
+            ${{ needs.prepare.outputs.version }}
+            latest
+          registry-prefix: ghcr.io/tritue2011
