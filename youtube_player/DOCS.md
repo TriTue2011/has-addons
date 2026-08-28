@@ -80,3 +80,5 @@ Chi tiết request và response nằm trong [API.md](API.md).
 - Việc phát nội dung phụ thuộc khả năng truy cập YouTube của trình duyệt.
 - Lệnh từ integration điều khiển trang web player đang mở; phiên bản này chưa
   phát trực tiếp trên loa hoặc TV nếu không có trình duyệt mở.
+- Trạng thái `media_player` là trạng thái giả định từ lệnh gần nhất, không phải
+  phản hồi phát thực tế của YouTube iframe.

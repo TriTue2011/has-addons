@@ -32,6 +32,7 @@ async def async_setup_entry(
 class TriTueYouTubePlayer(YouTubePlayerEntity, MediaPlayerEntity):
     """Control the player page through Home Assistant."""
 
+    _attr_assumed_state = True
     _attr_supported_features = (
         MediaPlayerEntityFeature.PLAY_MEDIA | MediaPlayerEntityFeature.STOP
     )

@@ -42,6 +42,12 @@ data:
 Dùng action `media_player.media_stop` để dừng. Lệnh điều khiển trang web player
 đang mở qua Ingress hoặc `IP:8099`; nó chưa phát trực tiếp lên loa/TV.
 
+Trạng thái của entity là **assumed state**: nó phản ánh lệnh phát/dừng gần nhất
+mà server đã nhận, không phải telemetry từ video bên trong iframe. Vì vậy entity
+có thể vẫn hiện `playing` khi không có trang player nào đang mở hoặc video đã tự
+kết thúc. Sensor lịch sử chỉ lưu số đếm để không ghi cả danh sách URL vào
+Recorder sau mỗi lần polling; danh sách đầy đủ vẫn có ở API và giao diện player.
+
 Component nằm ở `custom_components/tritue_youtube_player` tại gốc repository để
 HACS có thể nhận diện, đồng thời contract test bảo đảm nó luôn tương thích với
 image/add-on trong cùng thay đổi.
