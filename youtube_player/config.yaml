@@ -7,15 +7,11 @@ arch:
   - amd64
   - aarch64
 init: false
-startup: application
-boot: auto
 ingress: true
-ingress_port: 8099
 ingress_stream: true
 panel_icon: "mdi:youtube"
 panel_title: "YouTube Player"
 panel_admin: false
-watchdog: "http://[HOST]:[PORT:8099]/api/health"
 ports:
   8099/tcp: null
 ports_description:
