@@ -1,7 +1,7 @@
 # TriTue YouTube Player Integration
 
 Custom integration clean-room kết nối Home Assistant với TriTue YouTube Player
-`0.3.0` trở lên, chạy dưới dạng Home Assistant App hoặc Docker độc lập.
+`0.4.0` trở lên, chạy dưới dạng Home Assistant App hoặc Docker độc lập.
 
 ## Cài thủ công để kiểm thử
 
@@ -33,7 +33,8 @@ URL mặc định `http://36f3bad2-youtube-player:8099` dành cho app được c
 
 ## Sử dụng
 
-Integration tạo một entity `media_player` và một sensor đếm lịch sử. Mở
+Integration tạo một entity `media_player`, một sensor đếm lịch sử, action phát
+nhiều loa và card Lovelace. Mở
 **Settings → Devices & services → TriTue YouTube Player → Configure** để chọn
 loa/màn hình `media_player` mặc định. Google Cast dùng trực tiếp ứng dụng
 YouTube Cast chính thức; entity thuộc integration khác sẽ nhận URL YouTube và
@@ -59,6 +60,47 @@ khiển trang web player đang mở qua Ingress hoặc `IP:8099`.
 Đối với Google Cast, playlist phải là URL `watch` có cả video bắt đầu và ID
 playlist, ví dụ `https://www.youtube.com/watch?v=VIDEO_ID&list=PLAYLIST_ID`.
 Ứng dụng YouTube chính thức có thể hiển thị quảng cáo như bình thường.
+
+## Card tìm kiếm và chọn nhiều loa
+
+Sau khi integration đã tải, vào **Settings → Dashboards → Resources**, thêm
+resource kiểu **JavaScript module**:
+
+```text
+/tritue_youtube_player/tritue-youtube-player-card.js
+```
+
+Sau đó thêm card thủ công:
+
+```yaml
+type: custom:tritue-youtube-player-card
+entity: media_player.tritue_youtube_player_player
+title: Nhạc trong nhà
+# Tuỳ chọn các loa được chọn sẵn:
+entities:
+  - media_player.phong_khach
+  - media_player.phong_bep
+```
+
+Card có hai nguồn YouTube/Zing, ô tìm kiếm, danh sách kết quả, chọn nhiều loa,
+âm lượng và nút dừng. Action tương ứng có thể gọi trực tiếp trong automation:
+
+```yaml
+action: tritue_youtube_player.play_on_players
+data:
+  entry_id: 01J00000000000000000000000
+  source: youtube
+  target: dQw4w9WgXcQ
+  entity_id:
+    - media_player.phong_khach
+    - media_player.phong_bep
+  volume_level: 0.35
+```
+
+YouTube dùng Cast/trình phát chính thức và không relay audio. Với Zing, add-on
+chỉ relay bài công khai mà extractor hiện tại giải được, từ chối VIP. Hãy đặt
+`public_base_url` trong add-on thành URL LAN `http://IP:8099` mà tất cả loa truy
+cập được. Endpoint web của Zing không có tài liệu chính thức nên có thể thay đổi.
 
 Trạng thái của entity là **assumed state**: nó phản ánh lệnh phát/dừng gần nhất
 mà server đã nhận, không phải telemetry từ video bên trong iframe. Vì vậy entity

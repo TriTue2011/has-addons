@@ -1,4 +1,4 @@
-# ▶ TriTue YouTube Player
+# ▶ TriTue Music Player
 
 Repository này có thêm bộ YouTube Player clean-room gồm hai phần:
 
@@ -7,10 +7,11 @@ Repository này có thêm bộ YouTube Player clean-room gồm hai phần:
 | Docker/Home Assistant App | App Store hoặc Docker | [`youtube_player`](youtube_player/) |
 | Custom integration | HACS hoặc `/config/custom_components` | [`youtube_player_integration`](youtube_player_integration/) |
 
-Player hỗ trợ URL video, Shorts và playlist qua trang nhúng privacy-enhanced,
-có API token nội bộ, tìm kiếm danh sách bài hát và custom integration chuyển
-lệnh phát tới Google Cast/`media_player` đã chọn. Không cần license key và không
-chứa mã nguồn của YouTube Pro.
+Player là nguồn nhạc độc lập cho Home Assistant: tìm kiếm YouTube/Zing, card
+riêng chọn một hoặc nhiều `media_player`, chỉnh âm lượng và gửi lệnh phát. Phần
+YouTube dùng trình phát/Cast chính thức; Zing chỉ relay bài công khai mà provider
+giải được, không vượt quyền VIP. Không cần license key và không chứa mã nguồn
+của YouTube Pro.
 
 ---
 

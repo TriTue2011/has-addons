@@ -46,13 +46,26 @@ class YouTubePlayerClient:
         """Return the bounded server-side playback history."""
         return await self._async_request("GET", "/api/integration/history")
 
-    async def async_search(self, query: str, *, limit: int = 20) -> dict[str, Any]:
-        """Search YouTube Music metadata without a YouTube API key."""
+    async def async_search(
+        self, query: str, *, source: str = "youtube", limit: int = 20
+    ) -> dict[str, Any]:
+        """Search metadata from one add-on source."""
         return await self._async_request(
             "GET",
             "/api/integration/search",
-            params={"q": query, "limit": limit},
+            params={"source": source, "q": query, "limit": limit},
             request_timeout=35,
+        )
+
+    async def async_create_stream(
+        self, source: str, target: str
+    ) -> dict[str, Any]:
+        """Create a short-lived public URL for a supported audio source."""
+        return await self._async_request(
+            "POST",
+            "/api/integration/stream",
+            json={"source": source, "target": target},
+            request_timeout=15,
         )
 
     async def async_play(self, target: str) -> dict[str, Any]:

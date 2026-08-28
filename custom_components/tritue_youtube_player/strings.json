@@ -64,6 +64,9 @@
     "invalid_target": {"message": "The YouTube URL or identifier is not supported."},
     "communication_error": {"message": "The player server did not accept the command."},
     "search_error": {"message": "YouTube Music search is temporarily unavailable."},
+    "entry_unavailable": {"message": "The selected TriTue player server is not loaded."},
+    "invalid_target_entities": {"message": "Select between 1 and 16 physical media players."},
+    "playback_error": {"message": "The source could not prepare this item for playback."},
     "target_unavailable": {"message": "The selected playback entity is unavailable. Open Configure and choose another media_player."},
     "invalid_target_entity": {"message": "The integration's virtual player cannot be selected as its own output."},
     "cast_playlist_requires_video": {"message": "Google Cast needs a playlist URL containing both v=VIDEO_ID and list=PLAYLIST_ID."}

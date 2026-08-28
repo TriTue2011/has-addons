@@ -49,6 +49,7 @@ jobs:
           python -m py_compile youtube_player/app/server.py
           python -m compileall -q custom_components/tritue_youtube_player
           node --check youtube_player/app/static/app.js
+          node --check custom_components/tritue_youtube_player/www/tritue-youtube-player-card.js
 
   integration:
     name: Validate Home Assistant integration

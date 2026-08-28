@@ -62,6 +62,7 @@ class YouTubePlayerClientTests(unittest.IsolatedAsyncioTestCase):
             app_title="API Contract Test",
             max_history=5,
             integration_token="contract-token",
+            public_base_url="http://192.0.2.10:8099",
         )
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
@@ -112,6 +113,42 @@ class YouTubePlayerClientTests(unittest.IsolatedAsyncioTestCase):
 
         stopped = await self.client.async_stop()
         self.assertEqual("idle", stopped["state"])
+
+    async def test_client_selects_zing_and_requests_a_signed_stream(self):
+        with patch(
+            "server.search_zing",
+            return_value=[
+                {
+                    "source": "zing",
+                    "kind": "song",
+                    "id": "ZZ90FD0B",
+                    "url": "https://zingmp3.vn/bai-hat/Thuc-Giac/ZZ90FD0B.html",
+                    "title": "Thức Giấc",
+                    "channel": "Da LAB",
+                    "duration": 269,
+                    "thumbnail": "",
+                }
+            ],
+        ):
+            search = await self.client.async_search("Da LAB", source="zing", limit=5)
+
+        self.assertEqual("zing", search["source"])
+        with patch(
+            "server.resolve_zing_stream",
+            return_value={
+                "url": "https://audio.zmdcdn.me/song.mp3",
+                "headers": {},
+                "content_type": "audio/mpeg",
+            },
+        ):
+            stream = await self.client.async_create_stream(
+                "zing",
+                "https://zingmp3.vn/bai-hat/Thuc-Giac/ZZ90FD0B.html",
+            )
+        self.assertEqual("audio/mpeg", stream["media_content_type"])
+        self.assertTrue(
+            stream["stream_url"].startswith("http://192.0.2.10:8099/api/stream/")
+        )
 
     async def test_client_maps_invalid_token_to_authentication_error(self):
         client = self.api.YouTubePlayerClient(

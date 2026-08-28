@@ -94,6 +94,48 @@ class PlaybackRequestTests(unittest.TestCase):
             request["media_content_id"],
         )
 
+    def test_zing_stream_payload_becomes_generic_audio_media(self):
+        request = self.playback.build_stream_request(
+            {
+                "stream_url": "http://192.0.2.10:8099/api/stream/signed-token",
+                "media_content_type": "audio/mpeg",
+            }
+        )
+
+        self.assertEqual(
+            {
+                "media_content_id": (
+                    "http://192.0.2.10:8099/api/stream/signed-token"
+                ),
+                "media_content_type": "audio/mpeg",
+            },
+            request,
+        )
+
+    def test_target_entity_list_is_ordered_deduplicated_and_bounded(self):
+        self.assertEqual(
+            ["media_player.living_room", "media_player.kitchen"],
+            self.playback.normalize_target_entity_ids(
+                [
+                    "media_player.living_room",
+                    "media_player.kitchen",
+                    "media_player.living_room",
+                ],
+                excluded={"media_player.virtual_player"},
+            ),
+        )
+        for invalid in (
+            [],
+            ["light.kitchen"],
+            ["media_player.virtual_player"],
+            [f"media_player.speaker_{index}" for index in range(17)],
+        ):
+            with self.subTest(invalid=invalid):
+                with self.assertRaises(ValueError):
+                    self.playback.normalize_target_entity_ids(
+                        invalid, excluded={"media_player.virtual_player"}
+                    )
+
 
 if __name__ == "__main__":
     unittest.main()

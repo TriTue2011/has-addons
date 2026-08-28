@@ -93,6 +93,7 @@ class TriTueYouTubePlayer(YouTubePlayerEntity, MediaPlayerEntity):
     def extra_state_attributes(self) -> dict[str, str | None]:
         """Expose the selected output and dispatch mode."""
         return {
+            "config_entry_id": self.entry.entry_id,
             "target_entity_id": self.target_entity_id or None,
             "target_platform": self._target_platform(),
         }

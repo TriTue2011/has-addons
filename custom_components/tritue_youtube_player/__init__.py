@@ -7,8 +7,17 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from .api import YouTubePlayerClient
 from .const import CONF_TOKEN
 from .coordinator import YouTubePlayerConfigEntry, YouTubePlayerCoordinator
+from .frontend import async_register_frontend
+from .services import async_register_services
 
 PLATFORMS: list[Platform] = [Platform.MEDIA_PLAYER, Platform.SENSOR]
+
+
+async def async_setup(hass: HomeAssistant, _config: dict) -> bool:
+    """Register domain-wide actions, HTTP API and card assets."""
+    async_register_services(hass)
+    await async_register_frontend(hass)
+    return True
 
 
 async def async_setup_entry(
