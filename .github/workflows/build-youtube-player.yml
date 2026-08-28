@@ -93,7 +93,7 @@ jobs:
     outputs:
       architectures: ${{ steps.info.outputs.architectures }}
       build_matrix: ${{ steps.matrix.outputs.matrix }}
-      version: ${{ steps.info.outputs.version }}
+      version: ${{ steps.normalize.outputs.version }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v7.0.1
@@ -103,6 +103,12 @@ jobs:
         uses: home-assistant/actions/helpers/info@master
         with:
           path: ./youtube_player
+
+      - name: Normalize app version
+        id: normalize
+        run: |
+          version=${{ steps.info.outputs.version }}
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
 
       - name: Prepare build matrix
         id: matrix
