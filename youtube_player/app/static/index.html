@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#101114" />
+    <title>TriTue YouTube Player</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <div>
+        <p class="eyebrow">HOME ASSISTANT APP</p>
+        <h1 id="app-title">TriTue YouTube Player</h1>
+      </div>
+      <span class="status" id="connection-status" role="status">Đang kết nối…</span>
+    </header>
+
+    <main>
+      <section class="player-panel" aria-labelledby="play-heading">
+        <div class="section-heading">
+          <div>
+            <h2 id="play-heading">Phát nội dung</h2>
+            <p>Dán URL video, Shorts, playlist hoặc nhập trực tiếp video ID.</p>
+          </div>
+        </div>
+
+        <form id="player-form">
+          <label for="youtube-target">Địa chỉ YouTube</label>
+          <div class="input-row">
+            <input
+              id="youtube-target"
+              name="target"
+              type="text"
+              inputmode="url"
+              autocomplete="off"
+              placeholder="https://www.youtube.com/watch?v=…"
+              required
+            />
+            <button type="submit">Phát</button>
+          </div>
+          <p class="form-message" id="form-message" role="alert" aria-live="polite"></p>
+        </form>
+
+        <div class="player-shell" id="player-shell" data-empty="true">
+          <div class="empty-player" id="empty-player">
+            <span aria-hidden="true">▶</span>
+            <p>Chưa chọn video hoặc playlist</p>
+          </div>
+          <iframe
+            id="youtube-player"
+            aria-label="Trình phát YouTube"
+            title="Trình phát YouTube"
+            allow="autoplay; encrypted-media; picture-in-picture"
+            allowfullscreen
+            hidden
+          ></iframe>
+        </div>
+      </section>
+
+      <section class="history-panel" aria-labelledby="history-heading">
+        <div class="section-heading history-heading">
+          <div>
+            <h2 id="history-heading">Đã phát gần đây</h2>
+            <p id="history-summary">Đang tải lịch sử…</p>
+          </div>
+          <button class="secondary" id="clear-history" type="button">Xóa lịch sử</button>
+        </div>
+        <ol id="history-list" class="history-list" aria-live="polite"></ol>
+        <p id="empty-history" class="empty-history" hidden>
+          Nội dung bạn phát sẽ xuất hiện tại đây.
+        </p>
+      </section>
+    </main>
+  </body>
+</html>

@@ -122,6 +122,25 @@ class YouTubePlayerHttpTests(unittest.TestCase):
         _, history = self.request("/api/history")
         self.assertEqual([], history["items"])
 
+    def test_web_ui_and_runtime_config_are_served(self):
+        with urllib.request.urlopen(f"{self.base_url}/", timeout=2) as response:
+            page = response.read().decode("utf-8")
+            self.assertEqual(200, response.status)
+            self.assertEqual("text/html; charset=utf-8", response.headers["Content-Type"])
+
+        self.assertIn("TriTue YouTube Player", page)
+        self.assertIn('aria-label="Trình phát YouTube"', page)
+
+        with urllib.request.urlopen(f"{self.base_url}/app.js", timeout=2) as response:
+            script = response.read().decode("utf-8")
+        self.assertIn('api("api/history")', script)
+
+        _, config = self.request("/api/config")
+        self.assertEqual(
+            {"app_title": "Test Player", "max_history": 2},
+            config,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

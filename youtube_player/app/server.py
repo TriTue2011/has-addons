@@ -16,6 +16,13 @@ YOUTUBE_HOSTS = {
     "music.youtube.com",
     "youtu.be",
 }
+STATIC_DIR = Path(__file__).with_name("static")
+STATIC_FILES = {
+    "/": ("index.html", "text/html; charset=utf-8"),
+    "/index.html": ("index.html", "text/html; charset=utf-8"),
+    "/styles.css": ("styles.css", "text/css; charset=utf-8"),
+    "/app.js": ("app.js", "text/javascript; charset=utf-8"),
+}
 
 
 def normalize_target(raw_target):
@@ -118,6 +125,19 @@ class PlayerHandler(BaseHTTPRequestHandler):
         if path == "/api/history":
             self.send_json(200, {"items": self.server.load_history()})
             return
+        if path == "/api/config":
+            self.send_json(
+                200,
+                {
+                    "app_title": self.server.app_title,
+                    "max_history": self.server.max_history,
+                },
+            )
+            return
+        if path in STATIC_FILES:
+            filename, content_type = STATIC_FILES[path]
+            self.send_file(STATIC_DIR / filename, content_type)
+            return
         self.send_json(404, {"error": "not_found"})
 
     def do_POST(self):
@@ -152,10 +172,29 @@ class PlayerHandler(BaseHTTPRequestHandler):
 
     def send_json(self, status, payload):
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        self.send_bytes(status, body, "application/json; charset=utf-8")
+
+    def send_file(self, path, content_type):
+        try:
+            body = path.read_bytes()
+        except OSError:
+            self.send_json(500, {"error": "asset_unavailable"})
+            return
+        self.send_bytes(200, body, content_type)
+
+    def send_bytes(self, status, body, content_type):
         self.send_response(status)
-        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Referrer-Policy", "strict-origin-when-cross-origin")
+        self.send_header(
+            "Content-Security-Policy",
+            "default-src 'self'; frame-src https://www.youtube-nocookie.com; "
+            "connect-src 'self'; img-src 'self' data:; style-src 'self'; "
+            "script-src 'self'",
+        )
         self.end_headers()
         self.wfile.write(body)
 
