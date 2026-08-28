@@ -1,6 +1,5 @@
-#!/usr/bin/env python3
-import json
 import hmac
+import json
 import os
 import re
 import secrets
@@ -9,7 +8,6 @@ import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
-
 
 VIDEO_ID = re.compile(r"^[A-Za-z0-9_-]{11}$")
 PLAYLIST_ID = re.compile(r"^[A-Za-z0-9_-]{10,80}$")
@@ -67,9 +65,7 @@ def normalize_target(raw_target):
     return {
         "kind": "video",
         "id": video_id,
-        "embed_url": (
-            f"https://www.youtube-nocookie.com/embed/{video_id}?autoplay=1"
-        ),
+        "embed_url": (f"https://www.youtube-nocookie.com/embed/{video_id}?autoplay=1"),
     }
 
 
@@ -200,9 +196,7 @@ class PlayerHandler(BaseHTTPRequestHandler):
             return
         if path == "/api/integration/history":
             items = self.server.load_history()
-            self.send_json(
-                200, {"success": True, "items": items, "total": len(items)}
-            )
+            self.send_json(200, {"success": True, "items": items, "total": len(items)})
             return
         if path in STATIC_FILES:
             filename, content_type = STATIC_FILES[path]

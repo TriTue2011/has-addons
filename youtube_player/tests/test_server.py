@@ -11,11 +11,10 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-
 APP_DIR = Path(__file__).resolve().parents[1] / "app"
 sys.path.insert(0, str(APP_DIR))
 
-from server import create_server, resolve_integration_token  # noqa: E402
+from server import create_server, resolve_integration_token
 
 
 class YouTubePlayerHttpTests(unittest.TestCase):
@@ -76,9 +75,7 @@ class YouTubePlayerHttpTests(unittest.TestCase):
                 with self.assertRaises(urllib.error.HTTPError) as raised:
                     self.request("/api/integration/health", headers=headers)
                 self.assertEqual(401, raised.exception.code)
-                self.assertEqual(
-                    {"error": "invalid_auth"}, json.load(raised.exception)
-                )
+                self.assertEqual({"error": "invalid_auth"}, json.load(raised.exception))
 
         status, body = self.request(
             "/api/integration/health",
@@ -108,9 +105,7 @@ class YouTubePlayerHttpTests(unittest.TestCase):
         self.assertEqual("playing", player["state"])
         self.assertEqual("dQw4w9WgXcQ", player["item"]["id"])
 
-        _, integration_status = self.request(
-            "/api/integration/status", headers=headers
-        )
+        _, integration_status = self.request("/api/integration/status", headers=headers)
         self.assertEqual("playing", integration_status["state"])
         self.assertEqual(1, integration_status["history_count"])
 
@@ -184,9 +179,7 @@ class YouTubePlayerHttpTests(unittest.TestCase):
         self.assertEqual([], history["items"])
 
     def test_history_can_be_cleared(self):
-        self.request(
-            "/api/history", method="POST", payload={"target": "dQw4w9WgXcQ"}
-        )
+        self.request("/api/history", method="POST", payload={"target": "dQw4w9WgXcQ"})
 
         status, body = self.request("/api/history", method="DELETE")
 
@@ -199,7 +192,9 @@ class YouTubePlayerHttpTests(unittest.TestCase):
         with urllib.request.urlopen(f"{self.base_url}/", timeout=2) as response:
             page = response.read().decode("utf-8")
             self.assertEqual(200, response.status)
-            self.assertEqual("text/html; charset=utf-8", response.headers["Content-Type"])
+            self.assertEqual(
+                "text/html; charset=utf-8", response.headers["Content-Type"]
+            )
 
         self.assertIn("TriTue YouTube Player", page)
         self.assertIn('aria-label="Trình phát YouTube"', page)

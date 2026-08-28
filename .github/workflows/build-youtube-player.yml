@@ -5,11 +5,17 @@ on:
     branches: [main]
     paths:
       - "youtube_player/**"
+      - "custom_components/tritue_youtube_player/**"
+      - "youtube_player_integration/**"
+      - "hacs.json"
       - ".github/workflows/build-youtube-player.yml"
   push:
     branches: [main]
     paths:
       - "youtube_player/**"
+      - "custom_components/tritue_youtube_player/**"
+      - "youtube_player_integration/**"
+      - "hacs.json"
       - ".github/workflows/build-youtube-player.yml"
   workflow_dispatch:
 
@@ -32,10 +38,35 @@ jobs:
       - name: Run HTTP behavior tests
         run: python -m unittest discover -s youtube_player/tests -v
 
+      - name: Install integration test dependency
+        run: python -m pip install aiohttp==3.13.5
+
+      - name: Run add-on to integration contract tests
+        run: python -m unittest youtube_player_integration.tests.test_api -v
+
       - name: Check Python and JavaScript syntax
         run: |
           python -m py_compile youtube_player/app/server.py
+          python -m compileall -q custom_components/tritue_youtube_player
           node --check youtube_player/app/static/app.js
+
+  integration:
+    name: Validate Home Assistant integration
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Run Hassfest validation
+        uses: home-assistant/actions/hassfest@f4ca6f671bd429efb108c0f2fa0ae8af0215986c
+
+      - name: Run HACS validation
+        uses: hacs/action@d556e736723344f83838d08488c983a15381059a
+        with:
+          category: integration
+          ignore: brands
 
   lint:
     name: Lint Home Assistant app
