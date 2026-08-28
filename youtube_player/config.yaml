@@ -1,0 +1,29 @@
+name: "TriTue YouTube Player"
+description: "Phát video, Shorts và playlist YouTube qua Docker hoặc Home Assistant Ingress"
+version: "0.1.0"
+slug: "youtube_player"
+url: "https://github.com/TriTue2011/has-addons/tree/main/youtube_player"
+arch:
+  - amd64
+  - aarch64
+init: false
+startup: application
+boot: auto
+ingress: true
+ingress_port: 8099
+ingress_stream: true
+panel_icon: "mdi:youtube"
+panel_title: "YouTube Player"
+panel_admin: false
+watchdog: "http://[HOST]:[PORT:8099]/api/health"
+ports:
+  8099/tcp: null
+ports_description:
+  8099/tcp: "Giao diện web trực tiếp; không cần mở khi dùng Ingress"
+options:
+  app_title: "TriTue YouTube Player"
+  max_history: 20
+schema:
+  app_title: "str(1,80)"
+  max_history: "int(1,100)"
+image: "ghcr.io/tritue2011/youtube-player"

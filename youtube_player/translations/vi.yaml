@@ -1,0 +1,9 @@
+configuration:
+  app_title:
+    name: Tên hiển thị
+    description: Tên xuất hiện trên đầu giao diện trình phát.
+  max_history:
+    name: Số mục lịch sử
+    description: Số video hoặc playlist được lưu gần đây, từ 1 đến 100.
+network:
+  8099/TCP: Giao diện web trực tiếp; không cần mở khi dùng Ingress.

@@ -1,0 +1,14 @@
+services:
+  youtube-player:
+    build:
+      context: .
+    image: ghcr.io/tritue2011/youtube-player:0.1.0
+    container_name: tritue-youtube-player
+    restart: unless-stopped
+    ports:
+      - "8099:8099"
+    environment:
+      APP_TITLE: "TriTue YouTube Player"
+      MAX_HISTORY: "20"
+    volumes:
+      - ./data:/data
