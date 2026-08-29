@@ -51,7 +51,7 @@ class TriTueYouTubePlayerCard extends HTMLElement {
         .subtitle { margin: 5px 0 0; }
         .source-switch {
           display: grid;
-          grid-template-columns: 1fr 1fr;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
           padding: 4px;
           margin: 18px 0 14px;
           border-radius: 12px;
@@ -204,6 +204,7 @@ class TriTueYouTubePlayerCard extends HTMLElement {
           <div class="source-switch" role="group" aria-label="Nguồn nhạc">
             <button class="source-button" type="button" data-source="youtube">YouTube</button>
             <button class="source-button" type="button" data-source="zing">Zing MP3</button>
+            <button class="source-button" type="button" data-source="http">HTTP Audio</button>
           </div>
 
           <form>
@@ -501,7 +502,7 @@ class TriTueYouTubePlayerCard extends HTMLElement {
 
     this.shadowRoot.querySelector(".now-title").textContent = title || "Chưa phát bài nào";
     this.shadowRoot.querySelector(".now-meta").textContent = title
-      ? [artist, duration, fallback.source === "zing" ? "Zing MP3" : fallback.source === "youtube" ? "YouTube" : ""]
+      ? [artist, duration, fallback.source === "zing" ? "Zing MP3" : fallback.source === "youtube" ? "YouTube" : fallback.source === "http" ? "HTTP Audio" : ""]
         .filter(Boolean).join(" · ")
       : "Chọn một bài trong kết quả để bắt đầu.";
     this.shadowRoot.querySelector(".now-targets").textContent = targetNames.length
@@ -527,26 +528,49 @@ class TriTueYouTubePlayerCard extends HTMLElement {
     this.shadowRoot.querySelectorAll(".source-button").forEach((button) => {
       button.setAttribute("aria-pressed", String(button.dataset.source === this._source));
     });
-    const hint = this.shadowRoot.querySelector(".source-hint");
-    hint.textContent = this._source === "youtube" ? "Phát bằng YouTube chính thức" : "Bài công khai, không VIP";
+    const input = this.shadowRoot.querySelector('input[type="search"]');
+    const submit = this.shadowRoot.querySelector(".search-button");
+    const isHttp = this._source === "http";
+    input.placeholder = isHttp
+      ? "Dán URL MP3, AAC, FLAC, OGG hoặc HLS…"
+      : "Tìm tên bài hát hoặc ca sĩ…";
+    input.setAttribute(
+      "aria-label",
+      isHttp ? "Địa chỉ HTTP audio trực tiếp" : "Tìm tên bài hát hoặc ca sĩ",
+    );
+    input.maxLength = isHttp ? 2048 : 120;
+    submit.textContent = isHttp ? "Thêm URL" : "Tìm kiếm";
+    const hints = {
+      youtube: "Phát bằng YouTube chính thức",
+      zing: "Bài công khai, không VIP",
+      http: "MP3/AAC/FLAC/HLS trực tiếp",
+    };
+    this.shadowRoot.querySelector(".source-hint").textContent = hints[this._source] || "";
   }
 
   async _search() {
     const query = this.shadowRoot.querySelector('input[type="search"]').value.trim();
-    const entryId = this._entryId();
-    if (!entryId) {
-      this._setStatus("Không tìm thấy config entry. Hãy tải lại integration.", true);
-      return;
-    }
     if (!query) return;
     const button = this.shadowRoot.querySelector(".search-button");
     button.disabled = true;
-    this._setStatus("Đang tìm kiếm…");
+    this._setStatus(this._source === "http" ? "Đang kiểm tra URL…" : "Đang tìm kiếm…");
     try {
-      const payload = await this._hass.callApi("GET", `tritue_youtube_player/search?entry_id=${encodeURIComponent(entryId)}&source=${encodeURIComponent(this._source)}&q=${encodeURIComponent(query)}&limit=20`);
-      this._results = Array.isArray(payload.items) ? payload.items : [];
+      if (this._source === "http") {
+        this._results = [this._prepareHttpResult(query)];
+      } else {
+        const entryId = this._entryId();
+        if (!entryId) throw new Error("Không tìm thấy config entry. Hãy tải lại integration.");
+        const payload = await this._hass.callApi("GET", `tritue_youtube_player/search?entry_id=${encodeURIComponent(entryId)}&source=${encodeURIComponent(this._source)}&q=${encodeURIComponent(query)}&limit=20`);
+        this._results = Array.isArray(payload.items) ? payload.items : [];
+      }
       this._renderResults();
-      this._setStatus(this._results.length ? `Tìm thấy ${this._results.length} bài.` : "Không tìm thấy bài phù hợp.");
+      this._setStatus(
+        this._source === "http"
+          ? "URL audio đã sẵn sàng. Nhấn nút phát."
+          : this._results.length
+            ? `Tìm thấy ${this._results.length} bài.`
+            : "Không tìm thấy bài phù hợp.",
+      );
     } catch (error) {
       this._results = [];
       this._renderResults();
@@ -554,6 +578,49 @@ class TriTueYouTubePlayerCard extends HTMLElement {
     } finally {
       button.disabled = false;
     }
+  }
+
+  _prepareHttpResult(value) {
+    let url;
+    try {
+      url = new URL(value);
+    } catch (_error) {
+      throw new Error("URL audio không hợp lệ.");
+    }
+    if (!["http:", "https:"].includes(url.protocol) || url.username || url.password) {
+      throw new Error("Chỉ hỗ trợ URL HTTP/HTTPS không chứa tài khoản hoặc mật khẩu.");
+    }
+    const hostname = url.hostname.toLowerCase().replace(/^www\./, "");
+    if (hostname === "youtube.com" || hostname.endsWith(".youtube.com") || hostname === "youtu.be") {
+      throw new Error("Đây là trang YouTube, không phải URL audio trực tiếp.");
+    }
+    const path = url.pathname.toLowerCase();
+    const mediaTypes = {
+      ".mp3": "audio/mpeg",
+      ".aac": "audio/aac",
+      ".m4a": "audio/mp4",
+      ".flac": "audio/flac",
+      ".ogg": "audio/ogg",
+      ".opus": "audio/ogg",
+      ".wav": "audio/wav",
+      ".m3u8": "application/vnd.apple.mpegurl",
+    };
+    const extension = Object.keys(mediaTypes).find((item) => path.endsWith(item));
+    let title = url.pathname.split("/").filter(Boolean).pop() || url.hostname;
+    try {
+      title = decodeURIComponent(title);
+    } catch (_error) {
+      // Keep the encoded filename when the URL contains malformed escape sequences.
+    }
+    return {
+      id: url.href,
+      url: url.href,
+      title,
+      channel: "HTTP Audio",
+      thumbnail: "",
+      duration: 0,
+      media_content_type: this._config.http_content_type || mediaTypes[extension] || "audio/mpeg",
+    };
   }
 
   _renderResults() {
@@ -608,21 +675,36 @@ class TriTueYouTubePlayerCard extends HTMLElement {
       );
       return;
     }
-    const entryId = this._entryId();
-    if (!entryId) {
+    const entryId = this._source === "http" ? "" : this._entryId();
+    if (this._source !== "http" && !entryId) {
       this._setStatus("Không tìm thấy config entry của integration.", true);
       return;
     }
     button.disabled = true;
     this._setStatus(`Đang phát “${item.title || item.id}”…`);
     try {
-      await this._hass.callService("tritue_youtube_player", "play_on_players", {
-        entry_id: entryId,
-        source: this._source,
-        target: item.url || item.id,
-        entity_id: entityIds,
-        volume_level: Number(this.shadowRoot.querySelector(".volume").value),
-      });
+      if (this._source === "http") {
+        const volumeTargets = entityIds.filter((entityId) => this._supportsFeature(entityId, 4));
+        if (volumeTargets.length) {
+          await this._hass.callService("media_player", "volume_set", {
+            entity_id: volumeTargets,
+            volume_level: Number(this.shadowRoot.querySelector(".volume").value),
+          });
+        }
+        await this._hass.callService("media_player", "play_media", {
+          entity_id: entityIds,
+          media_content_id: item.url || item.id,
+          media_content_type: item.media_content_type,
+        });
+      } else {
+        await this._hass.callService("tritue_youtube_player", "play_on_players", {
+          entry_id: entryId,
+          source: this._source,
+          target: item.url || item.id,
+          entity_id: entityIds,
+          volume_level: Number(this.shadowRoot.querySelector(".volume").value),
+        });
+      }
       this._rememberNowPlaying(item, entityIds);
       this._syncNowPlaying();
       const ignored = requestedCount - entityIds.length;
@@ -717,6 +799,6 @@ window.customCards = window.customCards || [];
 window.customCards.push({
   type: "tritue-youtube-player-card",
   name: "TriTue Music Player",
-  description: "Search YouTube/Zing and play on one or more Home Assistant media players.",
+  description: "Search YouTube/Zing or play direct HTTP audio on Home Assistant media players.",
   preview: true,
 });

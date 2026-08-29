@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.1 - 2026-08-29
+
+### Added
+
+- Nguồn HTTP Audio để gửi URL MP3/AAC/M4A/FLAC/OGG/OPUS/WAV/HLS trực tiếp
+  tới một hoặc nhiều `media_player`, gồm cả loa Cast audio-only.
+- Tự nhận diện MIME từ phần mở rộng và hỗ trợ cấu hình `http_content_type` cho
+  URL ký số không có phần mở rộng.
+
 ## 0.5.0 - 2026-08-29
 
 ### Added
