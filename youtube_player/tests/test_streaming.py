@@ -1,9 +1,13 @@
 import importlib.util
+import gzip
+import hashlib
+import hmac
+import io
 import json
-import subprocess
 import sys
 import unittest
 from pathlib import Path
+from urllib.parse import parse_qs, urlsplit
 from unittest.mock import patch
 
 
@@ -69,31 +73,68 @@ class SignedZingStreamTests(unittest.TestCase):
                 ttl=300,
             )
 
-    def test_resolver_selects_audio_without_downloading_or_transcoding(self):
-        completed = subprocess.CompletedProcess(
-            args=[],
-            returncode=0,
-            stdout=json.dumps(
-                {
-                    "url": "https://audio.zmdcdn.me/song.mp3",
-                    "protocol": "https",
-                    "ext": "mp3",
-                    "vcodec": "none",
-                    "acodec": "mp3",
-                    "http_headers": {"Referer": "https://zingmp3.vn/"},
-                }
-            ),
-            stderr="",
+    def test_resolver_follows_public_id_redirect_and_selects_320k_audio(self):
+        redirected_target = (
+            "https://zingmp3.vn/bai-hat/Thuc-Giac-Da-LAB/XwsdXWtaDHNH.html"
         )
-        with patch("subprocess.run", return_value=completed) as run:
-            result = self.streaming.resolve_zing_stream(self.target)
+        api_payload = gzip.compress(
+            json.dumps(
+                {
+                    "err": 0,
+                    "msg": "Success",
+                    "data": {
+                        "128": "https://audio.zmdcdn.me/song-128.mp3",
+                        "320": "https://audio.zmdcdn.me/song-320.mp3",
+                    },
+                }
+            ).encode()
+        )
 
-        self.assertEqual("https://audio.zmdcdn.me/song.mp3", result["url"])
+        class FakeResponse(io.BytesIO):
+            def __init__(self, body=b"", *, url, headers=None):
+                super().__init__(body)
+                self._url = url
+                self.headers = headers or {}
+
+            def geturl(self):
+                return self._url
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_args):
+                self.close()
+
+        opener = unittest.mock.Mock()
+        opener.open.side_effect = [
+            FakeResponse(url=redirected_target),
+            FakeResponse(
+                api_payload,
+                url="https://zingmp3.vn/api/v2/song/get/streaming",
+                headers={"Content-Encoding": "gzip"},
+            ),
+        ]
+        with patch.object(self.streaming, "build_opener", return_value=opener):
+            result = self.streaming.resolve_zing_stream(
+                self.target, timeout=20, now=1_787_976_165
+            )
+
+        self.assertEqual("https://audio.zmdcdn.me/song-320.mp3", result["url"])
         self.assertEqual("audio/mpeg", result["content_type"])
-        command = run.call_args.args[0]
-        self.assertIn("--skip-download", command)
-        self.assertIn("bestaudio/best", command)
-        self.assertNotIn("--extract-audio", command)
+        self.assertEqual(2, opener.open.call_count)
+        api_request = opener.open.call_args_list[1].args[0]
+        query = parse_qs(urlsplit(api_request.full_url).query)
+        self.assertEqual(["XwsdXWtaDHNH"], query["id"])
+        self.assertEqual(["1787976165"], query["ctime"])
+        self.assertEqual(["1.20.4"], query["version"])
+        canonical = "ctime=1787976165id=XwsdXWtaDHNHversion=1.20.4"
+        digest = hashlib.sha256(canonical.encode()).hexdigest()
+        expected_signature = hmac.new(
+            self.streaming.ZING_API_SECRET.encode(),
+            f"/api/v2/song/get/streaming{digest}".encode(),
+            hashlib.sha512,
+        ).hexdigest()
+        self.assertEqual([expected_signature], query["sig"])
 
 
 if __name__ == "__main__":

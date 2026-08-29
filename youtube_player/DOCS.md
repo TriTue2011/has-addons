@@ -69,14 +69,14 @@ Khi image đã được phát hành lên GHCR, bỏ phần `build` trong Compose
 tải image dựng sẵn:
 
 ```bash
-docker pull ghcr.io/tritue2011/youtube-player:0.4.0
+docker pull ghcr.io/tritue2011/youtube-player:0.4.1
 docker run -d \
   --name tritue-youtube-player \
   --restart unless-stopped \
   -p 8099:8099 \
   -e PUBLIC_BASE_URL='http://IP-máy-Docker:8099' \
   -v tritue-youtube-player-data:/data \
-  ghcr.io/tritue2011/youtube-player:0.4.0
+  ghcr.io/tritue2011/youtube-player:0.4.1
 ```
 
 Xem token tự sinh bằng `docker logs tritue-youtube-player`. Nếu muốn tự đặt
@@ -91,7 +91,7 @@ token, thêm `-e INTEGRATION_TOKEN='<chuỗi-ngẫu-nhiên-dài>'` khi chạy co
 
 Chi tiết request và response nằm trong [API.md](API.md).
 
-## Giới hạn của phiên bản 0.4.0
+## Giới hạn của phiên bản 0.4.1
 
 - Không tách hoặc proxy âm thanh YouTube. YouTube chỉ phát qua trang nhúng hoặc
   ứng dụng Cast chính thức.
@@ -99,9 +99,10 @@ Chi tiết request và response nằm trong [API.md](API.md).
 - Search dùng metadata không chính thức nên có thể cần cập nhật `yt-dlp` khi
   YouTube thay đổi giao diện nội bộ.
 - Google Cast phát bằng ứng dụng YouTube chính thức và có thể có quảng cáo.
-- Search Zing dựa trên endpoint web công khai nhưng không có tài liệu chính
-  thức. Playback phụ thuộc extractor Zing của `yt-dlp`; bài VIP bị từ chối và
-  thay đổi phía Zing có thể làm bài công khai tạm thời không phát được.
+- Search và playback Zing dựa trên endpoint web công khai nhưng không có tài
+  liệu chính thức. Resolver theo redirect ID hiện tại và chỉ dùng stream mà
+  website trả công khai; bài VIP vẫn bị từ chối và thay đổi phía Zing có thể
+  làm bài công khai tạm thời không phát được.
 - Luồng Zing chỉ được tạo từ kết quả tìm kiếm công khai trong 60 phút gần nhất;
   URL nhập trực tiếp và metadata thiếu cờ quyền phát bị từ chối.
 - Entity không thuộc Google Cast chỉ phát được URL YouTube nếu integration của

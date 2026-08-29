@@ -27,7 +27,7 @@ Kiểm tra xác thực, phiên bản API và capability. Response thành công:
   "success": true,
   "status": "ok",
   "api_version": "1",
-  "app_version": "0.4.0",
+  "app_version": "0.4.1",
   "capabilities": ["history", "play", "search", "status", "stop", "zing_stream"],
   "sources": ["youtube", "zing"]
 }

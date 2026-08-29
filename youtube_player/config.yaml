@@ -1,6 +1,6 @@
 name: "TriTue YouTube Player"
 description: "Nguồn nhạc YouTube và Zing cho Home Assistant media_player"
-version: "0.4.0"
+version: "0.4.1"
 slug: "youtube_player"
 url: "https://github.com/TriTue2011/has-addons/tree/main/youtube_player"
 arch:

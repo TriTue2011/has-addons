@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.1 - 2026-08-29
+
+### Fixed
+
+- Theo redirect ID mới của Zing trước khi lấy stream, thay vì gửi ID cũ từ kết
+  quả tìm kiếm và nhận lỗi `403`.
+- Dùng request web công khai hiện tại của Zing, ưu tiên MP3 320 kbps và tự hạ
+  xuống 128 kbps khi bản 320 không được cung cấp công khai.
+
 ## 0.4.0 - 2026-08-28
 
 ### Added
