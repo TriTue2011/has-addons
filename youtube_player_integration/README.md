@@ -83,7 +83,13 @@ entities:
 ```
 
 Card có hai nguồn YouTube/Zing, ô tìm kiếm, danh sách kết quả, chọn nhiều loa,
-âm lượng và nút dừng. Action tương ứng có thể gọi trực tiếp trong automation:
+hiển thị bài đang phát và cụm điều khiển. Card tự đọc `supported_features` của
+từng `media_player`: URL audio trực tiếp được giao cho driver Cast/DLNA/ESPHome,
+Android TV mở YouTube bằng deep link, còn Chromecast có màn hình dùng ứng dụng
+YouTube Cast chính thức. Các nút chỉ gửi tới entity khai báo hỗ trợ lệnh tương
+ứng. Loa Cast chỉ có âm thanh không nhận trang YouTube như một luồng MP3; với
+nhóm này hãy chọn Zing hoặc nguồn audio HTTP trực tiếp. Action có thể gọi trực
+tiếp trong automation:
 
 ```yaml
 action: tritue_youtube_player.play_on_players

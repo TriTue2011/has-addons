@@ -69,6 +69,7 @@
     "playback_error": {"message": "Nguồn nhạc không thể chuẩn bị mục này để phát."},
     "target_unavailable": {"message": "Entity phát đã chọn không khả dụng. Hãy mở Cấu hình và chọn media_player khác."},
     "invalid_target_entity": {"message": "Không thể chọn chính media player ảo của integration làm đầu ra."},
-    "cast_playlist_requires_video": {"message": "Google Cast cần URL playlist chứa cả v=VIDEO_ID và list=PLAYLIST_ID."}
+    "cast_playlist_requires_video": {"message": "Google Cast cần URL playlist chứa cả v=VIDEO_ID và list=PLAYLIST_ID."},
+    "target_source_unsupported": {"message": "Thiết bị này không thể phát trang YouTube như luồng âm thanh. Hãy chọn Android TV/Cast có màn hình, hoặc dùng nguồn audio trực tiếp cho loa."}
   }
 }

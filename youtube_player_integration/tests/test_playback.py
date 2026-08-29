@@ -68,6 +68,29 @@ class PlaybackRequestTests(unittest.TestCase):
                 requested_media_type="playlist",
             )
 
+    def test_audio_only_cast_rejects_a_youtube_video_page(self):
+        with self.assertRaises(self.playback.UnsupportedTargetMediaError):
+            self.playback.build_target_request(
+                {"kind": "video", "id": "dQw4w9WgXcQ"},
+                target_platform="cast",
+                target_device_class="speaker",
+                requested_media_type="video",
+            )
+
+    def test_android_tv_opens_youtube_with_a_supported_url_deep_link(self):
+        request = self.playback.build_target_request(
+            {"kind": "video", "id": "dQw4w9WgXcQ"},
+            target_platform="androidtv_remote",
+            target_device_class="tv",
+            requested_media_type="video",
+        )
+
+        self.assertEqual("url", request["media_content_type"])
+        self.assertEqual(
+            "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+            request["media_content_id"],
+        )
+
     def test_non_cast_entity_receives_a_canonical_url_for_a_video_id(self):
         request = self.playback.build_target_request(
             {"kind": "video", "id": "dQw4w9WgXcQ"},
@@ -88,7 +111,7 @@ class PlaybackRequestTests(unittest.TestCase):
             requested_media_type="playlist",
         )
 
-        self.assertEqual("playlist", request["media_content_type"])
+        self.assertEqual("url", request["media_content_type"])
         self.assertEqual(
             "https://www.youtube.com/playlist?list=PL1234567890",
             request["media_content_id"],

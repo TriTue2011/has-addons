@@ -11,7 +11,11 @@ from urllib.parse import urlsplit
 MEDIA_PLAYER_ENTITY_ID = re.compile(r"^media_player\.[a-z0-9_]+$")
 
 
-class UnsupportedCastMediaError(ValueError):
+class UnsupportedTargetMediaError(ValueError):
+    """The source cannot be dispatched to this kind of HA media player."""
+
+
+class UnsupportedCastMediaError(UnsupportedTargetMediaError):
     """The normalized item cannot be started by the YouTube Cast app."""
 
 
@@ -76,9 +80,14 @@ def build_target_request(
     *,
     target_platform: str | None,
     requested_media_type: Any,
+    target_device_class: str | None = None,
 ) -> dict[str, str]:
     """Build ``media_player.play_media`` data for the selected output entity."""
     if target_platform == "cast":
+        if target_device_class == "speaker":
+            raise UnsupportedTargetMediaError(
+                "youtube_page_is_not_an_audio_stream"
+            )
         if item.get("kind") != "video" or not item.get("id"):
             raise UnsupportedCastMediaError("cast_playlist_requires_video")
         payload = {
@@ -90,6 +99,12 @@ def build_target_request(
         return {
             "media_content_type": "cast",
             "media_content_id": json.dumps(payload, separators=(",", ":")),
+        }
+
+    if target_platform in {"androidtv", "androidtv_remote"}:
+        return {
+            "media_content_type": "url",
+            "media_content_id": canonical_youtube_url(item),
         }
 
     fallback_type = "playlist" if item.get("kind") == "playlist" else "video"

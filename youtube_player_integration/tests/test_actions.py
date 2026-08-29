@@ -77,6 +77,10 @@ class MultiPlayerActionTests(unittest.IsolatedAsyncioTestCase):
                 "media_player.cast": "cast",
                 "media_player.other": "dlna_dmr",
             },
+            target_device_classes={
+                "media_player.cast": "tv",
+                "media_player.other": None,
+            },
             volume_level=0.35,
         )
 

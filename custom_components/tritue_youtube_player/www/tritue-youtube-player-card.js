@@ -5,6 +5,7 @@ class TriTueYouTubePlayerCard extends HTMLElement {
     this._source = "youtube";
     this._selectedPlayers = new Set();
     this._results = [];
+    this._currentItem = null;
     this._rendered = false;
     this._defaultsApplied = false;
   }
@@ -14,6 +15,7 @@ class TriTueYouTubePlayerCard extends HTMLElement {
       throw new Error("TriTue card requires a media_player entity");
     }
     this._config = { title: "TriTue Music", ...config };
+    this._restoreNowPlaying();
   }
 
   set hass(hass) {
@@ -28,7 +30,7 @@ class TriTueYouTubePlayerCard extends HTMLElement {
   }
 
   getCardSize() {
-    return 8;
+    return 10;
   }
 
   _render() {
@@ -81,15 +83,14 @@ class TriTueYouTubePlayerCard extends HTMLElement {
           outline: none;
         }
         input[type="search"]:focus { border-color: var(--primary-color); }
-        .primary, .stop {
+        .primary {
           border: 0;
           border-radius: 11px;
           padding: 10px 15px;
           font-weight: 650;
         }
         .primary { color: var(--text-primary-color, #fff); background: var(--primary-color); }
-        .stop { color: var(--error-color); background: color-mix(in srgb, var(--error-color) 12%, transparent); }
-        button:disabled { cursor: wait; opacity: .55; }
+        button:disabled { cursor: not-allowed; opacity: .45; }
         .status { min-height: 21px; margin: 8px 1px 0; color: var(--secondary-text-color); font-size: .84rem; }
         .status.error { color: var(--error-color); }
         .section { margin-top: 18px; }
@@ -108,9 +109,53 @@ class TriTueYouTubePlayerCard extends HTMLElement {
           cursor: pointer;
         }
         .player-chip:has(input:checked) { border-color: var(--primary-color); color: var(--primary-color); }
+        .player-chip.source-incompatible { opacity: .62; }
         .player-chip input { accent-color: var(--primary-color); }
         .player-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .controls { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 12px; }
+        .device-icon { --mdc-icon-size: 17px; color: var(--secondary-text-color); }
+        .now-playing {
+          display: grid;
+          grid-template-columns: 70px minmax(0, 1fr);
+          gap: 13px;
+          align-items: center;
+          padding: 12px;
+          border: 1px solid var(--divider-color);
+          border-radius: 14px;
+          background: color-mix(in srgb, var(--secondary-background-color) 78%, transparent);
+        }
+        .now-cover {
+          display: grid;
+          place-items: center;
+          width: 70px;
+          height: 70px;
+          overflow: hidden;
+          border-radius: 11px;
+          color: var(--secondary-text-color);
+          background: var(--divider-color);
+        }
+        .now-cover img { width: 100%; height: 100%; object-fit: cover; }
+        .now-copy { min-width: 0; }
+        .now-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
+        .now-meta, .now-targets { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--secondary-text-color); font-size: .82rem; }
+        .now-meta { margin-top: 5px; }
+        .now-targets { margin-top: 7px; }
+        .controls { display: grid; gap: 14px; }
+        .transport-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+        .transport {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 7px;
+          min-height: 44px;
+          padding: 8px;
+          border: 1px solid var(--divider-color);
+          border-radius: 11px;
+          color: var(--primary-text-color);
+          background: var(--secondary-background-color);
+          font-weight: 600;
+        }
+        .transport:hover:not(:disabled) { border-color: var(--primary-color); color: var(--primary-color); }
+        .transport.stop { color: var(--error-color); }
         .volume-row { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 9px; }
         input[type="range"] { width: 100%; accent-color: var(--primary-color); }
         .results { display: grid; gap: 8px; max-height: 370px; overflow: auto; padding-right: 2px; }
@@ -142,8 +187,8 @@ class TriTueYouTubePlayerCard extends HTMLElement {
         @media (max-width: 520px) {
           .wrap { padding: 16px; }
           form { grid-template-columns: 1fr; }
-          .controls { grid-template-columns: 1fr; }
-          .stop { width: 100%; }
+          .transport-row { grid-template-columns: 1fr 1fr; }
+          .transport { min-height: 48px; }
         }
       </style>
       <ha-card>
@@ -175,7 +220,43 @@ class TriTueYouTubePlayerCard extends HTMLElement {
             <div class="players"></div>
           </section>
 
+          <section class="section">
+            <div class="section-title">
+              <h3>Đang phát</h3>
+              <span class="hint now-state">Chưa phát</span>
+            </div>
+            <div class="now-playing">
+              <div class="now-cover">
+                <ha-icon icon="mdi:music-note"></ha-icon>
+                <img alt="" hidden />
+              </div>
+              <div class="now-copy">
+                <div class="now-title">Chưa phát bài nào</div>
+                <div class="now-meta">Chọn một bài trong kết quả để bắt đầu.</div>
+                <div class="now-targets">Chưa chọn thiết bị phát</div>
+              </div>
+            </div>
+          </section>
+
           <section class="section controls">
+            <div class="section-title">
+              <h3>Điều khiển các thiết bị đã chọn</h3>
+              <span class="hint transport-state">Chưa chọn thiết bị</span>
+            </div>
+            <div class="transport-row" role="group" aria-label="Điều khiển phát nhạc">
+              <button class="transport previous" type="button" data-service="media_previous_track" aria-label="Bài trước">
+                <ha-icon icon="mdi:skip-previous"></ha-icon><span>Bài trước</span>
+              </button>
+              <button class="transport play-pause" type="button" data-service="media_play_pause" aria-label="Phát hoặc tạm dừng">
+                <ha-icon icon="mdi:play"></ha-icon><span>Phát / Tạm dừng</span>
+              </button>
+              <button class="transport next" type="button" data-service="media_next_track" aria-label="Bài tiếp theo">
+                <ha-icon icon="mdi:skip-next"></ha-icon><span>Bài tiếp</span>
+              </button>
+              <button class="transport stop" type="button" data-service="media_stop" aria-label="Dừng phát nhạc">
+                <ha-icon icon="mdi:stop"></ha-icon><span>Dừng</span>
+              </button>
+            </div>
             <div>
               <div class="section-title"><h3>Âm lượng</h3></div>
               <div class="volume-row">
@@ -184,7 +265,6 @@ class TriTueYouTubePlayerCard extends HTMLElement {
                 <span class="volume-value">35%</span>
               </div>
             </div>
-            <button class="stop" type="button">Dừng các loa đã chọn</button>
           </section>
 
           <section class="section">
@@ -205,6 +285,7 @@ class TriTueYouTubePlayerCard extends HTMLElement {
         this._source = button.dataset.source;
         this._results = [];
         this._updateSourceButtons();
+        this._syncPlayers();
         this._renderResults();
         this._setStatus("");
       });
@@ -218,6 +299,9 @@ class TriTueYouTubePlayerCard extends HTMLElement {
       this.shadowRoot.querySelector(".volume-value").textContent = `${Math.round(Number(volume.value) * 100)}%`;
     });
     volume.addEventListener("change", () => this._setVolume());
+    this.shadowRoot.querySelector(".previous").addEventListener("click", () => this._transport("media_previous_track"));
+    this.shadowRoot.querySelector(".play-pause").addEventListener("click", () => this._transport("media_play_pause"));
+    this.shadowRoot.querySelector(".next").addEventListener("click", () => this._transport("media_next_track"));
     this.shadowRoot.querySelector(".stop").addEventListener("click", () => this._stop());
   }
 
@@ -259,6 +343,15 @@ class TriTueYouTubePlayerCard extends HTMLElement {
     for (const [entityId, state] of players) {
       const label = document.createElement("label");
       label.className = "player-chip";
+      const isAudioOnly = state.attributes.device_class === "speaker";
+      const supportsPlayback = this._supportsFeature(entityId, 512);
+      const incompatible = !supportsPlayback || (this._source === "youtube" && isAudioOnly);
+      label.classList.toggle("source-incompatible", incompatible);
+      label.title = incompatible
+        ? (supportsPlayback
+          ? "Nguồn YouTube cần màn hình/Android TV; loa này nhận nguồn audio trực tiếp như Zing."
+          : "Entity này không khai báo hỗ trợ play_media.")
+        : (isAudioOnly ? "Thiết bị phát âm thanh" : "Màn hình hoặc media player");
       const checkbox = document.createElement("input");
       checkbox.type = "checkbox";
       checkbox.checked = this._selectedPlayers.has(entityId);
@@ -266,14 +359,21 @@ class TriTueYouTubePlayerCard extends HTMLElement {
         if (checkbox.checked) this._selectedPlayers.add(entityId);
         else this._selectedPlayers.delete(entityId);
         this._updateSelectedCount();
+        this._updateTransportState();
+        this._syncNowPlaying();
       });
       const name = document.createElement("span");
       name.className = "player-name";
       name.textContent = state.attributes.friendly_name || entityId;
-      label.append(checkbox, name);
+      const deviceIcon = document.createElement("ha-icon");
+      deviceIcon.className = "device-icon";
+      deviceIcon.setAttribute("icon", isAudioOnly ? "mdi:speaker" : "mdi:television-play");
+      label.append(checkbox, name, deviceIcon);
       container.append(label);
     }
     this._updateSelectedCount();
+    this._updateTransportState();
+    this._syncNowPlaying();
   }
 
   _friendlyName([entityId, state]) {
@@ -282,6 +382,144 @@ class TriTueYouTubePlayerCard extends HTMLElement {
 
   _updateSelectedCount() {
     this.shadowRoot.querySelector(".selected-count").textContent = `${this._selectedPlayers.size} đã chọn`;
+  }
+
+  _supportsFeature(entityId, feature) {
+    const value = Number(this._hass?.states?.[entityId]?.attributes?.supported_features || 0);
+    return Boolean(value & feature);
+  }
+
+  _targetsForService(service) {
+    const featureByService = {
+      media_previous_track: 16,
+      media_next_track: 32,
+      media_stop: 4096,
+      volume_set: 4,
+    };
+    return [...this._selectedPlayers].filter((entityId) => {
+      const state = this._hass?.states?.[entityId];
+      if (!state || state.state === "unavailable") return false;
+      if (service === "media_play_pause") {
+        return this._supportsFeature(entityId, 1) || this._supportsFeature(entityId, 16384);
+      }
+      return this._supportsFeature(entityId, featureByService[service] || 0);
+    });
+  }
+
+  _playTargets() {
+    return [...this._selectedPlayers].filter((entityId) => {
+      const state = this._hass?.states?.[entityId];
+      if (!state || state.state === "unavailable" || !this._supportsFeature(entityId, 512)) return false;
+      return this._source !== "youtube" || state.attributes.device_class !== "speaker";
+    });
+  }
+
+  _updateTransportState() {
+    if (!this.shadowRoot || !this._hass) return;
+    const selectedStates = [...this._selectedPlayers]
+      .map((entityId) => this._hass.states[entityId]?.state)
+      .filter(Boolean);
+    const anyPlaying = selectedStates.includes("playing");
+    const anyPaused = selectedStates.includes("paused");
+    const stateLabel = this.shadowRoot.querySelector(".transport-state");
+    stateLabel.textContent = !selectedStates.length
+      ? "Chưa chọn thiết bị"
+      : anyPlaying
+        ? "Đang phát"
+        : anyPaused
+          ? "Đang tạm dừng"
+          : "Sẵn sàng";
+    this.shadowRoot.querySelector(".play-pause ha-icon")
+      .setAttribute("icon", anyPlaying ? "mdi:pause" : "mdi:play");
+    this.shadowRoot.querySelectorAll(".transport").forEach((button) => {
+      button.disabled = button.dataset.service === "media_stop"
+        ? !selectedStates.length && !this._currentItem
+        : !this._targetsForService(button.dataset.service).length;
+    });
+    this.shadowRoot.querySelector(".volume").disabled = !this._targetsForService("volume_set").length;
+  }
+
+  _storageKey() {
+    return `tritue-player:${this._config?.entity || "default"}:now-playing`;
+  }
+
+  _restoreNowPlaying() {
+    try {
+      const saved = globalThis.localStorage?.getItem(this._storageKey());
+      this._currentItem = saved ? JSON.parse(saved) : null;
+    } catch (_error) {
+      this._currentItem = null;
+    }
+  }
+
+  _rememberNowPlaying(item, entityIds) {
+    this._currentItem = {
+      source: this._source,
+      id: String(item.id || ""),
+      title: String(item.title || item.id || "Không rõ tên"),
+      channel: String(item.channel || ""),
+      thumbnail: /^https?:\/\//.test(item.thumbnail || "") ? item.thumbnail : "",
+      duration: Number(item.duration || 0),
+      entity_ids: entityIds,
+      started_at: Date.now(),
+    };
+    try {
+      globalThis.localStorage?.setItem(this._storageKey(), JSON.stringify(this._currentItem));
+    } catch (_error) {
+      // The card still works when browser storage is disabled.
+    }
+  }
+
+  _clearRememberedNowPlaying() {
+    this._currentItem = null;
+    try {
+      globalThis.localStorage?.removeItem(this._storageKey());
+    } catch (_error) {
+      // Ignore unavailable browser storage.
+    }
+  }
+
+  _syncNowPlaying() {
+    if (!this.shadowRoot || !this._hass) return;
+    const selected = [...this._selectedPlayers]
+      .map((entityId) => [entityId, this._hass.states[entityId]])
+      .filter(([, state]) => state);
+    const active = selected.find(([, state]) => state.state === "playing")
+      || selected.find(([, state]) => state.state === "paused")
+      || selected.find(([, state]) => state.attributes.media_title);
+    const state = active?.[1];
+    const attributes = state?.attributes || {};
+    const fallback = this._currentItem || {};
+    const title = attributes.media_title || fallback.title || "";
+    const artist = attributes.media_artist || fallback.channel || "";
+    const duration = this._formatDuration(attributes.media_duration || fallback.duration);
+    const imageUrl = attributes.entity_picture || attributes.media_image_url || fallback.thumbnail || "";
+    const targetIds = fallback.entity_ids?.length ? fallback.entity_ids : [...this._selectedPlayers];
+    const targetNames = targetIds
+      .map((entityId) => this._hass.states[entityId]?.attributes?.friendly_name || entityId)
+      .filter(Boolean);
+
+    this.shadowRoot.querySelector(".now-title").textContent = title || "Chưa phát bài nào";
+    this.shadowRoot.querySelector(".now-meta").textContent = title
+      ? [artist, duration, fallback.source === "zing" ? "Zing MP3" : fallback.source === "youtube" ? "YouTube" : ""]
+        .filter(Boolean).join(" · ")
+      : "Chọn một bài trong kết quả để bắt đầu.";
+    this.shadowRoot.querySelector(".now-targets").textContent = targetNames.length
+      ? `Thiết bị: ${targetNames.join(", ")}`
+      : "Chưa chọn thiết bị phát";
+    this.shadowRoot.querySelector(".now-state").textContent = state?.state === "playing"
+      ? "Đang phát"
+      : state?.state === "paused"
+        ? "Tạm dừng"
+        : title
+          ? "Đã gửi"
+          : "Chưa phát";
+
+    const image = this.shadowRoot.querySelector(".now-cover img");
+    const icon = this.shadowRoot.querySelector(".now-cover ha-icon");
+    image.hidden = !/^https?:\/\//.test(imageUrl);
+    icon.hidden = !image.hidden;
+    if (!image.hidden && image.src !== imageUrl) image.src = imageUrl;
   }
 
   _updateSourceButtons() {
@@ -359,9 +597,15 @@ class TriTueYouTubePlayerCard extends HTMLElement {
   }
 
   async _playResult(item, button) {
-    const entityIds = [...this._selectedPlayers];
+    const requestedCount = this._selectedPlayers.size;
+    const entityIds = this._playTargets();
     if (!entityIds.length) {
-      this._setStatus("Hãy chọn ít nhất một loa hoặc màn hình.", true);
+      this._setStatus(
+        requestedCount
+          ? "Thiết bị đã chọn không hỗ trợ nguồn này. Với loa, hãy dùng Zing hoặc URL audio trực tiếp."
+          : "Hãy chọn ít nhất một loa hoặc màn hình.",
+        true,
+      );
       return;
     }
     const entryId = this._entryId();
@@ -379,7 +623,14 @@ class TriTueYouTubePlayerCard extends HTMLElement {
         entity_id: entityIds,
         volume_level: Number(this.shadowRoot.querySelector(".volume").value),
       });
-      this._setStatus(`Đã gửi tới ${entityIds.length} thiết bị.`);
+      this._rememberNowPlaying(item, entityIds);
+      this._syncNowPlaying();
+      const ignored = requestedCount - entityIds.length;
+      this._setStatus(
+        ignored
+          ? `Đã gửi tới ${entityIds.length} thiết bị; bỏ qua ${ignored} thiết bị không tương thích.`
+          : `Đã gửi tới ${entityIds.length} thiết bị.`,
+      );
     } catch (error) {
       this._setStatus(error?.message || "Không thể phát bài đã chọn.", true);
     } finally {
@@ -388,8 +639,11 @@ class TriTueYouTubePlayerCard extends HTMLElement {
   }
 
   async _setVolume() {
-    const entityIds = [...this._selectedPlayers];
-    if (!entityIds.length) return;
+    const entityIds = this._targetsForService("volume_set");
+    if (!entityIds.length) {
+      this._setStatus("Thiết bị đã chọn không hỗ trợ đặt âm lượng tuyệt đối.", true);
+      return;
+    }
     try {
       await this._hass.callService("media_player", "volume_set", {
         entity_id: entityIds,
@@ -401,15 +655,40 @@ class TriTueYouTubePlayerCard extends HTMLElement {
     }
   }
 
-  async _stop() {
-    const entityIds = [...this._selectedPlayers];
+  async _transport(service) {
+    const entityIds = this._targetsForService(service);
     if (!entityIds.length) {
+      this._setStatus("Không có thiết bị đã chọn hỗ trợ lệnh này.", true);
+      return;
+    }
+    const labels = {
+      media_previous_track: "bài trước",
+      media_play_pause: "phát/tạm dừng",
+      media_next_track: "bài tiếp theo",
+    };
+    const button = this.shadowRoot.querySelector(`[data-service="${service}"]`);
+    button.disabled = true;
+    try {
+      await this._hass.callService("media_player", service, { entity_id: entityIds });
+      this._setStatus(`Đã gửi lệnh ${labels[service]} tới ${entityIds.length} thiết bị.`);
+    } catch (error) {
+      this._setStatus(error?.message || "Không thể điều khiển thiết bị.", true);
+    } finally {
+      this._updateTransportState();
+    }
+  }
+
+  async _stop() {
+    const entityIds = this._targetsForService("media_stop");
+    if (!this._selectedPlayers.size && !this._currentItem) {
       this._setStatus("Hãy chọn ít nhất một thiết bị để dừng.", true);
       return;
     }
     try {
       const stopTargets = [...entityIds, this._config.entity];
       await this._hass.callService("media_player", "media_stop", { entity_id: stopTargets });
+      this._clearRememberedNowPlaying();
+      this._syncNowPlaying();
       this._setStatus(`Đã gửi lệnh dừng tới ${entityIds.length} thiết bị.`);
     } catch (error) {
       this._setStatus(error?.message || "Không thể dừng thiết bị.", true);

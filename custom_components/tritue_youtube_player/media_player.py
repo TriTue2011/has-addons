@@ -31,6 +31,7 @@ from .coordinator import YouTubePlayerConfigEntry
 from .entity import YouTubePlayerEntity
 from .playback import (
     UnsupportedCastMediaError,
+    UnsupportedTargetMediaError,
     build_target_request,
     canonical_youtube_url,
 )
@@ -237,6 +238,12 @@ class TriTueYouTubePlayer(YouTubePlayerEntity, MediaPlayerEntity):
         registry_entry = er.async_get(self.hass).async_get(self.target_entity_id)
         return registry_entry.platform if registry_entry else None
 
+    def _target_device_class(self) -> str | None:
+        """Return the HA device class used to distinguish screens from speakers."""
+        if target_state := self.target_state:
+            return target_state.attributes.get("device_class")
+        return None
+
     async def _async_play_on_target(
         self, item: dict[str, Any], media_type: MediaType | str
     ) -> None:
@@ -246,12 +253,18 @@ class TriTueYouTubePlayer(YouTubePlayerEntity, MediaPlayerEntity):
             service_data = build_target_request(
                 item,
                 target_platform=self._target_platform(),
+                target_device_class=self._target_device_class(),
                 requested_media_type=media_type,
             )
         except UnsupportedCastMediaError as error:
             raise HomeAssistantError(
                 translation_domain=DOMAIN,
                 translation_key="cast_playlist_requires_video",
+            ) from error
+        except UnsupportedTargetMediaError as error:
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="target_source_unsupported",
             ) from error
 
         await self.hass.services.async_call(

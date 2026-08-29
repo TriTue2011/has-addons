@@ -69,6 +69,7 @@
     "playback_error": {"message": "The source could not prepare this item for playback."},
     "target_unavailable": {"message": "The selected playback entity is unavailable. Open Configure and choose another media_player."},
     "invalid_target_entity": {"message": "The integration's virtual player cannot be selected as its own output."},
-    "cast_playlist_requires_video": {"message": "Google Cast needs a playlist URL containing both v=VIDEO_ID and list=PLAYLIST_ID."}
+    "cast_playlist_requires_video": {"message": "Google Cast needs a playlist URL containing both v=VIDEO_ID and list=PLAYLIST_ID."},
+    "target_source_unsupported": {"message": "This device cannot play a YouTube page as audio. Choose an Android TV/display Cast entity, or use a direct audio source for speakers."}
   }
 }

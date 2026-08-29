@@ -19,7 +19,11 @@ from .const import (
     DOMAIN,
     SERVICE_PLAY_ON_PLAYERS,
 )
-from .playback import UnsupportedCastMediaError, normalize_target_entity_ids
+from .playback import (
+    UnsupportedCastMediaError,
+    UnsupportedTargetMediaError,
+    normalize_target_entity_ids,
+)
 
 
 PLAY_ON_PLAYERS_SCHEMA = vol.Schema(
@@ -71,9 +75,14 @@ async def _async_handle_play_on_players(
             raise _validation_error("target_unavailable")
 
     platforms = {}
+    device_classes = {}
     for entity_id in entity_ids:
         registry_entry = registry.async_get(entity_id)
         platforms[entity_id] = registry_entry.platform if registry_entry else None
+        state = hass.states.get(entity_id)
+        device_classes[entity_id] = (
+            state.attributes.get("device_class") if state else None
+        )
 
     try:
         await async_play_on_players(
@@ -83,6 +92,7 @@ async def _async_handle_play_on_players(
             target=call.data[CONF_TARGET],
             entity_ids=entity_ids,
             target_platforms=platforms,
+            target_device_classes=device_classes,
             volume_level=call.data.get(CONF_VOLUME_LEVEL),
             excluded_entity_ids=excluded,
         )
@@ -90,6 +100,8 @@ async def _async_handle_play_on_players(
         raise _validation_error("invalid_target") from error
     except UnsupportedCastMediaError as error:
         raise _validation_error("cast_playlist_requires_video") from error
+    except UnsupportedTargetMediaError as error:
+        raise _validation_error("target_source_unsupported") from error
     except (YouTubePlayerApiError, ValueError) as error:
         raise _validation_error("playback_error") from error
 

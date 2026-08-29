@@ -19,6 +19,7 @@ async def async_play_on_players(
     target: str,
     entity_ids: Any,
     target_platforms: dict[str, str | None],
+    target_device_classes: dict[str, str | None] | None = None,
     volume_level: float | None = None,
     excluded_entity_ids: set[str] | None = None,
 ) -> dict[str, Any]:
@@ -26,6 +27,7 @@ async def async_play_on_players(
     targets = normalize_target_entity_ids(
         entity_ids, excluded=excluded_entity_ids or set()
     )
+    target_device_classes = target_device_classes or {}
     if volume_level is not None:
         volume_level = float(volume_level)
         if not 0 <= volume_level <= 1:
@@ -51,12 +53,16 @@ async def async_play_on_players(
     elif source == "youtube":
         played = await client.async_play(target)
         item = played.get("item") or {}
-        for entity_id in targets:
-            service_data = build_target_request(
+        requests = {
+            entity_id: build_target_request(
                 item,
                 target_platform=target_platforms.get(entity_id),
+                target_device_class=target_device_classes.get(entity_id),
                 requested_media_type="video",
             )
+            for entity_id in targets
+        }
+        for entity_id, service_data in requests.items():
             await hass.services.async_call(
                 "media_player",
                 "play_media",
