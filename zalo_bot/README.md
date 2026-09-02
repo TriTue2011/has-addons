@@ -64,7 +64,7 @@ nhập rồi dùng chức năng đổi mật khẩu.
 
 Add-on đăng nhập bằng **chính tài khoản Zalo của bạn**. Vì thế mọi tin **bạn** tự gõ đều bị Zalo đánh dấu là tin *tự gửi* (`isSelf`). Mặc định add-on **không** đẩy tin tự gửi ra webhook — nếu đẩy, bên nhận (bot AI / n8n / automation) sẽ trả lời, câu trả lời lại là một tin tự gửi mới, rồi lại bị trả lời… thành **vòng lặp** bot tự nói chuyện với chính mình.
 
-Muốn bot trả lời cả khi **chính bạn** nhắn (ví dụ để tự điều khiển bot trong một nhóm), đặt `self_reply_keyword` thành một **từ khóa riêng** — ví dụ `@bot` hoặc `/hoi`. Khi đó:
+**Cách chính (khuyên dùng): đặt theo từng thread trên WebUI.** Mở add-on → nút **«Trả lời tin của tôi»** → thêm từng Thread ID, bật/tắt riêng và đặt **từ khóa riêng** cho mỗi thread (mặc định tắt). Lấy Thread ID ở trang **Theo dõi tin nhắn**. Khi bật:
 
 - Tin **bạn** gõ **có chứa từ khóa** đó → được đẩy ra webhook, kèm cờ `self_reply: true`. Đây là lệnh của bạn.
 - **Câu bot tự sinh** (câu trả lời) là văn xuôi **không** chứa từ khóa → **không** được đẩy → **không lặp**.
@@ -72,6 +72,8 @@ Muốn bot trả lời cả khi **chính bạn** nhắn (ví dụ để tự đi
 Nói cách khác, **chính từ khóa là chốt chống lặp**: chọn một từ mà bot sẽ không bao giờ tự nói ra trong câu trả lời (một ký hiệu như `@bot`, `//`, `#me` là an toàn).
 
 **Với automation Home Assistant:** trigger theo trường `self_reply == true` để bắt đúng lệnh của bạn; đừng trigger theo `isSelf` trần, kẻo dính lại vòng lặp.
+
+**Tuỳ chọn `self_reply_keyword`** (env/HA option) nay chỉ là **từ khóa dự phòng toàn cục**: dùng khi một thread đã bật nhưng bỏ trống ô từ khóa. Cách chính vẫn là đặt per-thread trên WebUI.
 
 **Với gateway ChatGPT (c2a):** gateway đã có ô cài đặt riêng theo từng thread trong tab «Lọc thread» → không cần đặt `self_reply_keyword` ở add-on cho đường đó.
 

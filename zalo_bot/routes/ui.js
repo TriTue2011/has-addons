@@ -4,6 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { zaloAccounts, loginZaloAccount } from '../api/zalo/zalo.js';
 import { proxyService } from '../services/proxyService.js';
+import { selfReplyService } from '../services/selfReplyService.js';
 import { adminMiddleware } from '../services/authService.js';
 import dotenv from 'dotenv';
 import { broadcastMessage } from '../services/websocketHub.js';
@@ -202,6 +203,48 @@ router.delete('/proxies', adminMiddleware, (req, res) => {
       res.json({ success: true, message: 'Xóa proxy thành công' });
   } catch (error) {
       res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ── "Tra loi ca tin cua chinh toi" theo tung thread ─────────────────────────
+// Bat/tat + tu khoa RIENG cho moi threadId, mac dinh tat. Chong lap: chi tin
+// isSelf chua tu khoa cua thread moi duoc day kem co self_reply.
+router.get('/self-reply', adminMiddleware, (req, res) => {
+  const acceptHeader = req.headers.accept || '';
+  if (acceptHeader.includes('application/json')) {
+    return res.json({ success: true, data: selfReplyService.getAll() });
+  }
+  res.render('self-reply');
+});
+
+router.post('/self-reply', adminMiddleware, (req, res) => {
+  const { threadId, enabled, keyword } = req.body || {};
+  if (!threadId || !String(threadId).trim()) {
+    return res.status(400).json({ success: false, error: 'threadId khong hop le' });
+  }
+  const on = enabled === true || enabled === 'true' || enabled === 1 || enabled === '1';
+  const kw = String(keyword || '').trim();
+  if (on && !kw) {
+    return res.status(400).json({ success: false, error: 'Bat thi PHAI co tu khoa (chong lap). Vd @bot, //, #me.' });
+  }
+  try {
+    const saved = selfReplyService.set(String(threadId).trim(), on, kw);
+    res.json({ success: true, data: saved });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.delete('/self-reply', adminMiddleware, (req, res) => {
+  const { threadId } = req.body || {};
+  if (!threadId || !String(threadId).trim()) {
+    return res.status(400).json({ success: false, error: 'threadId khong hop le' });
+  }
+  try {
+    selfReplyService.remove(String(threadId).trim());
+    res.json({ success: true, message: 'Da xoa' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 

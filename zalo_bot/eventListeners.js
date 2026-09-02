@@ -8,7 +8,7 @@ import { noteSelfMessage } from './services/messageExpiry.js';
 import { reconnectDelay } from './services/reconnectPolicy.js';
 import { beginReconnectAttempt, invalidateReconnectAttempt } from './services/reconnectGuard.js';
 import { withTimeout } from './utils/timeout.js';
-import { getSelfReplyKeyword } from './config/addon.js';
+import { getSelfReplyConfig } from './services/selfReplyService.js';
 
 let reconnectLogin = null;
 let accountRegistry = [];
@@ -124,15 +124,16 @@ export function setupEventListeners(api) {
                 triggerN8nWebhook(msgWithOwnId, messageWebhookUrl);
             }
         } else {
-            // TIN CHU TU GUI: mac dinh KHONG day (chong lap). CHI day khi da cau
-            // hinh self_reply_keyword VA tin chua tu khoa do — do la lenh cua chu,
-            // gan co self_reply=true. Cau bot tu sinh khong chua tu khoa -> van
-            // khong day -> khong lap.
+            // TIN CHU TU GUI: mac dinh KHONG day (chong lap). CHI day khi thread
+            // nay da BAT (cau hinh per-thread tren WebUI) VA tin chua TU KHOA cua
+            // thread do — do la lenh cua chu, gan co self_reply=true. Cau bot tu
+            // sinh khong chua tu khoa -> van khong day -> khong lap.
             try {
-                const kw = getSelfReplyKeyword();
+                const tid = String(msg?.threadId ?? msg?.data?.idTo ?? '');
+                const cfg = getSelfReplyConfig(tid);
                 const c = msg?.data?.content;
                 const text = typeof c === 'string' ? c : (c && (c.msg || c.title)) || '';
-                if (kw && typeof text === 'string' && text.includes(kw)) {
+                if (cfg.enabled && cfg.keyword && typeof text === 'string' && text.includes(cfg.keyword)) {
                     msgWithOwnId.self_reply = true;
                     const selfWebhookUrl = getWebhookUrl("messageWebhookUrl", ownId);
                     if (selfWebhookUrl) {

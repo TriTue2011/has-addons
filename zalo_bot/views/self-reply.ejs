@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trả lời tin của chính tôi</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
+</head>
+<body>
+<div class="container my-4" style="max-width:820px">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="mb-0"><i class="fas fa-hand-paper text-success"></i> Trả lời cả tin của chính tôi</h3>
+        <a href="/" class="btn btn-outline-secondary btn-sm">← Trang chủ</a>
+    </div>
+
+    <div class="alert alert-info small">
+        Bot đăng nhập bằng <b>chính tài khoản của bạn</b>, nên tin <b>bạn tự gõ</b> bị Zalo đánh
+        dấu là tin tự gửi và mặc định bị bỏ (chống bot tự trả lời chính mình → lặp). Bật một
+        thread + đặt <b>từ khóa riêng</b> thì tin của bạn <b>có chứa từ khóa</b> đó sẽ được xử lý.
+        <br>⚠️ <b>Từ khóa là chốt chống lặp</b>: chọn ký hiệu bot không bao giờ tự nói ra —
+        ví dụ <code>@bot</code>, <code>//</code>, <code>#me</code>.
+        <br>Chưa biết Thread ID? Mở trang <b>Theo dõi tin nhắn</b> để xem/chép ID.
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header">Thêm / cập nhật một thread</div>
+        <div class="card-body">
+            <form id="srForm">
+                <div class="form-group">
+                    <input type="text" class="form-control" id="srThreadId" placeholder="Thread ID (ID cuộc trò chuyện/nhóm)" required>
+                </div>
+                <div class="form-group">
+                    <input type="text" class="form-control" id="srKeyword" placeholder="Từ khóa riêng, vd @bot">
+                </div>
+                <div class="form-check mb-2">
+                    <input type="checkbox" class="form-check-input" id="srEnabled">
+                    <label class="form-check-label" for="srEnabled">Bật cho thread này</label>
+                </div>
+                <button type="submit" class="btn btn-success">Lưu</button>
+                <button type="button" class="btn btn-outline-secondary" id="srClear">Nhập lại</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">Thread đã cấu hình (<span id="srCount">0</span>)</div>
+        <ul class="list-group list-group-flush" id="srList">
+            <li class="list-group-item text-muted" id="srEmpty">Chưa cấu hình thread nào.</li>
+        </ul>
+    </div>
+</div>
+
+<script>
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function updateCount(){document.getElementById('srCount').textContent=document.querySelectorAll('#srList .sr-item').length;}
+function showEmptyIfNeeded(){if(!document.querySelectorAll('#srList .sr-item').length){var e=document.getElementById('srList');if(!document.getElementById('srEmpty')){e.innerHTML='<li class="list-group-item text-muted" id="srEmpty">Chưa cấu hình thread nào.</li>';}}}
+function addItem(threadId,cfg){
+    var list=document.getElementById('srList');
+    var empty=document.getElementById('srEmpty');if(empty)empty.remove();
+    var old=list.querySelector('[data-tid="'+CSS.escape(threadId)+'"]');if(old)old.remove();
+    var li=document.createElement('li');
+    li.className='list-group-item sr-item d-flex justify-content-between align-items-center';
+    li.setAttribute('data-tid',threadId);
+    var badge=cfg.enabled?'<span class="badge badge-success">BẬT</span>':'<span class="badge badge-secondary">TẮT</span>';
+    li.innerHTML='<div style="min-width:0"><div style="font-family:monospace;word-break:break-all">'+escapeHtml(threadId)+'</div>'+
+        '<small>'+badge+' &nbsp; Từ khóa: <b>'+(cfg.keyword?escapeHtml(cfg.keyword):'(chưa có)')+'</b></small></div>'+
+        '<div class="btn-group btn-group-sm"><button class="btn btn-outline-primary sr-edit">Sửa</button>'+
+        '<button class="btn btn-outline-danger sr-del">Xóa</button></div>';
+    li.querySelector('.sr-edit').addEventListener('click',function(){
+        document.getElementById('srThreadId').value=threadId;
+        document.getElementById('srKeyword').value=cfg.keyword||'';
+        document.getElementById('srEnabled').checked=!!cfg.enabled;
+        window.scrollTo({top:0,behavior:'smooth'});
+    });
+    li.querySelector('.sr-del').addEventListener('click',function(){
+        if(!confirm('Xóa cấu hình của thread này?'))return;
+        fetch('/self-reply',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({threadId:threadId})})
+            .then(function(r){return r.json();}).then(function(d){
+                if(d.success){li.remove();updateCount();showEmptyIfNeeded();}else{alert(d.error||'Lỗi khi xóa');}
+            });
+    });
+    list.insertBefore(li,list.firstChild);updateCount();
+}
+document.getElementById('srClear').addEventListener('click',function(){
+    document.getElementById('srThreadId').value='';document.getElementById('srKeyword').value='';document.getElementById('srEnabled').checked=false;
+});
+document.getElementById('srForm').addEventListener('submit',function(e){
+    e.preventDefault();
+    var threadId=document.getElementById('srThreadId').value.trim();
+    var keyword=document.getElementById('srKeyword').value.trim();
+    var enabled=document.getElementById('srEnabled').checked;
+    if(!threadId)return;
+    if(enabled&&!keyword){alert('Bật thì PHẢI có từ khóa (chống lặp). Vd @bot, //, #me.');return;}
+    fetch('/self-reply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({threadId:threadId,enabled:enabled,keyword:keyword})})
+        .then(function(r){return r.json();}).then(function(d){
+            if(d.success){addItem(threadId,d.data);document.getElementById('srClear').click();}else{alert(d.error||'Lỗi khi lưu');}
+        }).catch(function(){alert('Lỗi kết nối');});
+});
+fetch('/self-reply',{headers:{'Accept':'application/json'}}).then(function(r){return r.json();}).then(function(d){
+    if(d.success&&d.data&&Object.keys(d.data).length){
+        document.getElementById('srList').innerHTML='';
+        Object.keys(d.data).forEach(function(tid){addItem(tid,d.data[tid]);});
+    }
+});
+</script>
+</body>
+</html>
