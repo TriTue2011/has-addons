@@ -55,9 +55,13 @@ Add-on Store.
 | `admin_password` | Add-on sinh một mật khẩu ngẫu nhiên, giữ lại, và ghi ra tệp `THONG-TIN-DANG-NHAP.txt` ngay trong thư mục dữ liệu — mở bằng File editor hoặc Samba là thấy. Cũng in ra log mỗi lần khởi động. |
 | `api_key` | Add-on tự sinh một khoá, giữ lại, và ghi vào `THONG-TIN-DANG-NHAP.txt`. Chỉ cần chép ra khi gọi thẳng API bằng REST command hay script. |
 
-Đổi `admin_password` sau khi đã có tài khoản thì **không** đổi mật khẩu đang
-dùng — giá trị này chỉ áp dụng lúc tạo `users.json` lần đầu. Muốn đổi thì đăng
-nhập rồi dùng chức năng đổi mật khẩu.
+**Điền `admin_password` là ĐỔI được mật khẩu.** Đặt giá trị mới rồi khởi động lại
+add-on: mật khẩu tài khoản `admin` được đặt lại đúng bằng giá trị đó — đây cũng là
+cách vào lại khi lỡ quên. Chỉ áp khi giá trị **thay đổi**, nên khởi động lại nhiều
+lần không tốn thêm gì.
+
+Bỏ **trống** ô này thì add-on không đụng tới mật khẩu: bạn tự quản bằng chức năng
+đổi mật khẩu trên giao diện, và mật khẩu đó giữ nguyên qua các lần khởi động.
 
 ## Trả lời cả tin của CHÍNH BẠN (khi bot chạy trên tài khoản của bạn)
 

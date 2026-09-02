@@ -4,7 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import crypto from 'crypto';
 import { getDataDirectory } from '../config/addon.js';
-import { writeJsonAtomicSync } from '../utils/atomicFile.js';
+import { writeJsonAtomicSync, writeFileAtomicSync } from '../utils/atomicFile.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -132,8 +132,52 @@ const initUserFile = () => {
   }
 };
 
+// Ô «Mật khẩu quản trị» của add-on phải CÓ HIỆU LỰC THẬT.
+//
+// Trước đây nó chỉ dùng lúc TẠO users.json lần đầu: file đã có thì đổi ô này
+// không đổi gì cả — trong khi entrypoint.sh vẫn ghi giá trị mới vào
+// THONG-TIN-DANG-NHAP.txt. Tệp đó thành ra NÓI DỐI: người dùng nhập đúng như
+// tệp ghi mà vẫn bị 'Tài khoản hoặc mật khẩu không chính xác' (đo 02/09).
+//
+// Nay: đặt ô này thì nó THẮNG. Chỉ áp khi giá trị THAY ĐỔI — nhận biết bằng vân
+// tay SHA-256 lưu ở .admin_password_applied. Không có vân tay thì mỗi lần khởi
+// động phải chạy PBKDF2 600k chỉ để so sánh, mà trên máy ARM của add-on một
+// lượt mất ~3,4 giây — đủ để watchdog nghi add-on treo.
+//
+// Bỏ TRỐNG ô này = không đụng gì, mật khẩu do người dùng tự quản ở trang đổi
+// mật khẩu (đổi trên giao diện vẫn giữ nguyên qua các lần khởi động).
+function _syncAdminPasswordFromEnv() {
+  const env = String(process.env.ZALO_SERVER_ADMIN_PASSWORD || '').trim();
+  if (!env) return;
+  const markPath = path.join(getDataDirectory(), '.admin_password_applied');
+  const fingerprint = crypto.createHash('sha256').update(env).digest('hex');
+  try {
+    if (fs.existsSync(markPath) && fs.readFileSync(markPath, 'utf8').trim() === fingerprint) {
+      return; // đã áp đúng giá trị này rồi
+    }
+  } catch (e) { /* vân tay hỏng thì cứ áp lại */ }
+  try {
+    const users = JSON.parse(fs.readFileSync(userFilePath, 'utf8'));
+    if (!Array.isArray(users)) return;
+    const uname = _adminUsername();
+    const user = users.find((u) => u && u.username === uname);
+    if (!user) return;
+    const salt = crypto.randomBytes(16).toString('hex');
+    user.salt = salt;
+    user.hash = _hash(env, salt, PBKDF2_ITERS);
+    user.iterations = PBKDF2_ITERS;
+    writeJsonAtomicSync(userFilePath, users);
+    writeFileAtomicSync(markPath, fingerprint + '\n');
+    try { fs.chmodSync(markPath, 0o600); } catch (e) { /* best effort */ }
+    console.log(`[Auth] Da ap mat khau admin tu cau hinh add-on cho '${uname}'.`);
+  } catch (error) {
+    console.warn(`[Auth] Khong ap duoc mat khau tu cau hinh: ${error.message}`);
+  }
+}
+
 // Khởi tạo file người dùng
 initUserFile();
+_syncAdminPasswordFromEnv();
 
 // Đọc dữ liệu người dùng từ file
 const getUsers = () => {
