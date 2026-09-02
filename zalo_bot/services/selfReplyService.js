@@ -8,9 +8,9 @@
 //
 // Lưu ở data-dir/self-reply-config.json: { "<threadId>": { enabled, keyword } }.
 // Quản lý qua WebUI của add-on (dùng được cho cả add-on HA lẫn docker).
+// Không còn tuỳ chọn toàn cục nào — mỗi thread tự khai, mặc định tắt.
 import fs from 'fs';
 import { getDataFilePath } from '../config/addon.js';
-import { getSelfReplyKeyword } from '../config/addon.js';
 import { writeJsonAtomicSync } from '../utils/atomicFile.js';
 
 function configPath() {
@@ -41,14 +41,12 @@ class SelfReplyService {
     }
 
     // Cấu hình hiệu lực cho một thread: {enabled, keyword}. Không có bản ghi =
-    // tắt (mặc định). Keyword rỗng thì rơi về từ khóa toàn cục (env) nếu có.
+    // tắt (mặc định). Bật mà keyword rỗng cũng coi như tắt — không có từ khóa
+    // thì không phân biệt được tin chủ với câu bot tự sinh (chống lặp).
     get(threadId) {
         const v = this.map[String(threadId || '').trim()];
-        const enabled = !!(v && v.enabled);
-        let keyword = v && typeof v.keyword === 'string' ? v.keyword.trim() : '';
-        if (enabled && !keyword) {
-            try { keyword = (getSelfReplyKeyword() || '').trim(); } catch (_) { keyword = ''; }
-        }
+        const keyword = v && typeof v.keyword === 'string' ? v.keyword.trim() : '';
+        const enabled = !!(v && v.enabled) && !!keyword;
         return { enabled, keyword };
     }
 

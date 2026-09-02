@@ -54,7 +54,6 @@ Add-on Store.
 | `session_secret` | Add-on tự sinh một khoá rồi giữ lại trong thư mục dữ liệu, nên phiên vẫn sống qua restart. Chỉ cần điền nếu muốn tự quản khoá hoặc dùng chung giữa nhiều nơi. |
 | `admin_password` | Add-on sinh một mật khẩu ngẫu nhiên, giữ lại, và ghi ra tệp `THONG-TIN-DANG-NHAP.txt` ngay trong thư mục dữ liệu — mở bằng File editor hoặc Samba là thấy. Cũng in ra log mỗi lần khởi động. |
 | `api_key` | Add-on tự sinh một khoá, giữ lại, và ghi vào `THONG-TIN-DANG-NHAP.txt`. Chỉ cần chép ra khi gọi thẳng API bằng REST command hay script. |
-| `self_reply_keyword` | **Để trống = tắt** (mặc định, không đổi gì). Điền một từ khóa để bật «trả lời cả tin của chính bạn» — xem mục riêng bên dưới. |
 
 Đổi `admin_password` sau khi đã có tài khoản thì **không** đổi mật khẩu đang
 dùng — giá trị này chỉ áp dụng lúc tạo `users.json` lần đầu. Muốn đổi thì đăng
@@ -73,9 +72,7 @@ Nói cách khác, **chính từ khóa là chốt chống lặp**: chọn một t
 
 **Với automation Home Assistant:** trigger theo trường `self_reply == true` để bắt đúng lệnh của bạn; đừng trigger theo `isSelf` trần, kẻo dính lại vòng lặp.
 
-**Tuỳ chọn `self_reply_keyword`** (env/HA option) nay chỉ là **từ khóa dự phòng toàn cục**: dùng khi một thread đã bật nhưng bỏ trống ô từ khóa. Cách chính vẫn là đặt per-thread trên WebUI.
-
-**Với gateway ChatGPT (c2a):** gateway đã có ô cài đặt riêng theo từng thread trong tab «Lọc thread» → không cần đặt `self_reply_keyword` ở add-on cho đường đó.
+**Với gateway ChatGPT (c2a):** gateway có ô cài đặt riêng theo từng thread trong tab «Lọc thread» → dùng bên đó, không cần cấu hình gì ở add-on cho đường này.
 
 Đặt xong nhớ **tăng version add-on** thì Home Assistant mới thấy bản mới (bản này đã là `2026.9.2.1`), rồi bấm **Cập nhật**.
 
@@ -165,9 +162,6 @@ services:
       SESSION_SECRET: "doi-thanh-chuoi-ngau-nhien-dai"
       ZALO_SERVER_ADMIN_PASSWORD: "doi-thanh-mat-khau-manh"
       ZALO_SERVER_API_KEY: "doi-thanh-khoa-ngau-nhien-dai"
-      # Bật «trả lời cả tin của chính bạn» (chống lặp) — xem mục riêng.
-      # Để trống hoặc bỏ dòng này = tắt.
-      SELF_REPLY_KEYWORD: ""
     volumes:
       - ./zalobot-data:/app/data
 ```
