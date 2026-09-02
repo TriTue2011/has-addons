@@ -9,6 +9,13 @@ const __dirname = path.dirname(__filename);
 // Default data directory path
 let dataDirectory = process.env.DATA_DIRECTORY || '/config/zalo_bot';
 
+// Tu khoa "tra loi ca tin cua chinh chu": bot chay tren CHINH tai khoan
+// nguoi dung thi tin chu tu go bi Zalo danh isSelf. Add-on chi day tin isSelf
+// khi no CHUA tu khoa nay (self_reply=true) — cau bot tu sinh khong chua tu
+// khoa nen khong day -> khong lap. Rong = tinh nang tat (giu hanh vi cu).
+// Nguon: env SELF_REPLY_KEYWORD (docker compose) hoac options.json (HA).
+let selfReplyKeyword = process.env.SELF_REPLY_KEYWORD || '';
+
 // Function to load Home Assistant options if available
 export function loadHomeAssistantOptions() {
   try {
@@ -19,6 +26,10 @@ export function loadHomeAssistantOptions() {
       if (options.data_directory) {
         dataDirectory = options.data_directory;
         console.log(`Loaded data directory from Home Assistant options: ${dataDirectory}`);
+      }
+      if (typeof options.self_reply_keyword === 'string') {
+        selfReplyKeyword = options.self_reply_keyword.trim();
+        if (selfReplyKeyword) console.log('Loaded self_reply_keyword from Home Assistant options');
       }
     }
   } catch (error) {
@@ -41,6 +52,11 @@ export function loadHomeAssistantOptions() {
 // Get the absolute data directory path
 export function getDataDirectory() {
   return dataDirectory;
+}
+
+// Tu khoa "tra loi ca tin cua chinh chu" (rong = tat).
+export function getSelfReplyKeyword() {
+  return selfReplyKeyword;
 }
 
 // Get the path to a file within the data directory

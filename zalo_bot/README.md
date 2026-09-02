@@ -54,10 +54,28 @@ Add-on Store.
 | `session_secret` | Add-on tự sinh một khoá rồi giữ lại trong thư mục dữ liệu, nên phiên vẫn sống qua restart. Chỉ cần điền nếu muốn tự quản khoá hoặc dùng chung giữa nhiều nơi. |
 | `admin_password` | Add-on sinh một mật khẩu ngẫu nhiên, giữ lại, và ghi ra tệp `THONG-TIN-DANG-NHAP.txt` ngay trong thư mục dữ liệu — mở bằng File editor hoặc Samba là thấy. Cũng in ra log mỗi lần khởi động. |
 | `api_key` | Add-on tự sinh một khoá, giữ lại, và ghi vào `THONG-TIN-DANG-NHAP.txt`. Chỉ cần chép ra khi gọi thẳng API bằng REST command hay script. |
+| `self_reply_keyword` | **Để trống = tắt** (mặc định, không đổi gì). Điền một từ khóa để bật «trả lời cả tin của chính bạn» — xem mục riêng bên dưới. |
 
 Đổi `admin_password` sau khi đã có tài khoản thì **không** đổi mật khẩu đang
 dùng — giá trị này chỉ áp dụng lúc tạo `users.json` lần đầu. Muốn đổi thì đăng
 nhập rồi dùng chức năng đổi mật khẩu.
+
+## Trả lời cả tin của CHÍNH BẠN (khi bot chạy trên tài khoản của bạn)
+
+Add-on đăng nhập bằng **chính tài khoản Zalo của bạn**. Vì thế mọi tin **bạn** tự gõ đều bị Zalo đánh dấu là tin *tự gửi* (`isSelf`). Mặc định add-on **không** đẩy tin tự gửi ra webhook — nếu đẩy, bên nhận (bot AI / n8n / automation) sẽ trả lời, câu trả lời lại là một tin tự gửi mới, rồi lại bị trả lời… thành **vòng lặp** bot tự nói chuyện với chính mình.
+
+Muốn bot trả lời cả khi **chính bạn** nhắn (ví dụ để tự điều khiển bot trong một nhóm), đặt `self_reply_keyword` thành một **từ khóa riêng** — ví dụ `@bot` hoặc `/hoi`. Khi đó:
+
+- Tin **bạn** gõ **có chứa từ khóa** đó → được đẩy ra webhook, kèm cờ `self_reply: true`. Đây là lệnh của bạn.
+- **Câu bot tự sinh** (câu trả lời) là văn xuôi **không** chứa từ khóa → **không** được đẩy → **không lặp**.
+
+Nói cách khác, **chính từ khóa là chốt chống lặp**: chọn một từ mà bot sẽ không bao giờ tự nói ra trong câu trả lời (một ký hiệu như `@bot`, `//`, `#me` là an toàn).
+
+**Với automation Home Assistant:** trigger theo trường `self_reply == true` để bắt đúng lệnh của bạn; đừng trigger theo `isSelf` trần, kẻo dính lại vòng lặp.
+
+**Với gateway ChatGPT (c2a):** gateway đã có ô cài đặt riêng theo từng thread trong tab «Lọc thread» → không cần đặt `self_reply_keyword` ở add-on cho đường đó.
+
+Đặt xong nhớ **tăng version add-on** thì Home Assistant mới thấy bản mới (bản này đã là `2026.9.2.1`), rồi bấm **Cập nhật**.
 
 ## Kiểm tra add-on còn sống
 
@@ -145,6 +163,9 @@ services:
       SESSION_SECRET: "doi-thanh-chuoi-ngau-nhien-dai"
       ZALO_SERVER_ADMIN_PASSWORD: "doi-thanh-mat-khau-manh"
       ZALO_SERVER_API_KEY: "doi-thanh-khoa-ngau-nhien-dai"
+      # Bật «trả lời cả tin của chính bạn» (chống lặp) — xem mục riêng.
+      # Để trống hoặc bỏ dòng này = tắt.
+      SELF_REPLY_KEYWORD: ""
     volumes:
       - ./zalobot-data:/app/data
 ```

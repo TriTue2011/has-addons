@@ -8,6 +8,7 @@ import { noteSelfMessage } from './services/messageExpiry.js';
 import { reconnectDelay } from './services/reconnectPolicy.js';
 import { beginReconnectAttempt, invalidateReconnectAttempt } from './services/reconnectGuard.js';
 import { withTimeout } from './utils/timeout.js';
+import { getSelfReplyKeyword } from './config/addon.js';
 
 let reconnectLogin = null;
 let accountRegistry = [];
@@ -122,6 +123,23 @@ export function setupEventListeners(api) {
             if (messageWebhookUrl) {
                 triggerN8nWebhook(msgWithOwnId, messageWebhookUrl);
             }
+        } else {
+            // TIN CHU TU GUI: mac dinh KHONG day (chong lap). CHI day khi da cau
+            // hinh self_reply_keyword VA tin chua tu khoa do — do la lenh cua chu,
+            // gan co self_reply=true. Cau bot tu sinh khong chua tu khoa -> van
+            // khong day -> khong lap.
+            try {
+                const kw = getSelfReplyKeyword();
+                const c = msg?.data?.content;
+                const text = typeof c === 'string' ? c : (c && (c.msg || c.title)) || '';
+                if (kw && typeof text === 'string' && text.includes(kw)) {
+                    msgWithOwnId.self_reply = true;
+                    const selfWebhookUrl = getWebhookUrl("messageWebhookUrl", ownId);
+                    if (selfWebhookUrl) {
+                        triggerN8nWebhook(msgWithOwnId, selfWebhookUrl);
+                    }
+                }
+            } catch (e) { /* bo qua, khong day */ }
         }
 
         // Trang theo dõi tin nhắn vẫn nhận cả hai chiều để soi được hội thoại.
