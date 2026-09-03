@@ -8,7 +8,7 @@ import { noteSelfMessage } from './services/messageExpiry.js';
 import { reconnectDelay } from './services/reconnectPolicy.js';
 import { beginReconnectAttempt, invalidateReconnectAttempt } from './services/reconnectGuard.js';
 import { withTimeout } from './utils/timeout.js';
-import { khopTuKhoa } from './services/selfReplyService.js';
+import { khopTuKhoa, nhanTag } from './services/selfReplyService.js';
 
 let reconnectLogin = null;
 let accountRegistry = [];
@@ -119,6 +119,14 @@ export function setupEventListeners(api) {
         // chính mình. Log 18/08: mỗi tin trích dẫn lại tin trước của chính bot,
         // lặp đều khoảng 4 giây cho tới khi tắt add-on.
         if (!msg.isSelf) {
+            // Dan nhan tag cho tin nguoi khac (khong chan gi, van day het) de
+            // automation chi phai re theo MOT truong tag_khop cho ca hai chieu.
+            const tidNgoai = String(msg?.threadId ?? msg?.data?.idTo ?? '');
+            const cNgoai = msg?.data?.content;
+            const textNgoai = typeof cNgoai === 'string'
+                ? cNgoai : (cNgoai && (cNgoai.msg || cNgoai.title)) || '';
+            const tagNgoai = nhanTag(tidNgoai, textNgoai);
+            if (tagNgoai) msgWithOwnId.tag_khop = tagNgoai;
             const messageWebhookUrl = getWebhookUrl("messageWebhookUrl", ownId);
             if (messageWebhookUrl) {
                 triggerN8nWebhook(msgWithOwnId, messageWebhookUrl);

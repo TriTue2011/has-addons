@@ -28,7 +28,7 @@ fs.writeFileSync(
   'utf8',
 );
 
-const { selfReplyService, khopTuKhoa, setSelfReply, getAllSelfReply } =
+const { selfReplyService, khopTuKhoa, nhanTag, setSelfReply, getAllSelfReply } =
   await import('../services/selfReplyService.js');
 
 test('trung bat ky tu khoa nao cung khop, va bao dung tu khoa do', () => {
@@ -80,4 +80,18 @@ test('luu roi doc lai tu dia van dung', async () => {
   const tren_dia = JSON.parse(
     fs.readFileSync(path.join(dataDirectory, 'self-reply-config.json'), 'utf8'));
   assert.deepEqual(tren_dia.t8, { enabled: true, keywords: ['@ha'] });
+});
+
+test('nhan tag cho tin NGUOI KHAC: khong doi thread phai bat', () => {
+  // Co bat la chot chong lap, chi can cho tin TU GUI. Tin nguoi khac van duoc
+  // day di het, chi can biet trung tag nao de automation re nhanh.
+  setSelfReply('t9', false, ['@ha', '@n8n']);
+  assert.equal(khopTuKhoa('t9', '@n8n chay di'), '');   // cong: dong
+  assert.equal(nhanTag('t9', '@n8n chay di'), '@n8n');  // nhan: van co
+});
+
+test('nhan tag: khong trung tu khoa nao thi rong, khong bia', () => {
+  setSelfReply('t10', true, ['@ha']);
+  assert.equal(nhanTag('t10', 'cho hoi cai nay bao nhieu'), '');
+  assert.equal(nhanTag('thread-la', '@ha bat den'), '');
 });

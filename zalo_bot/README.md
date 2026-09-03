@@ -82,17 +82,97 @@ Nói cách khác, **chính từ khóa là chốt chống lặp**: chọn một t
 { "isSelf": true, "self_reply": true, "tag_khop": "@n8n", "...": "..." }
 ```
 
-Add-on **không** tự định tuyến — nó chỉ báo trúng tag nào, còn gửi đi đâu là việc của bên nhận. Làm vậy để chỉ có **một** nơi quyết định "ai trả lời cái gì", khỏi phải dò hai chỗ khi có sự cố. Bên Home Assistant rẽ nhánh bằng `choose:`:
+`tag_khop` có mặt ở **cả hai chiều**: tin của bạn, và tin của người khác trong nhóm. Khác nhau ở chỗ tin của bạn **phải** trúng tag mới được đẩy đi (đó là chốt chống lặp), còn tin người khác thì luôn đẩy hết — trúng tag chỉ là để dán nhãn cho automation dễ rẽ.
 
-```yaml
-- choose:
-    - conditions: "{{ trigger.json.tag_khop == '@n8n' }}"
-      sequence: [ ... gọi n8n ... ]
-    - conditions: "{{ trigger.json.tag_khop == '@ha' }}"
-      sequence: [ ... conversation.process ... ]
-```
+Add-on **không** tự định tuyến: nó chỉ báo trúng tag nào, còn gửi đi đâu là việc của bên nhận. Làm vậy để chỉ có **một** nơi quyết định "ai trả lời cái gì", khỏi phải dò hai chỗ khi có sự cố.
 
 Khớp **không phân biệt hoa thường** (gõ `@Ha` hay `@ha` đều trúng) và từ khóa **dài được thử trước**, nên khai cả `@n` lẫn `@n8n` thì `@n8n` vẫn trúng đúng của nó.
+
+#### Automation mẫu — dán vào là chạy
+
+Đổi ba chỗ: `webhook_id`, danh sách `thread_cho_phep`, và `account_selection`.
+
+```yaml
+alias: zalo bot
+triggers:
+  - trigger: webhook
+    webhook_id: doi-thanh-id-cua-ban
+    allowed_methods: [POST, PUT, GET, HEAD]
+    local_only: false
+conditions:
+  # Chặn hai thứ: gói không phải tin nhắn (sự kiện nhóm, thu hồi, reaction —
+  # không có `content`, đụng vào là Jinja ném lỗi), và thread ngoài danh sách.
+  - condition: template
+    value_template: >-
+      {% set d = trigger.json.data | default({}, true) %}
+      {% set thread_cho_phep = ['1234567890', '9876543210'] %}
+      {{ d.content is string and d.content | trim
+         and (trigger.json.threadId | string) in thread_cho_phep }}
+actions:
+  - variables:
+      tag: "{{ trigger.json.tag_khop | default('', true) }}"
+      # Cắt tag khỏi câu hỏi, không phân biệt hoa thường. Cắt bằng vị trí chứ
+      # KHÔNG bằng regex: tag có thể chứa ký tự đặc biệt (`//`, `#me`, dấu
+      # chấm…) làm hỏng mẫu regex, mà escape thì Home Assistant không có bộ lọc
+      # sẵn. Bỏ luôn dấu hai chấm ngay sau tag nếu có ("@Ô Xin: câu hỏi").
+      cau: >-
+        {% set c = trigger.json.data.content %}
+        {% set t = tag | lower %}
+        {% set vt = (c | lower).find(t) if tag else -1 %}
+        {% set con = (c[:vt] ~ c[vt + t | length:]) | trim if vt >= 0 else c %}
+        {{ (con[1:] | trim if con.startswith(':') else con) | replace('  ', ' ') }}
+      # Tin đang được trích dẫn: webhook mang sẵn quote.msg và quote.fromD.
+      cau_hoi: >-
+        {% set q = trigger.json.data.quote | default({}, true) %}
+        {%- if q.msg is defined and q.msg -%}
+        [Trích dẫn tin của {{ q.fromD | default('người khác', true) }}: "{{ q.msg }}"]
+        {% endif -%}
+        {{ cau }}
+  - choose:
+      # ── @n8n → đẩy sang n8n, không phiền tới AI ──────────────────────────
+      - conditions: "{{ tag | lower == '@n8n' }}"
+        sequence:
+          - action: rest_command.goi_n8n
+            data:
+              cau_hoi: "{{ cau_hoi }}"
+              thread_id: "{{ trigger.json.threadId }}"
+      # ── còn lại (kể cả @ha, và tin người khác không tag) → trợ lý AI ─────
+    default:
+      - action: conversation.process
+        data:
+          text: "{{ cau_hoi }}"
+          agent_id: conversation.trungdung
+          conversation_id: "{{ trigger.json.threadId | string }}"
+        response_variable: tra_loi
+      - action: zalo_bot.send_message
+        data:
+          # Nhóm là 1, chat 1-1 là 0 — bám theo tin vừa nhận.
+          type: "{{ trigger.json.type | default(0) | int }}"
+          thread_id: "{{ trigger.json.threadId | string }}"
+          account_selection: "+84xxxxxxxxx"
+          message: >-
+            {{ tra_loi.response.speech.plain.speech
+               | default('Xin lỗi, tôi không hiểu.', true) }}
+          # PHẢI ra đúng MỘT dòng, không thụt đầu. Home Assistant đọc lại chuỗi
+          # này thành object; gặp dòng thụt là nó bỏ cuộc và giữ nguyên CHUỖI,
+          # mà integration chỉ nhận object nên lặng lẽ bỏ qua — trích dẫn không
+          # chạy và KHÔNG có lỗi nào để lần.
+          quote: >-
+            {{ {'content': trigger.json.data.content,
+            'uidFrom': trigger.json.data.uidFrom | string,
+            'cliMsgId': trigger.json.data.cliMsgId | string,
+            'msgType': trigger.json.data.msgType} }}
+# Nhóm đông người nhắn cùng lúc thì "single" bỏ tin thứ hai và chỉ ghi một cảnh
+# báo vào log — nhìn từ ngoài y hệt bot lơ người ta.
+mode: queued
+max: 10
+```
+
+Ba chỗ hay sai, nói trước cho đỡ mất buổi:
+
+1. **Cắt tag bằng `replace` là hỏng** — `replace` của Jinja phân biệt hoa thường, khai `@Ha` mà gõ `@ha` là tag còn nguyên trong câu hỏi, AI nhận cả cái tag vào câu. Cắt theo vị trí như trên thì không dính.
+2. **`quote:` viết bằng khối `|` là hỏng** — chuỗi sinh ra có xuống dòng và dấu cách thụt đầu, Home Assistant không đọc lại thành object được nên gửi đi dạng chuỗi, và integration bỏ qua **không báo lỗi**. Phải dùng `>-` và viết sát lề như trên.
+3. **`thread_id` phải là `threadId`, không phải `uidFrom`** — trong nhóm mà lấy `uidFrom` thì bot nhắn riêng cho người vừa hỏi thay vì trả lời vào nhóm.
 
 Một tài khoản Zalo chỉ giữ được **một phiên đăng nhập** tại một thời điểm — bật add-on lên thì phiên bên gateway ChatGPT (c2a) rớt, và ngược lại. Nên với một tài khoản, hai hệ không bao giờ cùng nghe một nhóm, và bạn chỉ phải lo đúng một việc: **khai tag nào ở đây thì automation rẽ theo tag đó**.
 
@@ -102,7 +182,7 @@ Một tài khoản Zalo chỉ giữ được **một phiên đăng nhập** tạ
 
 **Với gateway ChatGPT (c2a):** gateway có ô cài đặt riêng theo từng thread trong tab «Lọc thread» → dùng bên đó, không cần cấu hình gì ở add-on cho đường này.
 
-Đặt xong nhớ **tăng version add-on** thì Home Assistant mới thấy bản mới (bản này đã là `2026.9.2.7`), rồi bấm **Cập nhật**.
+Đặt xong nhớ **tăng version add-on** thì Home Assistant mới thấy bản mới (bản này đã là `2026.9.2.8`), rồi bấm **Cập nhật**.
 
 ## Kiểm tra add-on còn sống
 

@@ -78,9 +78,14 @@ class SelfReplyService {
     // Không phân biệt hoa thường — cổng gateway bên chatgpt2api cũng vậy, để
     // cùng một từ khóa không xử sự khác nhau tuỳ tầng nào quyết. Thử từ khóa
     // DÀI trước để '@n8n' không bị '@n' nuốt khi khai cả hai.
-    khop(threadId, text) {
+    // ``batBuocBat`` = có đòi thread phải BẬT không. Bật là chốt chống lặp, chỉ
+    // cần cho tin CHỦ TỰ GỬI; tin người khác không có nguy cơ lặp nên dán nhãn
+    // tag được kể cả khi thread chưa bật, để automation chỉ phải rẽ theo MỘT
+    // trường ``tag_khop`` cho cả hai chiều.
+    khop(threadId, text, batBuocBat = true) {
         const { enabled, keywords } = this.get(threadId);
-        if (!enabled || typeof text !== 'string' || !text) return '';
+        if (batBuocBat && !enabled) return '';
+        if (!keywords.length || typeof text !== 'string' || !text) return '';
         const hay = text.toLowerCase();
         for (const kw of [...keywords].sort((a, b) => b.length - a.length)) {
             if (hay.includes(kw.toLowerCase())) return kw;
@@ -118,3 +123,6 @@ export const setSelfReply = (threadId, enabled, keywords) =>
     selfReplyService.set(threadId, enabled, keywords);
 export const removeSelfReply = (threadId) => selfReplyService.remove(threadId);
 export const khopTuKhoa = (threadId, text) => selfReplyService.khop(threadId, text);
+// Dán nhãn tag cho tin NGƯỜI KHÁC: không đòi thread phải bật, vì cờ bật chỉ là
+// chốt chống lặp cho tin tự gửi.
+export const nhanTag = (threadId, text) => selfReplyService.khop(threadId, text, false);
