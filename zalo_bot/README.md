@@ -199,6 +199,74 @@ Docker thuần.
 Trường `accounts` là số tài khoản Zalo đang đăng nhập. Bằng `0` nghĩa là chưa
 quét QR, hoặc phiên đã mất.
 
+## Ô nhật ký trống trơn, không thấy dòng nào
+
+Không phải lỗi của add-on: đây là hỏng ở **máy chủ Home Assistant**, và khi nó
+hỏng thì *mọi* ô nhật ký đều trắng — add-on, Supervisor, lẫn hệ thống. Chỉ gặp
+trên bản **Home Assistant Supervised** (cài trên Debian/Armbian…), không gặp
+trên Home Assistant OS.
+
+Dấu hiệu chắc chắn: trong nhật ký Supervisor (nếu còn xem được bằng dòng lệnh)
+lặp đi lặp lại hai câu
+
+```
+Unable to connect to systemd-journal-gatewayd
+Failed to get supervisor logs using advanced_logs API
+```
+
+### Bẫy: nhìn thì thấy vẫn chạy
+
+Kiểm bằng `systemctl` sẽ thấy dịch vụ **active (listening)** và tệp socket vẫn
+nằm nguyên chỗ, nên rất dễ kết luận là lành rồi đi tìm chỗ khác. Thật ra socket
+đã chết từ lúc nào đó, systemd chỉ đang tưởng nó còn sống.
+
+Muốn biết thật thì hỏi xem có ai **đang lắng nghe** hay không:
+
+```bash
+ss -lx | grep -i journal
+```
+
+Trong danh sách phải có dòng `/run/systemd-journal-gatewayd.sock`. Không thấy
+tức là hỏng, dù `systemctl status` nói gì đi nữa.
+
+### Chữa — phải đủ hai bước
+
+```bash
+# 1. Dựng lại socket của journal gateway
+systemctl stop systemd-journal-gatewayd.service
+systemctl restart systemd-journal-gatewayd.socket
+
+# 2. TẠO LẠI container Supervisor (không phải chỉ khởi động lại)
+docker container rm --force hassio_supervisor
+systemctl restart hassio-supervisor
+```
+
+Bước 2 là chỗ hay bị bỏ sót và cũng là lý do nhiều người chữa mãi không xong.
+Container Supervisor gắn tệp socket **theo đường dẫn**, mà Docker chốt tệp ngay
+lúc **tạo** container. Dựng lại socket ở bước 1 sinh ra một tệp mới, còn
+container vẫn ôm tệp cũ đã chết — nên `ha supervisor restart` hay
+`docker restart hassio_supervisor` đều **không** ăn thua, buộc phải xoá rồi tạo
+lại. Ảnh Supervisor có sẵn trên máy nên không cần mạng, và **Home Assistant Core
+không bị ảnh hưởng**, vẫn chạy suốt.
+
+### Xác nhận đã thông
+
+```bash
+docker exec hassio_supervisor curl -s -o /dev/null -w '%{http_code}\n' \
+  --unix-socket /run/systemd-journal-gatewayd.sock http://localhost/machine
+```
+
+Phải ra `200`. Sau đó ba lệnh này đều có chữ:
+
+```bash
+ha host logs
+ha supervisor logs
+ha addons logs 36f3bad2_zalo_bot     # đổi slug cho đúng add-on của bạn
+```
+
+Lúc thử bằng `curl`, **đừng dùng `?follow`** — nó phát liên tục nên treo tới hết
+giờ rồi trả về `000`, làm tưởng vẫn hỏng trong khi đã thông. Dùng `/machine`.
+
 ## Cần biết về bảo mật
 
 Add-on chạy với `host_network: true`, nghĩa là cổng 3000 nằm thẳng trên mạng của
