@@ -13,7 +13,9 @@
 // tuyến ở đây, kẻo có hai nơi cùng quyết định "ai trả lời cái gì".
 //
 // Lưu ở data-dir/self-reply-config.json:
-//   { "<threadId>": { enabled, keywords: ["@toi", "@ha"] } }
+//   { "<threadId>": { enabled, keywords: ["@toi", "@ha"], name, kind } }
+// `name`/`kind` chỉ để NGƯỜI ĐỌC nhận ra thread — Thread ID là dãy 19 chữ số,
+// nhìn vào không ai biết là nhóm nào. Tự lấy lúc thêm, và sửa được cho dễ nhớ.
 // Bản ghi cũ dạng { enabled, keyword: "@toi" } vẫn đọc được (hoá thành danh
 // sách một phần tử lúc đọc); lần lưu kế tiếp ghi ra dạng mới.
 import fs from 'fs';
@@ -70,7 +72,10 @@ class SelfReplyService {
         const keywords = chuanHoaDanhSach(
             v && (Array.isArray(v.keywords) ? v.keywords : v.keyword));
         const enabled = !!(v && v.enabled) && keywords.length > 0;
-        return { enabled, keywords };
+        const name = v && typeof v.name === 'string' ? v.name.trim() : '';
+        const kind = v && v.kind === 'group' ? 'group'
+            : v && v.kind === 'user' ? 'user' : '';
+        return { enabled, keywords, name, kind };
     }
 
     // Từ khóa vừa trúng trong ``text``, '' nếu không trúng.
@@ -93,12 +98,21 @@ class SelfReplyService {
         return '';
     }
 
-    set(threadId, enabled, keywords) {
+    set(threadId, enabled, keywords, name, kind) {
         const id = String(threadId || '').trim();
         if (!id) throw new Error('threadId trống');
+        const cu = this.map[id] || {};
+        // Bỏ trống tên/loại thì GIỮ cái đang có, đừng xoá: người dùng bấm lưu
+        // lại vì đổi từ khóa mà mất luôn tên vừa đặt là bực.
+        const ten = name === undefined || name === null
+            ? String(cu.name || '') : String(name);
+        const loai = kind === undefined || kind === null
+            ? String(cu.kind || '') : String(kind);
         this.map[id] = {
             enabled: !!enabled,
             keywords: chuanHoaDanhSach(keywords),
+            ...(ten.trim() ? { name: ten.trim() } : {}),
+            ...(loai === 'group' || loai === 'user' ? { kind: loai } : {}),
         };
         writeJsonAtomicSync(configPath(), this.map);
         return this.get(id);
@@ -119,8 +133,8 @@ const selfReplyService = new SelfReplyService();
 export { selfReplyService };
 export const getSelfReplyConfig = (threadId) => selfReplyService.get(threadId);
 export const getAllSelfReply = () => selfReplyService.getAll();
-export const setSelfReply = (threadId, enabled, keywords) =>
-    selfReplyService.set(threadId, enabled, keywords);
+export const setSelfReply = (threadId, enabled, keywords, name, kind) =>
+    selfReplyService.set(threadId, enabled, keywords, name, kind);
 export const removeSelfReply = (threadId) => selfReplyService.remove(threadId);
 export const khopTuKhoa = (threadId, text) => selfReplyService.khop(threadId, text);
 // Dán nhãn tag cho tin NGƯỜI KHÁC: không đòi thread phải bật, vì cờ bật chỉ là

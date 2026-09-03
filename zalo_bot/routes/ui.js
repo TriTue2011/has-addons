@@ -217,8 +217,41 @@ router.get('/self-reply', adminMiddleware, (req, res) => {
   res.render('self-reply');
 });
 
+// Tra TEN va LOAI cua mot thread. Thread ID la day 19 chu so, nhin vao khong ai
+// biet la nhom nao — trang nay tu goi khi nguoi dung vua nhap xong ID, dung nhu
+// nut «Nhan dien» ben WebUI cua chatgpt2api.
+router.get('/self-reply/resolve', adminMiddleware, async (req, res) => {
+  const id = String(req.query.threadId || '').trim();
+  if (!id) return res.status(400).json({ success: false, error: 'thieu threadId' });
+  const account = zaloAccounts[0];
+  if (!account?.api) {
+    return res.status(503).json({ success: false, error: 'Chua co tai khoan Zalo dang nhap' });
+  }
+  // Thu NHOM truoc: id nhom va id nguoi cung dinh dang nen khong doan duoc,
+  // phai hoi that. Hong ca hai thi tra rong chu khong bao loi — nguoi dung van
+  // tu go ten duoc.
+  try {
+    const g = await account.api.getGroupInfo(String(id));
+    const gmap = g?.gridInfoMap || g?.data?.gridInfoMap;
+    const info = gmap && typeof gmap === 'object'
+      ? (gmap[String(id)] || Object.values(gmap)[0]) : null;
+    const ten = info && typeof info === 'object'
+      ? String(info.name || info.groupName || info.title || '').trim() : '';
+    if (ten) return res.json({ success: true, name: ten, kind: 'group' });
+  } catch (_) { /* khong phai nhom, thu tiep */ }
+  try {
+    const u = await account.api.getUserInfo(String(id));
+    const profiles = u?.changed_profiles || u?.data?.changed_profiles || {};
+    const pf = profiles[`${id}_0`] || profiles[id] || Object.values(profiles)[0];
+    const ten = pf && typeof pf === 'object'
+      ? String(pf.displayName || pf.zaloName || '').trim() : '';
+    if (ten) return res.json({ success: true, name: ten, kind: 'user' });
+  } catch (_) { /* chiu */ }
+  res.json({ success: true, name: '', kind: '' });
+});
+
 router.post('/self-reply', adminMiddleware, (req, res) => {
-  const { threadId, enabled, keywords, keyword } = req.body || {};
+  const { threadId, enabled, keywords, keyword, name, kind } = req.body || {};
   if (!threadId || !String(threadId).trim()) {
     return res.status(400).json({ success: false, error: 'threadId khong hop le' });
   }
@@ -231,7 +264,7 @@ router.post('/self-reply', adminMiddleware, (req, res) => {
     return res.status(400).json({ success: false, error: 'Bat thi PHAI co it nhat mot tu khoa (chong lap). Vd @toi, @ha, @n8n.' });
   }
   try {
-    const saved = selfReplyService.set(String(threadId).trim(), on, kws);
+    const saved = selfReplyService.set(String(threadId).trim(), on, kws, name, kind);
     res.json({ success: true, data: saved });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

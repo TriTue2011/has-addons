@@ -72,7 +72,8 @@ test('ban ghi dang cu { keyword } van doc duoc', () => {
   assert.deepEqual(selfReplyService.get('thread-cu').keywords, ['@toi']);
   assert.equal(khopTuKhoa('thread-cu', '@TOI oi'), '@toi');
   // getAll tra ve dang moi de WebUI khoi phai biet dang cu.
-  assert.deepEqual(getAllSelfReply()['thread-cu'], { enabled: true, keywords: ['@toi'] });
+  assert.deepEqual(getAllSelfReply()['thread-cu'],
+    { enabled: true, keywords: ['@toi'], name: '', kind: '' });
 });
 
 test('luu roi doc lai tu dia van dung', async () => {
@@ -94,4 +95,26 @@ test('nhan tag: khong trung tu khoa nao thi rong, khong bia', () => {
   setSelfReply('t10', true, ['@ha']);
   assert.equal(nhanTag('t10', 'cho hoi cai nay bao nhieu'), '');
   assert.equal(nhanTag('thread-la', '@ha bat den'), '');
+});
+
+test('luu duoc TEN va LOAI de nguoi doc nhan ra thread', () => {
+  setSelfReply('t11', true, ['@toi'], 'Nhóm Kinh Bắc', 'group');
+  const c = selfReplyService.get('t11');
+  assert.equal(c.name, 'Nhóm Kinh Bắc');
+  assert.equal(c.kind, 'group');
+});
+
+test('luu lai ma bo trong ten thi GIU ten cu, khong xoa', () => {
+  // Nguoi dung bam luu vi doi tu khoa; mat luon ten vua dat la buc.
+  setSelfReply('t12', true, ['@toi'], 'Chị Lan', 'user');
+  setSelfReply('t12', true, ['@toi', '@ha']);
+  const c = selfReplyService.get('t12');
+  assert.equal(c.name, 'Chị Lan');
+  assert.equal(c.kind, 'user');
+  assert.deepEqual(c.keywords, ['@toi', '@ha']);
+});
+
+test('loai la thu gi khong hieu thi bo qua, khong bia', () => {
+  setSelfReply('t13', true, ['@toi'], 'X', 'nhom-la');
+  assert.equal(selfReplyService.get('t13').kind, '');
 });

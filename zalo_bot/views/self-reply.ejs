@@ -34,6 +34,15 @@
                     <input type="text" class="form-control" id="srThreadId" placeholder="Thread ID (ID cuộc trò chuyện/nhóm)" required>
                 </div>
                 <div class="form-group">
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="srName" placeholder="Tên gợi nhớ (tự lấy khi nhập Thread ID, sửa được)">
+                        <div class="input-group-append">
+                            <button class="btn btn-outline-secondary" type="button" id="srDetect">Nhận diện</button>
+                        </div>
+                    </div>
+                    <small class="form-text text-muted" id="srKindHint"></small>
+                </div>
+                <div class="form-group">
                     <input type="text" class="form-control" id="srKeyword" placeholder="Các từ khóa, cách nhau bằng dấu phẩy — vd @toi, @ha, @n8n">
                 </div>
                 <div class="form-check mb-2">
@@ -66,13 +75,21 @@ function addItem(threadId,cfg){
     li.className='list-group-item sr-item d-flex justify-content-between align-items-center';
     li.setAttribute('data-tid',threadId);
     var badge=cfg.enabled?'<span class="badge badge-success">BẬT</span>':'<span class="badge badge-secondary">TẮT</span>';
-    li.innerHTML='<div style="min-width:0"><div style="font-family:monospace;word-break:break-all">'+escapeHtml(threadId)+'</div>'+
+    var nhan=cfg.name?escapeHtml(cfg.name):'';
+    var loai=cfg.kind==='group'?' <span class="badge badge-info">nhóm</span>'
+            :cfg.kind==='user'?' <span class="badge badge-light">cá nhân</span>':'';
+    li.innerHTML='<div style="min-width:0">'+
+        (nhan?'<div><b>'+nhan+'</b>'+loai+'</div>':'')+
+        '<div style="font-family:monospace;word-break:break-all;font-size:.85em;color:#6c757d">'+escapeHtml(threadId)+'</div>'+
         '<small>'+badge+' &nbsp; Từ khóa: <b>'+((cfg.keywords&&cfg.keywords.length)?escapeHtml(cfg.keywords.join(', ')):'(chưa có)')+'</b></small></div>'+
         '<div class="btn-group btn-group-sm"><button class="btn btn-outline-primary sr-edit">Sửa</button>'+
         '<button class="btn btn-outline-danger sr-del">Xóa</button></div>';
     li.querySelector('.sr-edit').addEventListener('click',function(){
         document.getElementById('srThreadId').value=threadId;
         document.getElementById('srKeyword').value=(cfg.keywords||[]).join(', ');
+        document.getElementById('srName').value=cfg.name||'';
+        document.getElementById('srKindHint').textContent=
+            cfg.kind==='group'?'Loại: nhóm':cfg.kind==='user'?'Loại: cá nhân':'';
         document.getElementById('srEnabled').checked=!!cfg.enabled;
         window.scrollTo({top:0,behavior:'smooth'});
     });
@@ -87,7 +104,26 @@ function addItem(threadId,cfg){
 }
 document.getElementById('srClear').addEventListener('click',function(){
     document.getElementById('srThreadId').value='';document.getElementById('srKeyword').value='';document.getElementById('srEnabled').checked=false;
+    document.getElementById('srName').value='';document.getElementById('srKindHint').textContent='';srKind='';
 });
+var srKind='';
+// Tu tra TEN va LOAI ngay khi nhap xong Thread ID. Khong ghi de neu nguoi dung
+// da tu go ten — ten ho dat mới là cái dễ nhớ với họ.
+function nhanDien(){
+    var tid=document.getElementById('srThreadId').value.trim();
+    if(!tid)return;
+    var oTen=document.getElementById('srName'), oHint=document.getElementById('srKindHint');
+    oHint.textContent='Đang tra…';
+    fetch('/self-reply/resolve?threadId='+encodeURIComponent(tid),{headers:{'Accept':'application/json'}})
+        .then(function(r){return r.json();}).then(function(d){
+            srKind=d.kind||'';
+            oHint.textContent=d.kind==='group'?'Loại: nhóm'
+                :d.kind==='user'?'Loại: cá nhân':'Không tra được tên — tự đặt cũng được.';
+            if(d.name&&!oTen.value.trim())oTen.value=d.name;
+        }).catch(function(){oHint.textContent='Không tra được tên — tự đặt cũng được.';});
+}
+document.getElementById('srThreadId').addEventListener('blur',nhanDien);
+document.getElementById('srDetect').addEventListener('click',nhanDien);
 document.getElementById('srForm').addEventListener('submit',function(e){
     e.preventDefault();
     var threadId=document.getElementById('srThreadId').value.trim();
@@ -95,7 +131,7 @@ document.getElementById('srForm').addEventListener('submit',function(e){
     var enabled=document.getElementById('srEnabled').checked;
     if(!threadId)return;
     if(enabled&&!keywords){alert('Bật thì PHẢI có ít nhất một từ khóa (chống lặp). Vd @toi, @ha, @n8n.');return;}
-    fetch('/self-reply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({threadId:threadId,enabled:enabled,keywords:keywords})})
+    fetch('/self-reply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({threadId:threadId,enabled:enabled,keywords:keywords,name:document.getElementById('srName').value.trim(),kind:srKind})})
         .then(function(r){return r.json();}).then(function(d){
             if(d.success){addItem(threadId,d.data);document.getElementById('srClear').click();}else{alert(d.error||'Lỗi khi lưu');}
         }).catch(function(){alert('Lỗi kết nối');});

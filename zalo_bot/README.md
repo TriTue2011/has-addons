@@ -182,7 +182,7 @@ Một tài khoản Zalo chỉ giữ được **một phiên đăng nhập** tạ
 
 **Với gateway ChatGPT (c2a):** gateway có ô cài đặt riêng theo từng thread trong tab «Lọc thread» → dùng bên đó, không cần cấu hình gì ở add-on cho đường này.
 
-Đặt xong nhớ **tăng version add-on** thì Home Assistant mới thấy bản mới (bản này đã là `2026.9.2.8`), rồi bấm **Cập nhật**.
+Đặt xong nhớ **tăng version add-on** thì Home Assistant mới thấy bản mới (bản này đã là `2026.9.2.9`), rồi bấm **Cập nhật**.
 
 ## Kiểm tra add-on còn sống
 

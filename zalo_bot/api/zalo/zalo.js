@@ -1127,9 +1127,11 @@ export async function getGroupChatHistoryByAccount(req, res) {
             return res.status(400).json({ error: 'groupId là bắt buộc' });
         }
 
+        // Tran 1000 cho khop kho cua chinh minh: groupHistoryStore giu toi 5000
+        // tin moi nhom, chan o 200 thi phan con lai khong bao gio lay ra duoc.
         const parsedCount = Number.parseInt(count, 10);
-        if (!Number.isSafeInteger(parsedCount) || parsedCount < 1 || parsedCount > 200) {
-            return res.status(400).json({ error: 'count phai la so nguyen tu 1 den 200' });
+        if (!Number.isSafeInteger(parsedCount) || parsedCount < 1 || parsedCount > 1000) {
+            return res.status(400).json({ error: 'count phai la so nguyen tu 1 den 1000' });
         }
         const account = getAccountFromSelection(accountSelection);
         let result;
@@ -1175,9 +1177,28 @@ export async function getGroupChatHistoryByAccount(req, res) {
             }
         }
 
+        // TEN NHOM: history tra ve mot day tin khong kem dau hieu nao cho biet
+        // day la nhom nao. Lay mot lan o day; hong thi bo trong chu khong lam
+        // chet API chinh.
+        let groupName = '';
+        try {
+            const gInfo = await account.api.getGroupInfo(String(groupId));
+            const gmap = gInfo?.gridInfoMap || gInfo?.data?.gridInfoMap;
+            if (gmap && typeof gmap === 'object') {
+                const g = gmap[String(groupId)] || Object.values(gmap)[0];
+                if (g && typeof g === 'object') {
+                    groupName = String(g.name || g.groupName || g.title || '').trim();
+                }
+            }
+        } catch (e) {
+            console.warn('Khong lay duoc ten nhom:', e.message);
+        }
+
         res.json({
             success: true,
             data: result,
+            groupId: String(groupId),
+            groupName,
             source,
             ...(warning ? { warning } : {}),
             usedAccount: {
