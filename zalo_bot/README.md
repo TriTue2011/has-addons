@@ -72,13 +72,35 @@ Add-on đăng nhập bằng **chính tài khoản Zalo của bạn**. Vì thế 
 - Tin **bạn** gõ **có chứa từ khóa** đó → được đẩy ra webhook, kèm cờ `self_reply: true`. Đây là lệnh của bạn.
 - **Câu bot tự sinh** (câu trả lời) là văn xuôi **không** chứa từ khóa → **không** được đẩy → **không lặp**.
 
-Nói cách khác, **chính từ khóa là chốt chống lặp**: chọn một từ mà bot sẽ không bao giờ tự nói ra trong câu trả lời (một ký hiệu như `@bot`, `//`, `#me` là an toàn).
+Nói cách khác, **chính từ khóa là chốt chống lặp**: chọn một từ mà bot sẽ không bao giờ tự nói ra trong câu trả lời (một ký hiệu như `@toi`, `//`, `#me` là an toàn).
+
+### Nhiều tag cho nhiều đích đến
+
+Ô từ khóa nhận **nhiều từ khóa**, cách nhau bằng dấu phẩy — ví dụ `@toi, @ha, @n8n`. Tin của bạn trúng **bất kỳ** từ khóa nào cũng được đẩy đi, và webhook mang thêm trường **`tag_khop`** cho biết vừa trúng tag nào:
+
+```json
+{ "isSelf": true, "self_reply": true, "tag_khop": "@n8n", "...": "..." }
+```
+
+Add-on **không** tự định tuyến — nó chỉ báo trúng tag nào, còn gửi đi đâu là việc của bên nhận. Làm vậy để chỉ có **một** nơi quyết định "ai trả lời cái gì", khỏi phải dò hai chỗ khi có sự cố. Bên Home Assistant rẽ nhánh bằng `choose:`:
+
+```yaml
+- choose:
+    - conditions: "{{ trigger.json.tag_khop == '@n8n' }}"
+      sequence: [ ... gọi n8n ... ]
+    - conditions: "{{ trigger.json.tag_khop == '@ha' }}"
+      sequence: [ ... conversation.process ... ]
+```
+
+Khớp **không phân biệt hoa thường** (gõ `@Ha` hay `@ha` đều trúng) và từ khóa **dài được thử trước**, nên khai cả `@n` lẫn `@n8n` thì `@n8n` vẫn trúng đúng của nó.
+
+⚠️ **Dùng nhiều tag trong một nhóm thì nhớ bật «bắt buộc tag» cho thread đó ở gateway.** Không bật thì gateway trả lời **mọi** tin trong nhóm — kể cả tin bạn định gửi cho n8n — và bạn nhận hai câu trả lời cho một câu hỏi.
 
 **Với automation Home Assistant:** trigger theo trường `self_reply == true` để bắt đúng lệnh của bạn; đừng trigger theo `isSelf` trần, kẻo dính lại vòng lặp.
 
 **Với gateway ChatGPT (c2a):** gateway có ô cài đặt riêng theo từng thread trong tab «Lọc thread» → dùng bên đó, không cần cấu hình gì ở add-on cho đường này.
 
-Đặt xong nhớ **tăng version add-on** thì Home Assistant mới thấy bản mới (bản này đã là `2026.9.2.1`), rồi bấm **Cập nhật**.
+Đặt xong nhớ **tăng version add-on** thì Home Assistant mới thấy bản mới (bản này đã là `2026.9.2.7`), rồi bấm **Cập nhật**.
 
 ## Kiểm tra add-on còn sống
 

@@ -1,7 +1,7 @@
 name: "Zalo Bot"
 description: "Add-on Zalo Bot in Home Assistant"
 url: "https://github.com/TriTue2011/has-addons"
-version: "2026.9.2.6"
+version: "2026.9.2.7"
 slug: "zalo_bot"
 init: false
 map:

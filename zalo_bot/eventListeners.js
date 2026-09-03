@@ -8,7 +8,7 @@ import { noteSelfMessage } from './services/messageExpiry.js';
 import { reconnectDelay } from './services/reconnectPolicy.js';
 import { beginReconnectAttempt, invalidateReconnectAttempt } from './services/reconnectGuard.js';
 import { withTimeout } from './utils/timeout.js';
-import { getSelfReplyConfig } from './services/selfReplyService.js';
+import { khopTuKhoa } from './services/selfReplyService.js';
 
 let reconnectLogin = null;
 let accountRegistry = [];
@@ -125,22 +125,20 @@ export function setupEventListeners(api) {
             }
         } else {
             // TIN CHU TU GUI: mac dinh KHONG day (chong lap). CHI day khi thread
-            // nay da BAT (cau hinh per-thread tren WebUI) VA tin chua TU KHOA cua
-            // thread do — do la lenh cua chu, gan co self_reply=true. Cau bot tu
-            // sinh khong chua tu khoa -> van khong day -> khong lap.
+            // nay da BAT (cau hinh per-thread tren WebUI) VA tin chua MOT TRONG
+            // CAC TU KHOA cua thread do — do la lenh cua chu, gan self_reply=true
+            // kem tag_khop. Cau bot tu sinh khong chua tu khoa nao -> van khong
+            // day -> khong lap.
             try {
                 const tid = String(msg?.threadId ?? msg?.data?.idTo ?? '');
-                const cfg = getSelfReplyConfig(tid);
                 const c = msg?.data?.content;
                 const text = typeof c === 'string' ? c : (c && (c.msg || c.title)) || '';
-                // So khop KHONG phan biet hoa thuong. Cong gateway da lam vay
-                // (kw.lower() in text.lower()); de o day phan biet thi cung mot
-                // tu khoa lai xu su khac nhau tuy tang nao quyet: chu go '@O_xin'
-                // ma o cau hinh ghi '@O_Xin' la truot, tin khong day di, bot im.
-                const kwThuong = String(cfg.keyword || '').toLowerCase();
-                if (cfg.enabled && kwThuong && typeof text === 'string'
-                    && text.toLowerCase().includes(kwThuong)) {
+                // Trung BAT KY tu khoa nao cua thread thi day di, kem tag_khop de
+                // ben nhan biet la lenh cho ai ('@ha' -> automation, '@n8n' -> n8n).
+                const tagKhop = khopTuKhoa(tid, text);
+                if (tagKhop) {
                     msgWithOwnId.self_reply = true;
+                    msgWithOwnId.tag_khop = tagKhop;
                     const selfWebhookUrl = getWebhookUrl("messageWebhookUrl", ownId);
                     if (selfWebhookUrl) {
                         triggerN8nWebhook(msgWithOwnId, selfWebhookUrl);

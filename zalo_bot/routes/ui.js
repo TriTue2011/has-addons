@@ -218,17 +218,20 @@ router.get('/self-reply', adminMiddleware, (req, res) => {
 });
 
 router.post('/self-reply', adminMiddleware, (req, res) => {
-  const { threadId, enabled, keyword } = req.body || {};
+  const { threadId, enabled, keywords, keyword } = req.body || {};
   if (!threadId || !String(threadId).trim()) {
     return res.status(400).json({ success: false, error: 'threadId khong hop le' });
   }
   const on = enabled === true || enabled === 'true' || enabled === 1 || enabled === '1';
-  const kw = String(keyword || '').trim();
-  if (on && !kw) {
-    return res.status(400).json({ success: false, error: 'Bat thi PHAI co tu khoa (chong lap). Vd @bot, //, #me.' });
+  // Nhan ca 'keywords' (mang hoac chuoi ngan bang dau phay) lan 'keyword' cu.
+  const kws = keywords !== undefined && keywords !== null ? keywords : keyword;
+  const co = Array.isArray(kws) ? kws.some((x) => String(x || '').trim())
+                                : !!String(kws || '').trim();
+  if (on && !co) {
+    return res.status(400).json({ success: false, error: 'Bat thi PHAI co it nhat mot tu khoa (chong lap). Vd @toi, @ha, @n8n.' });
   }
   try {
-    const saved = selfReplyService.set(String(threadId).trim(), on, kw);
+    const saved = selfReplyService.set(String(threadId).trim(), on, kws);
     res.json({ success: true, data: saved });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

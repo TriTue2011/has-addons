@@ -18,8 +18,11 @@
         Bot đăng nhập bằng <b>chính tài khoản của bạn</b>, nên tin <b>bạn tự gõ</b> bị Zalo đánh
         dấu là tin tự gửi và mặc định bị bỏ (chống bot tự trả lời chính mình → lặp). Bật một
         thread + đặt <b>từ khóa riêng</b> thì tin của bạn <b>có chứa từ khóa</b> đó sẽ được xử lý.
+        <br>Đặt được <b>nhiều từ khóa</b> cho một thread, mỗi tag đi một nơi: <code>@ha</code> cho
+        automation Home Assistant, <code>@n8n</code> cho n8n, <code>@toi</code> cho bot AI…
+        Webhook gửi đi sẽ kèm <code>tag_khop</code> cho biết trúng tag nào, bên nhận cứ theo đó mà rẽ.
         <br>⚠️ <b>Từ khóa là chốt chống lặp</b>: chọn ký hiệu bot không bao giờ tự nói ra —
-        ví dụ <code>@bot</code>, <code>//</code>, <code>#me</code>.
+        ví dụ <code>@toi</code>, <code>//</code>, <code>#me</code>.
         <br>Chưa biết Thread ID? Mở trang <b>Theo dõi tin nhắn</b> để xem/chép ID.
     </div>
 
@@ -31,7 +34,7 @@
                     <input type="text" class="form-control" id="srThreadId" placeholder="Thread ID (ID cuộc trò chuyện/nhóm)" required>
                 </div>
                 <div class="form-group">
-                    <input type="text" class="form-control" id="srKeyword" placeholder="Từ khóa riêng, vd @bot">
+                    <input type="text" class="form-control" id="srKeyword" placeholder="Các từ khóa, cách nhau bằng dấu phẩy — vd @toi, @ha, @n8n">
                 </div>
                 <div class="form-check mb-2">
                     <input type="checkbox" class="form-check-input" id="srEnabled">
@@ -64,12 +67,12 @@ function addItem(threadId,cfg){
     li.setAttribute('data-tid',threadId);
     var badge=cfg.enabled?'<span class="badge badge-success">BẬT</span>':'<span class="badge badge-secondary">TẮT</span>';
     li.innerHTML='<div style="min-width:0"><div style="font-family:monospace;word-break:break-all">'+escapeHtml(threadId)+'</div>'+
-        '<small>'+badge+' &nbsp; Từ khóa: <b>'+(cfg.keyword?escapeHtml(cfg.keyword):'(chưa có)')+'</b></small></div>'+
+        '<small>'+badge+' &nbsp; Từ khóa: <b>'+((cfg.keywords&&cfg.keywords.length)?escapeHtml(cfg.keywords.join(', ')):'(chưa có)')+'</b></small></div>'+
         '<div class="btn-group btn-group-sm"><button class="btn btn-outline-primary sr-edit">Sửa</button>'+
         '<button class="btn btn-outline-danger sr-del">Xóa</button></div>';
     li.querySelector('.sr-edit').addEventListener('click',function(){
         document.getElementById('srThreadId').value=threadId;
-        document.getElementById('srKeyword').value=cfg.keyword||'';
+        document.getElementById('srKeyword').value=(cfg.keywords||[]).join(', ');
         document.getElementById('srEnabled').checked=!!cfg.enabled;
         window.scrollTo({top:0,behavior:'smooth'});
     });
@@ -88,11 +91,11 @@ document.getElementById('srClear').addEventListener('click',function(){
 document.getElementById('srForm').addEventListener('submit',function(e){
     e.preventDefault();
     var threadId=document.getElementById('srThreadId').value.trim();
-    var keyword=document.getElementById('srKeyword').value.trim();
+    var keywords=document.getElementById('srKeyword').value.trim();
     var enabled=document.getElementById('srEnabled').checked;
     if(!threadId)return;
-    if(enabled&&!keyword){alert('Bật thì PHẢI có từ khóa (chống lặp). Vd @bot, //, #me.');return;}
-    fetch('/self-reply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({threadId:threadId,enabled:enabled,keyword:keyword})})
+    if(enabled&&!keywords){alert('Bật thì PHẢI có ít nhất một từ khóa (chống lặp). Vd @toi, @ha, @n8n.');return;}
+    fetch('/self-reply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({threadId:threadId,enabled:enabled,keywords:keywords})})
         .then(function(r){return r.json();}).then(function(d){
             if(d.success){addItem(threadId,d.data);document.getElementById('srClear').click();}else{alert(d.error||'Lỗi khi lưu');}
         }).catch(function(){alert('Lỗi kết nối');});
