@@ -17,7 +17,12 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    # arm64 dựng trên MÁY ARM THẬT. Trước đây mọi kiến trúc đều chạy trên máy
+    # x86 rồi giả lập bằng QEMU: amd64 và arm/v6, arm/v7 vẫn xong trong hơn một
+    # phút, riêng arm64 có lượt kẹt gần 4 tiếng ở đúng bước build — mà arm64 lại
+    # là kiến trúc của máy Home Assistant. Kẹt build thì tag chưa lên registry,
+    # Supervisor kéo về gặp 404 và add-on không cài được.
+    runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
       packages: write
@@ -25,11 +30,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform:
-          - linux/amd64
-          - linux/arm64
-          - linux/arm/v7
-          - linux/arm/v6
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+          # Chưa có máy chạy thật cho ARM 32-bit; hai nhánh này vẫn qua QEMU,
+          # và chúng vốn vẫn xong nhanh nên để nguyên.
+          - platform: linux/arm/v7
+            runner: ubuntu-latest
+          - platform: linux/arm/v6
+            runner: ubuntu-latest
 
     steps:
       - name: Đặt tên nền tảng dùng cho artifact
