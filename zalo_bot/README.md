@@ -94,9 +94,9 @@ Add-on **không** tự định tuyến — nó chỉ báo trúng tag nào, còn 
 
 Khớp **không phân biệt hoa thường** (gõ `@Ha` hay `@ha` đều trúng) và từ khóa **dài được thử trước**, nên khai cả `@n` lẫn `@n8n` thì `@n8n` vẫn trúng đúng của nó.
 
-⚠️ **Nếu nhóm đó được CẢ add-on này lẫn gateway ChatGPT (c2a) cùng theo dõi**, hãy bật «bắt buộc tag» cho thread đó trong tab **Lọc thread** của WeUI. Lý do: thread nào chưa khai trong bảng lọc thì gateway mặc định **trả lời mọi tin**, nên một thành viên khác gõ `@n8n …` sẽ được n8n trả lời **và** gateway trả lời — hai câu cho một câu hỏi.
+Một tài khoản Zalo chỉ giữ được **một phiên đăng nhập** tại một thời điểm — bật add-on lên thì phiên bên gateway ChatGPT (c2a) rớt, và ngược lại. Nên với một tài khoản, hai hệ không bao giờ cùng nghe một nhóm, và bạn chỉ phải lo đúng một việc: **khai tag nào ở đây thì automation rẽ theo tag đó**.
 
-Tin của **chính bạn** thì không lo: gateway lọc tin tự gửi bằng ô từ khóa riêng của nó, câu không chứa từ khóa đó thì nó im. Còn nếu nhóm chỉ có add-on này (không có gateway) thì cảnh báo trên không áp dụng — automation của bạn tự lọc tag là đủ.
+⚠️ Chỉ khi bạn chạy **hai tài khoản Zalo khác nhau** — một trên add-on, một trên gateway — mà cả hai cùng ở trong một nhóm, thì mới cần bật «bắt buộc tag» cho thread đó trong tab **Lọc thread** của WeUI. Không bật thì thread chưa khai sẽ được gateway trả lời **mọi** tin của người khác, kể cả tin mang tag của n8n, thành hai câu trả lời cho một câu hỏi. (Tin của chính bạn thì không dính: gateway lọc tin tự gửi bằng ô từ khóa riêng của nó.)
 
 **Với automation Home Assistant:** trigger theo trường `self_reply == true` để bắt đúng lệnh của bạn; đừng trigger theo `isSelf` trần, kẻo dính lại vòng lặp.
 
