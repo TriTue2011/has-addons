@@ -175,7 +175,7 @@ router.get('/proxies', adminMiddleware, (req, res) => {
   if (acceptHeader.includes('application/json')) {
     return res.json({ success: true, data: proxyService.getPROXIES() });
   }
-  res.render('proxies');
+  res.render('proxies', { proxies: proxyService.getPROXIES() });
 });
 
 // Thêm một proxy mới
