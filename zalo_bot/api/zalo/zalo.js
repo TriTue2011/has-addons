@@ -1145,6 +1145,36 @@ export async function getGroupChatHistoryByAccount(req, res) {
             warning = `Khong lay duoc history truc tiep tu Zalo (${error.message}); dang tra cache local.`;
         }
 
+        // GHEP hai nguon khi Zalo tra thieu. zca-js chi gui {grid, count} —
+        // KHONG co con tro trang, ma Zalo lai chi tra mot trang (~100 tin) roi
+        // dat co `more`. Nen xin 1000 cung chi nhan ~100. Phan con lai lay tu
+        // kho cua chinh minh (giu toi 5000 tin/nhom), bo trung roi cat lai.
+        let fromCache = 0;
+        try {
+            const daCo = Array.isArray(result?.groupMsgs) ? result.groupMsgs.length : 0;
+            if (source !== 'local-cache' && daCo < parsedCount) {
+                const cache = getCachedGroupHistory(account.ownId, groupId, parsedCount);
+                const cuHon = Array.isArray(cache?.groupMsgs) ? cache.groupMsgs : [];
+                if (cuHon.length) {
+                    const khoa = (m) => String(
+                        m?.data?.msgId ?? m?.data?.msgID ??
+                        m?.data?.cliMsgId ?? m?.data?.cliMsgID ?? '');
+                    const gop = new Map();
+                    // Kho truoc, Zalo sau: trung khoa thi ban CUA ZALO thang vi
+                    // no moi hon va da qua buoc lam giau ten o duoi.
+                    for (const m of cuHon) { const k = khoa(m); if (k) gop.set(k, m); }
+                    for (const m of result.groupMsgs || []) { const k = khoa(m); if (k) gop.set(k, m); }
+                    const ts = (m) => Number(m?.data?.ts ?? 0) || 0;
+                    const tron = [...gop.values()].sort((a, b) => ts(a) - ts(b)).slice(-parsedCount);
+                    fromCache = Math.max(0, tron.length - daCo);
+                    result.groupMsgs = tron;
+                    if (fromCache > 0) source = `${source}+local-cache`;
+                }
+            }
+        } catch (e) {
+            console.warn('Khong ghep duoc cache vao history:', e.message);
+        }
+
         // Enrich dName: Zalo API trả dName=null trong history, cần tra qua getUserInfo
         if (result.groupMsgs && result.groupMsgs.length > 0) {
             const ownId = account.ownId;
@@ -1200,6 +1230,11 @@ export async function getGroupChatHistoryByAccount(req, res) {
             groupId: String(groupId),
             groupName,
             source,
+            // Noi thang bao nhieu tin thuc su tra ve va tu dau — truoc day xin
+            // 1000 nhan ~100 ma khong co gi giai thich.
+            requested: parsedCount,
+            returned: Array.isArray(result?.groupMsgs) ? result.groupMsgs.length : 0,
+            fromCache,
             ...(warning ? { warning } : {}),
             usedAccount: {
                 ownId: account.ownId,

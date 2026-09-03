@@ -206,7 +206,9 @@ export function storeGroupMessage(ownId, message) {
 }
 
 export function getCachedGroupHistory(ownId, groupId, count = 50) {
-  const safeCount = Math.min(Math.max(Number.parseInt(count, 10) || 50, 1), 200);
+  // Tran 1000 cho khop API: kho giu toi 5000 tin, kep o 200 thi nguoi goi
+  // xin 1000 van chi nhan 200 ma khong hieu vi sao.
+  const safeCount = Math.min(Math.max(Number.parseInt(count, 10) || 50, 1), 1000);
   try {
     const file = historyFile(ownId, groupId);
     try { flush(file); } catch (error) {
