@@ -94,7 +94,9 @@ Add-on **không** tự định tuyến — nó chỉ báo trúng tag nào, còn 
 
 Khớp **không phân biệt hoa thường** (gõ `@Ha` hay `@ha` đều trúng) và từ khóa **dài được thử trước**, nên khai cả `@n` lẫn `@n8n` thì `@n8n` vẫn trúng đúng của nó.
 
-⚠️ **Dùng nhiều tag trong một nhóm thì nhớ bật «bắt buộc tag» cho thread đó ở gateway.** Không bật thì gateway trả lời **mọi** tin trong nhóm — kể cả tin bạn định gửi cho n8n — và bạn nhận hai câu trả lời cho một câu hỏi.
+⚠️ **Nếu nhóm đó được CẢ add-on này lẫn gateway ChatGPT (c2a) cùng theo dõi**, hãy bật «bắt buộc tag» cho thread đó trong tab **Lọc thread** của WeUI. Lý do: thread nào chưa khai trong bảng lọc thì gateway mặc định **trả lời mọi tin**, nên một thành viên khác gõ `@n8n …` sẽ được n8n trả lời **và** gateway trả lời — hai câu cho một câu hỏi.
+
+Tin của **chính bạn** thì không lo: gateway lọc tin tự gửi bằng ô từ khóa riêng của nó, câu không chứa từ khóa đó thì nó im. Còn nếu nhóm chỉ có add-on này (không có gateway) thì cảnh báo trên không áp dụng — automation của bạn tự lọc tag là đủ.
 
 **Với automation Home Assistant:** trigger theo trường `self_reply == true` để bắt đúng lệnh của bạn; đừng trigger theo `isSelf` trần, kẻo dính lại vòng lặp.
 
