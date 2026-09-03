@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title">
+  <title id="title">TriTue YouTube Player</title>
+  <rect width="128" height="128" rx="24" fill="#191b20"/>
+  <path d="M25 54c0-13 10-23 23-23h32c13 0 23 10 23 23v20c0 13-10 23-23 23H48C35 97 25 87 25 74V54Z" fill="#ff3b30"/>
+  <path d="m56 48 25 16-25 16V48Z" fill="#fff"/>
+  <path d="M38 29 64 11l26 18" fill="none" stroke="#f4f5f7" stroke-linecap="round" stroke-linejoin="round" stroke-width="7"/>
+</svg>

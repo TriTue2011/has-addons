@@ -1,3 +1,20 @@
+# ▶ TriTue Music Player
+
+Repository này có thêm bộ YouTube Player clean-room gồm hai phần:
+
+| Phần | Cài ở đâu | Tài liệu |
+|---|---|---|
+| Docker/Home Assistant App | App Store hoặc Docker | [`youtube_player`](youtube_player/) |
+| Custom integration | HACS hoặc `/config/custom_components` | [`youtube_player_integration`](youtube_player_integration/) |
+
+Player là nguồn nhạc độc lập cho Home Assistant: tìm kiếm YouTube/Zing, card
+riêng chọn một hoặc nhiều `media_player`, chỉnh âm lượng và gửi lệnh phát. Phần
+YouTube dùng trình phát/Cast chính thức; Zing chỉ relay bài công khai mà provider
+giải được, không vượt quyền VIP. Không cần license key và không chứa mã nguồn
+của YouTube Pro.
+
+---
+
 # 💬 Zalo Bot cho Home Assistant
 
 Gửi và nhận tin nhắn **Zalo cá nhân** ngay trong Home Assistant: báo động, nhắc

@@ -1,0 +1,75 @@
+{
+  "title": "TriTue YouTube Player",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to TriTue YouTube Player",
+        "description": "Connect to the Home Assistant App or standalone Docker container.",
+        "data": {
+          "url": "Server URL",
+          "token": "Integration token"
+        },
+        "data_description": {
+          "url": "Use the suggested internal URL for the App, or http://IP:8099 for Docker.",
+          "token": "Copy the security token from the player startup log. This is not a license key."
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigure player connection",
+        "data": {
+          "url": "Server URL",
+          "token": "Integration token"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Update integration token",
+        "data": {
+          "token": "Integration token"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Cannot connect to the player server.",
+      "invalid_auth": "The integration token is invalid.",
+      "invalid_url": "Enter an HTTP or HTTPS root URL without a path.",
+      "unsupported_api": "The player server uses an unsupported API version.",
+      "unknown": "The player returned an unexpected response."
+    },
+    "abort": {
+      "already_configured": "This player server is already configured.",
+      "reauth_successful": "The integration token was updated.",
+      "reconfigure_successful": "The player connection was updated."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Playback output",
+        "description": "Choose the physical media_player that will receive songs selected from this integration. Google Cast entities use the official YouTube Cast app.",
+        "data": {
+          "target_entity_id": "Default speaker or display"
+        }
+      }
+    }
+  },
+  "entity": {
+    "media_player": {
+      "player": {"name": "Player"}
+    },
+    "sensor": {
+      "history_count": {"name": "History count"}
+    }
+  },
+  "exceptions": {
+    "invalid_target": {"message": "The YouTube URL or identifier is not supported."},
+    "communication_error": {"message": "The player server did not accept the command."},
+    "search_error": {"message": "YouTube Music search is temporarily unavailable."},
+    "entry_unavailable": {"message": "The selected TriTue player server is not loaded."},
+    "invalid_target_entities": {"message": "Select between 1 and 16 physical media players."},
+    "playback_error": {"message": "The source could not prepare this item for playback."},
+    "target_unavailable": {"message": "The selected playback entity is unavailable. Open Configure and choose another media_player."},
+    "invalid_target_entity": {"message": "The integration's virtual player cannot be selected as its own output."},
+    "cast_playlist_requires_video": {"message": "Google Cast needs a playlist URL containing both v=VIDEO_ID and list=PLAYLIST_ID."},
+    "target_source_unsupported": {"message": "This device cannot play a YouTube page as audio. Choose an Android TV/display Cast entity, or use a direct audio source for speakers."}
+  }
+}
