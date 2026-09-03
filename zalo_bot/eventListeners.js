@@ -133,7 +133,13 @@ export function setupEventListeners(api) {
                 const cfg = getSelfReplyConfig(tid);
                 const c = msg?.data?.content;
                 const text = typeof c === 'string' ? c : (c && (c.msg || c.title)) || '';
-                if (cfg.enabled && cfg.keyword && typeof text === 'string' && text.includes(cfg.keyword)) {
+                // So khop KHONG phan biet hoa thuong. Cong gateway da lam vay
+                // (kw.lower() in text.lower()); de o day phan biet thi cung mot
+                // tu khoa lai xu su khac nhau tuy tang nao quyet: chu go '@O_xin'
+                // ma o cau hinh ghi '@O_Xin' la truot, tin khong day di, bot im.
+                const kwThuong = String(cfg.keyword || '').toLowerCase();
+                if (cfg.enabled && kwThuong && typeof text === 'string'
+                    && text.toLowerCase().includes(kwThuong)) {
                     msgWithOwnId.self_reply = true;
                     const selfWebhookUrl = getWebhookUrl("messageWebhookUrl", ownId);
                     if (selfWebhookUrl) {
