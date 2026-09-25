@@ -5,7 +5,14 @@ Assistant, để tự động hoá gửi và nhận tin nhắn Zalo cá nhân.
 
 ## Phiên bản và cập nhật
 
-Phiên bản add-on hiện tại là **2026.8.24.1**. Cập nhật trong **Settings →
+Phiên bản add-on hiện tại là **2026.9.25.0**.
+
+> **2026.9.25.0 — tin thoại thật:** dịch vụ `zalo_bot.send_voice` (và
+> `/api/sendVoiceByAccount`) nay gửi thành **bong bóng thoại** bấm nghe ngay, như
+> tin ghi âm của Zalo. Tệp bất kỳ (MP3/WAV/TTS, kể cả đường dẫn nội bộ của Home
+> Assistant) được đổi sang đúng định dạng tin thoại Zalo (AAC-LC 16 kHz mono) và
+> tải lên máy chủ Zalo trước khi gửi. Trước đây tin thoại chỉ gửi đường dẫn gốc,
+> nên điện thoại người nhận không mở được tệp nằm trong mạng nhà. Cập nhật trong **Settings →
 Add-ons → Zalo Bot → Update** — nhớ bật **Re-pull image**, không thì Supervisor
 dùng lại image cũ — rồi khởi động lại add-on. Cookie đăng nhập, webhook và proxy
 nằm trong `data_directory`, nên việc cập nhật **không** bắt quét lại mã QR nếu

@@ -18,6 +18,7 @@ import { taiVeVaGuiNhieuAnh as guiTheoLo } from '../../utils/sendImages.js';
 import { getCachedGroupHistory } from '../../utils/groupHistoryStore.js';
 import { createVideoThumbnail } from '../../utils/videoThumbnail.js';
 import { readVideoDuration } from '../../utils/videoDuration.js';
+import { isZaloVoiceUrl, toZaloVoiceAac } from '../../utils/voiceAac.js';
 import {
     OperationTimeoutError,
     cleanupAfterSettled,
@@ -1579,17 +1580,70 @@ export async function sendVideoByAccount(req, res) {
     }
 }
 
+// Gui TIN THOAI (bong bong bam nghe ngay), khong phai tep dinh kem.
+//
+// api.sendVoice cua zca-js chi gui DUONG DAN: dien thoai nguoi nhan tu tai tu URL
+// do, nen URL phai nam o noi ai cung tai duoc va khong het han. Tin thoai goc cua
+// Zalo nam tren f*-voice-aac-dl.zdn.vn (AAC-LC 16 kHz mono ~64 kbps, ADTS — do tren
+// tin ghi am that 25/09/2026). Vay:
+//   - voiceUrl da la tin thoai tren may chu Zalo -> gui thang nhu cu;
+//   - con lai (WAV cua TTS, MP3, URL noi bo 127.0.0.1...) -> tai ve, doi ve dung
+//     dinh dang tren, TAI LEN may chu Zalo, roi sendVoice bang URL Zalo tra ve.
 export async function sendVoiceByAccount(req, res) {
+    let duongGoc = null;
+    let duongAac = null;
     try {
         const { options, threadId, type, accountSelection } = req.body;
         if (!options || !threadId) {
             return res.status(400).json({ error: 'options và threadId là bắt buộc' });
         }
+        if (!options.voiceUrl) {
+            return res.status(400).json({ error: 'options.voiceUrl là bắt buộc' });
+        }
         const account = getAccountFromSelection(accountSelection);
-        const result = await account.api.sendVoice(options, threadId, type);
-        res.json({ success: true, data: result, usedAccount: { ownId: account.ownId, phoneNumber: account.phoneNumber } });
+        const threadType = normalizeThreadType(type);
+        const ttl = Object.prototype.hasOwnProperty.call(options, 'ttl')
+            ? (normalizeMessageTtl(options.ttl) ?? 0) : undefined;
+        let voiceUrl = String(options.voiceUrl);
+        let daTaiLen = false;
+        if (!isZaloVoiceUrl(voiceUrl)) {
+            duongGoc = await saveFileFromUrl(voiceUrl);
+            if (!duongGoc) throw new Error('Khong the tai tep am thanh nguon');
+            duongAac = await toZaloVoiceAac(duongGoc);
+            const uploadTimeout = Number.parseInt(process.env.VOICE_UPLOAD_TIMEOUT_MS || '60000', 10);
+            const taiLen = account.api.uploadAttachment([duongAac], String(threadId), threadType);
+            let daLen;
+            try {
+                [daLen] = await withTimeout(
+                    taiLen,
+                    Number.isSafeInteger(uploadTimeout) && uploadTimeout > 0 ? uploadTimeout : 60000,
+                    'Het thoi gian tai tin thoai len Zalo',
+                );
+            } catch (error) {
+                if (error instanceof OperationTimeoutError) {
+                    deferFileCleanup(taiLen, duongAac, 'Upload voice');
+                    duongAac = null;
+                }
+                throw error;
+            }
+            if (!daLen || !daLen.fileUrl) {
+                throw new Error('Zalo không trả về địa chỉ tệp thoại sau khi tải lên');
+            }
+            voiceUrl = daLen.fileUrl;
+            daTaiLen = true;
+        }
+        const voiceOptions = ttl === undefined ? { voiceUrl } : { voiceUrl, ttl };
+        const result = await account.api.sendVoice(voiceOptions, String(threadId), threadType);
+        res.json({
+            success: true, data: result, uploaded: daTaiLen, voiceUrl,
+            usedAccount: { ownId: account.ownId, phoneNumber: account.phoneNumber },
+        });
     } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+        const status = /ttl|type khong hop le/i.test(error.message) ? 400 : 500;
+        res.status(status).json({ success: false, error: error.message });
+    } finally {
+        if (duongGoc) removeFile(duongGoc);
+        if (duongAac) removeFile(duongAac);
     }
 }
 
