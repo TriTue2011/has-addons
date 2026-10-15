@@ -1,0 +1,75 @@
+{
+  "title": "TriTue YouTube Player",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Kết nối TriTue YouTube Player",
+        "description": "Kết nối tới app Home Assistant hoặc container Docker độc lập.",
+        "data": {
+          "url": "URL máy chủ",
+          "token": "Token tích hợp"
+        },
+        "data_description": {
+          "url": "Giữ URL nội bộ được gợi ý cho app, hoặc dùng http://IP:8099 cho Docker.",
+          "token": "Sao chép token bảo mật trong log khởi động của player. Đây không phải license key."
+        }
+      },
+      "reconfigure": {
+        "title": "Cấu hình lại kết nối player",
+        "data": {
+          "url": "URL máy chủ",
+          "token": "Token tích hợp"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Cập nhật token tích hợp",
+        "data": {
+          "token": "Token tích hợp"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Không thể kết nối tới máy chủ player.",
+      "invalid_auth": "Token tích hợp không đúng.",
+      "invalid_url": "Hãy nhập URL gốc HTTP hoặc HTTPS, không kèm đường dẫn.",
+      "unsupported_api": "Máy chủ player dùng phiên bản API chưa được hỗ trợ.",
+      "unknown": "Player trả về phản hồi không mong đợi."
+    },
+    "abort": {
+      "already_configured": "Máy chủ player này đã được cấu hình.",
+      "reauth_successful": "Đã cập nhật token tích hợp.",
+      "reconfigure_successful": "Đã cập nhật kết nối player."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Thiết bị phát",
+        "description": "Chọn media_player vật lý nhận bài hát từ integration này. Entity Google Cast sẽ dùng ứng dụng YouTube Cast chính thức.",
+        "data": {
+          "target_entity_id": "Loa hoặc màn hình mặc định"
+        }
+      }
+    }
+  },
+  "entity": {
+    "media_player": {
+      "player": {"name": "Trình phát"}
+    },
+    "sensor": {
+      "history_count": {"name": "Số mục lịch sử"}
+    }
+  },
+  "exceptions": {
+    "invalid_target": {"message": "URL hoặc mã YouTube không được hỗ trợ."},
+    "communication_error": {"message": "Máy chủ player không nhận lệnh."},
+    "search_error": {"message": "Tìm kiếm YouTube Music đang tạm thời không hoạt động."},
+    "entry_unavailable": {"message": "Máy chủ TriTue đã chọn chưa được tải."},
+    "invalid_target_entities": {"message": "Hãy chọn từ 1 đến 16 media player vật lý."},
+    "playback_error": {"message": "Nguồn nhạc không thể chuẩn bị mục này để phát."},
+    "target_unavailable": {"message": "Entity phát đã chọn không khả dụng. Hãy mở Cấu hình và chọn media_player khác."},
+    "invalid_target_entity": {"message": "Không thể chọn chính media player ảo của integration làm đầu ra."},
+    "cast_playlist_requires_video": {"message": "Google Cast cần URL playlist chứa cả v=VIDEO_ID và list=PLAYLIST_ID."},
+    "target_source_unsupported": {"message": "Thiết bị này không thể phát trang YouTube như luồng âm thanh. Hãy chọn Android TV/Cast có màn hình, hoặc dùng nguồn audio trực tiếp cho loa."}
+  }
+}

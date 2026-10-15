@@ -1,0 +1,18 @@
+services:
+  youtube-player:
+    build:
+      context: .
+    image: ghcr.io/tritue2011/youtube-player:0.4.1
+    container_name: tritue-youtube-player
+    restart: unless-stopped
+    ports:
+      - "8099:8099"
+    environment:
+      APP_TITLE: "TriTue YouTube Player"
+      MAX_HISTORY: "20"
+      # Optional. When empty, a stable token is generated in /data and logged.
+      INTEGRATION_TOKEN: ""
+      # Required for Zing playback. Use the LAN URL reachable by every speaker.
+      PUBLIC_BASE_URL: ""
+    volumes:
+      - ./data:/data

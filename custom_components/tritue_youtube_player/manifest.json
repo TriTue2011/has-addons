@@ -1,0 +1,13 @@
+{
+  "domain": "tritue_youtube_player",
+  "name": "TriTue YouTube Player",
+  "codeowners": ["@TriTue2011"],
+  "config_flow": true,
+  "dependencies": ["http"],
+  "documentation": "https://github.com/TriTue2011/has-addons/tree/main/youtube_player_integration",
+  "integration_type": "device",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/TriTue2011/has-addons/issues",
+  "requirements": [],
+  "version": "0.5.1"
+}

@@ -1,0 +1,47 @@
+play_on_players:
+  name: Play on selected media players
+  description: Resolve a YouTube or public Zing result and play it on one or more media players.
+  fields:
+    entry_id:
+      name: Config entry
+      description: Config entry ID of the TriTue player server used as the source.
+      required: true
+      example: 01J00000000000000000000000
+      selector:
+        text:
+    source:
+      name: Source
+      description: Metadata and playback provider for the selected result.
+      required: true
+      example: youtube
+      selector:
+        select:
+          options:
+            - youtube
+            - zing
+    target:
+      name: Media target
+      description: YouTube video ID or URL, or a public Zing song URL returned by search.
+      required: true
+      example: dQw4w9WgXcQ
+      selector:
+        text:
+    entity_id:
+      name: Speakers and displays
+      description: One or more physical media_player entities that will receive the media.
+      required: true
+      selector:
+        entity:
+          domain: media_player
+          multiple: true
+    volume_level:
+      name: Volume
+      description: Optional volume applied to all selected players before playback.
+      required: false
+      example: 0.35
+      selector:
+        number:
+          min: 0
+          max: 1
+          step: 0.01
+          mode: slider
