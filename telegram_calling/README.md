@@ -87,7 +87,7 @@ docker compose pull && docker compose up -d   # cập nhật
 ```
 
 Mở `http://<máy>:3333/ui/`, dán `GATEWAY_TOKEN`, thêm tài khoản như bước 2.4.
-Ghim phiên bản: đổi `:latest` thành `:0.1.0`. Tên biến ↔ add-on: `TELEGRAM_API_ID` = `api_id`, `TELEGRAM_API_HASH` = `api_hash`, `GATEWAY_TOKEN` = `gateway_token` (ở Docker là **bắt buộc**; add-on tự sinh nếu bỏ trống).
+Ghim phiên bản: đổi `:latest` thành `:0.2.1`. Tên biến ↔ add-on: `TELEGRAM_API_ID` = `api_id`, `TELEGRAM_API_HASH` = `api_hash`, `GATEWAY_TOKEN` = `gateway_token` (ở Docker là **bắt buộc**; add-on tự sinh nếu bỏ trống).
 
 ## Cần biết
 

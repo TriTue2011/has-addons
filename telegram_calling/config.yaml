@@ -1,7 +1,7 @@
 name: "Telegram Calling"
 description: "Cổng Telegram cho Home Assistant: đăng nhập tài khoản phụ, nhắn tin, gọi thoại và video"
 url: "https://github.com/TriTue2011/Telegram-calling"
-version: "0.1.0"
+version: "0.2.1"
 slug: "telegram_calling"
 init: false
 arch:
