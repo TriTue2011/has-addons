@@ -58,6 +58,14 @@ services:
     image: ghcr.io/tritue2011/telegram-calling:latest
     container_name: telegram-calling
     restart: unless-stopped
+    init: true                # dọn ffmpeg mồ côi, không để lại tiến trình ma
+    mem_limit: 512m           # đo: ~70 MB lúc rảnh, mỗi ffmpeg video ≤ ~160 MB; tăng nếu camera 4K
+    memswap_limit: 512m       # không tràn sang swap
+    cpus: "1.5"
+    pids_limit: 256
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
     ports:
       - "127.0.0.1:3333:3333"   # HA ở máy khác: "IP_LAN_CỦA_MÁY:3333:3333" + firewall chỉ cho IP của HA
     volumes:
@@ -67,6 +75,7 @@ services:
       TELEGRAM_API_ID: ${TELEGRAM_API_ID}
       TELEGRAM_API_HASH: ${TELEGRAM_API_HASH}
       GATEWAY_MOCK: "0"         # 0 = chạy thật; bỏ dòng này (hoặc để 1) = giả lập
+      # VIDEO_PROFILE: "low"    # máy yếu: hình 480x270, 10 khung/giây (mặc định normal = 640x360, 15)
 ```
 
 **`.env`** (`chmod 600 .env`)
@@ -87,7 +96,29 @@ docker compose pull && docker compose up -d   # cập nhật
 ```
 
 Mở `http://<máy>:3333/ui/`, dán `GATEWAY_TOKEN`, thêm tài khoản như bước 2.4.
-Ghim phiên bản: đổi `:latest` thành `:0.2.1`. Tên biến ↔ add-on: `TELEGRAM_API_ID` = `api_id`, `TELEGRAM_API_HASH` = `api_hash`, `GATEWAY_TOKEN` = `gateway_token` (ở Docker là **bắt buộc**; add-on tự sinh nếu bỏ trống).
+Ghim phiên bản: đổi `:latest` thành `:0.4.1`. Tên biến ↔ add-on: `TELEGRAM_API_ID` = `api_id`, `TELEGRAM_API_HASH` = `api_hash`, `GATEWAY_TOKEN` = `gateway_token` (ở Docker là **bắt buộc**; add-on tự sinh nếu bỏ trống).
+
+## 4. Nối với Home Assistant và gọi
+
+1. Tải tích hợp **Telegram Call** bằng nút ② ở trên, khởi động lại HA, rồi nút ③ **Thêm tích hợp**.
+2. Điền **Địa chỉ gateway** `http://<IP máy>:3333` và **Token gateway**.
+   > **Token gateway là gì?** Mật khẩu chung giữa gateway và tích hợp HA (không liên quan Telegram). Add-on: lấy ở tab **Nhật ký** (hoặc ô `gateway_token`).
+   > Docker: chuỗi `GATEWAY_TOKEN` bạn đặt trong `.env`.
+3. Gọi bằng **@tên đăng nhập** của người nhận (hoặc `+84…`, hoặc ID số):
+
+   ```yaml
+   service: telegram_call.make_call
+   data: {peer: "@ten_dang_nhap", video: true}
+   ```
+
+   Số điện thoại chỉ gọi được khi người đó cho phép tìm bằng số. Họ cũng phải cho phép **cuộc gọi từ bạn** (Telegram → Quyền riêng tư → Cuộc gọi).
+
+## Máy yếu (Raspberry Pi, NAS nhỏ)
+
+- **Docker:** khối compose ở trên đã có trần RAM (512 MB), CPU (1,5 lõi), số tiến trình và xoay vòng nhật ký, để một cuộc gọi lỗi không làm cả máy đầy RAM/đĩa. Máy 1 GB RAM thì hạ `mem_limit` xuống `384m`.
+- **Add-on (HAOS):** Supervisor không cho đặt trần RAM/CPU cho từng add-on, nên dựa vào hai việc: tự dọn tài nguyên sau mỗi cuộc gọi (đã làm) và các núm giảm tải dưới đây.
+- **Giảm hình:** tuỳ chọn add-on `video_profile = low` (hoặc `VIDEO_PROFILE=low` ở Docker): 480x270, 10 khung/giây thay cho 640x360, 15.
+- **Camera: chọn luồng phụ (sub), không phải luồng chính.** Đo thật cùng một camera, ffmpeg giải mã + thu nhỏ: luồng chính ≈ **40%** một lõi, luồng phụ ≈ **16%**. Với go2rtc, dùng tên luồng phụ (ví dụ `phong-khach-sub`).
 
 ## Cần biết
 

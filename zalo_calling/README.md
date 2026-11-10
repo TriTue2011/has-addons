@@ -64,6 +64,14 @@ services:
     image: ghcr.io/tritue2011/zalo-calling:latest
     container_name: zalo-calling
     restart: unless-stopped
+    init: true                # dọn ffmpeg mồ côi, không để lại tiến trình ma
+    mem_limit: 512m           # đo: ~70 MB lúc rảnh, mỗi ffmpeg video ≤ ~160 MB; tăng nếu camera 4K
+    memswap_limit: 512m       # không tràn sang swap
+    cpus: "1.5"
+    pids_limit: 256
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
     ports:
       - "8080:8080"      # HA cùng máy và dùng network host: đổi thành "127.0.0.1:8080:8080"
     volumes:
@@ -89,7 +97,7 @@ docker compose pull && docker compose up -d   # cập nhật
 ```
 
 Mở `http://<máy>:8080`, đăng nhập, quét QR. Bước ② y hệt, địa chỉ app là `http://<IP máy Docker>:8080`.
-Ghim phiên bản: đổi `:latest` thành `:2026.11.10.9`. Tên biến ↔ add-on: `ZALO_PC_APP_USER` = `username`, `ZALO_PC_APP_PASSWORD` = `password` (ở Docker là **bắt buộc**).
+Ghim phiên bản: đổi `:latest` thành `:2026.11.10.11`. Tên biến ↔ add-on: `ZALO_PC_APP_USER` = `username`, `ZALO_PC_APP_PASSWORD` = `password` (ở Docker là **bắt buộc**).
 
 ## Lỗi thường gặp
 
@@ -100,6 +108,31 @@ Ghim phiên bản: đổi `:latest` thành `:2026.11.10.9`. Tên biến ↔ add-
 | Loa nhỏ | Tăng **Âm lượng cuộc gọi** |
 | Tiếng bạn đứt khi nói chồng (loa R1) | R1 là nửa song công; muốn mic luôn mở: **Chống vọng = Song công**, R1 đặt **Động cơ xử lý âm thanh = nâng cao** |
 | Tiếng không ra loa R1 | Tải lại tích hợp R1 |
+
+## Định dạng chữ, màu, emoji
+
+`zalo_call.send_message` nhận thêm các trường (đều có ô chọn trong HA):
+
+| Trường | Làm gì |
+|---|---|
+| `format: markdown` | `**đậm**` `*nghiêng*` `__gạch chân__` `~~gạch ngang~~` · `# tiêu đề` (to + đậm) · `- mục` / `1. mục` (danh sách) · `{red}đỏ{/}` `{orange}` `{yellow}` `{green}` (hoặc `{đỏ}` `{cam}` `{vàng}` `{xanh}`) · `{big}..{/}` `{small}..{/}`. Chỉ có **hai cỡ** chữ. |
+| `auto_emphasis` | `red` / `orange` / `yellow` / `green` (hoặc `true` = đỏ): **tự đổi màu + đậm** cho con số (29°C, 75%, 15:30) và chữ đã in đậm. Nhận ra số theo hình dạng, không theo danh sách từ khoá. |
+| `emoji` | Chọn trong bảng hoặc gõ emoji bất kỳ: chèn vào đầu tin. Mã `:ok:` `:canhbao:` … trong chữ cũng đổi thành emoji. |
+| `auto_emoji` | Tự thêm một emoji hợp ngữ cảnh vào đầu từng dòng chưa có (cảnh báo, lỗi, xong, nhiệt độ, cửa, đèn…). Bảng nhỏ, bảo thủ, mặc định tắt. |
+
+```yaml
+service: zalo_call.send_message
+data: {thread_id: "123456789012345678", type: user, message: "Nhiệt độ 29°C, cửa mở lúc 15:30", auto_emphasis: red, auto_emoji: true}
+```
+
+`add_reaction` có bảng chọn 54 biểu tượng (`like`, `heart`, `haha`, `wow`, `cry`, `angry`…). **AI tự trả lời:** trên thiết bị có ô *AI: định dạng chữ trả lời* (mặc định `markdown`), *AI: tự nhấn mạnh số…* (mặc định `off`) và công tắc *AI tự thêm emoji* (mặc định tắt).
+
+## Máy yếu (Raspberry Pi, NAS nhỏ)
+
+- **Docker:** khối compose ở trên đã có trần RAM (512 MB), CPU (1,5 lõi), số tiến trình và xoay vòng nhật ký, để một cuộc gọi lỗi không làm cả máy đầy RAM/đĩa. Máy 1 GB RAM thì hạ `mem_limit` xuống `384m`.
+- **Add-on (HAOS):** Supervisor không cho đặt trần RAM/CPU cho từng add-on, nên dựa vào hai việc: tự dọn tài nguyên sau mỗi cuộc gọi (đã làm) và các núm giảm tải dưới đây.
+- **Giảm hình:** đặt video 480x270, 10 khung/giây, 200 kbps (`/api/settings/devices` của app, mục `video`: `width`, `height`, `fps`, `bitrate_kbps`).
+- **Camera: chọn luồng phụ (sub), không phải luồng chính.** Đo thật cùng một camera, ffmpeg giải mã + thu nhỏ: luồng chính ≈ **40%** một lõi, luồng phụ ≈ **16%**. Với go2rtc, dùng tên luồng phụ (ví dụ `phong-khach-sub`).
 
 ## Cần biết
 

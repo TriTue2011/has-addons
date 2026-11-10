@@ -11,5 +11,8 @@ configuration:
   ha_webhook_url:
     name: Địa chỉ webhook HA (tuỳ chọn)
     description: Để gateway báo sự kiện (tin đến, cuộc gọi đến) về Home Assistant. Bỏ trống cũng được.
+  video_profile:
+    name: Video quality
+    description: normal = 640x360 at 15 fps. low = 480x270 at 10 fps, much lighter on CPU, for weak machines.
 network:
   3333/tcp: REST và WebUI của gateway (chỉ để trong mạng LAN)

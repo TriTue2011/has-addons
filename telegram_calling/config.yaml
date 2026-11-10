@@ -1,7 +1,7 @@
 name: "Telegram Calling"
 description: "Cổng Telegram cho Home Assistant: đăng nhập tài khoản phụ, nhắn tin, gọi thoại và video"
 url: "https://github.com/TriTue2011/Telegram-calling"
-version: "0.2.1"
+version: "0.4.1"
 slug: "telegram_calling"
 init: false
 arch:
@@ -20,6 +20,7 @@ options:
   api_hash: ""
   gateway_token: ""
   ha_webhook_url: ""
+  video_profile: "normal"
 schema:
   # Lấy ở https://my.telegram.org (xem README). Thiếu thì gateway chỉ chạy chế độ giả lập.
   api_id: "str?"
@@ -27,3 +28,5 @@ schema:
   # Bỏ trống: add-on tự sinh, giữ lại, in ra Nhật ký.
   gateway_token: "password?"
   ha_webhook_url: "str?"
+  # low = 480x270, 10 khung/giây: cho máy yếu (Raspberry Pi, NAS nhỏ). normal = 640x360, 15 khung/giây.
+  video_profile: "list(normal|low)?"
