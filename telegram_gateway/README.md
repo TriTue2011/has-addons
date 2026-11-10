@@ -38,21 +38,46 @@ Cần **`api_id`** và **`api_hash`** — chìa khoá để app của bạn nói
 
 ## 3. Docker
 
-```sh
-git clone https://github.com/TriTue2011/Calling && cd Calling/telegram-gateway
-cp .env.example .env && chmod 600 .env     # rồi điền các dòng dưới
-docker compose up -d
+Tạo thư mục `telegram-gateway/` với hai tệp:
+
+**`docker-compose.yml`**
+
+```yaml
+services:
+  telegram-gateway:
+    image: ghcr.io/tritue2011/telegram-gateway:latest
+    container_name: telegram-gateway
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3333:3333"   # HA ở máy khác: "IP_LAN_CỦA_MÁY:3333:3333" + firewall chỉ cho IP của HA
+    volumes:
+      - ./data:/data            # phiên Telegram nằm ở đây, giữ kín
+    environment:
+      GATEWAY_TOKEN: ${GATEWAY_TOKEN}
+      TELEGRAM_API_ID: ${TELEGRAM_API_ID}
+      TELEGRAM_API_HASH: ${TELEGRAM_API_HASH}
+      GATEWAY_MOCK: "0"         # 0 = chạy thật; bỏ dòng này (hoặc để 1) = giả lập
 ```
 
-| Biến (`.env`) | Điền gì | Tương đương ở add-on |
-|---|---|---|
-| `TELEGRAM_API_ID` | Số **App api_id** | `api_id` |
-| `TELEGRAM_API_HASH` | Chuỗi **App api_hash** | `api_hash` |
-| `GATEWAY_TOKEN` | Sinh bằng `openssl rand -hex 32` (**bắt buộc**) | `gateway_token` |
-| `GATEWAY_MOCK` | Đặt **`0`** để chạy thật (mặc định `1` = giả lập) | tự đặt `0` khi có đủ `api_id`+`api_hash` |
+**`.env`** (`chmod 600 .env`)
+
+```
+# sinh bằng: openssl rand -hex 32
+GATEWAY_TOKEN=
+# số App api_id ở bước 1
+TELEGRAM_API_ID=
+# chuỗi App api_hash ở bước 1
+TELEGRAM_API_HASH=
+```
+
+```sh
+docker compose up -d                          # chạy
+docker compose logs -f                        # xem nhật ký
+docker compose pull && docker compose up -d   # cập nhật
+```
 
 Mở `http://<máy>:3333/ui/`, dán `GATEWAY_TOKEN`, thêm tài khoản như bước 2.4.
-Ảnh: `ghcr.io/tritue2011/telegram-gateway` (amd64 + arm64). Cập nhật: `docker compose pull && docker compose up -d`.
+Ghim phiên bản: đổi `:latest` thành `:2026.11.10.8`. Tên biến ↔ add-on: `TELEGRAM_API_ID` = `api_id`, `TELEGRAM_API_HASH` = `api_hash`, `GATEWAY_TOKEN` = `gateway_token` (ở Docker là **bắt buộc**; add-on tự sinh nếu bỏ trống).
 
 ## Cần biết
 

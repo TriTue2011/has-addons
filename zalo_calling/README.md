@@ -45,21 +45,42 @@ Service khác: `answer_call`, `reject_call`, `end_call`, `upgrade_to_video`, `se
 
 ## Docker
 
-Dùng cho HA Container hoặc chạy app ở máy khác:
+Cho HA Container hoặc khi chạy app ở máy khác. Tạo thư mục `zalo/` với hai tệp:
 
-```sh
-mkdir zalo && cd zalo
-curl -LO https://github.com/TriTue2011/Calling/releases/latest/download/docker-compose.yml
-printf 'ZALO_PC_APP_USER=admin\nZALO_PC_APP_PASSWORD=mat-khau-dai\n' > .env
-docker compose up -d        # mở http://<máy>:8080, quét QR
+**`docker-compose.yml`**
+
+```yaml
+services:
+  zalo-calling:
+    image: ghcr.io/tritue2011/zalo-calling:latest
+    container_name: zalo-calling
+    restart: unless-stopped
+    ports:
+      - "8080:8080"      # HA cùng máy và dùng network host: đổi thành "127.0.0.1:8080:8080"
+    volumes:
+      - zalo-data:/data  # phiên đăng nhập Zalo nằm ở đây
+    environment:
+      ZALO_PC_APP_USER: ${ZALO_PC_APP_USER}
+      ZALO_PC_APP_PASSWORD: ${ZALO_PC_APP_PASSWORD}
+volumes:
+  zalo-data:
 ```
 
-| Biến (`.env`) | Ý nghĩa | Tương đương ở add-on |
-|---|---|---|
-| `ZALO_PC_APP_USER` | Tên đăng nhập WebUI | `username` |
-| `ZALO_PC_APP_PASSWORD` | Mật khẩu WebUI (**bắt buộc**) | `password` |
+**`.env`** (cùng thư mục; mật khẩu dài, không ghi vào compose)
 
-Cập nhật: `docker compose pull && docker compose up -d`. Phần ② y hệt, chỉ khác địa chỉ app.
+```
+ZALO_PC_APP_USER=admin
+ZALO_PC_APP_PASSWORD=mat-khau-dai
+```
+
+```sh
+docker compose up -d                          # chạy
+docker compose logs -f                        # xem nhật ký
+docker compose pull && docker compose up -d   # cập nhật
+```
+
+Mở `http://<máy>:8080`, đăng nhập, quét QR. Bước ② y hệt, địa chỉ app là `http://<IP máy Docker>:8080`.
+Ghim phiên bản: đổi `:latest` thành `:2026.11.10.8`. Tên biến ↔ add-on: `ZALO_PC_APP_USER` = `username`, `ZALO_PC_APP_PASSWORD` = `password` (ở Docker là **bắt buộc**).
 
 ## Lỗi thường gặp
 
