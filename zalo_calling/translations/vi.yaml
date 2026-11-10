@@ -1,0 +1,9 @@
+configuration:
+  username:
+    name: Tên đăng nhập WebUI
+    description: Tài khoản để mở WebUI của app và để tích hợp Zalo Call trong HA kết nối vào. Mặc định admin.
+  password:
+    name: Mật khẩu WebUI
+    description: Để trống thì add-on tự sinh mật khẩu và in ra tab Log mỗi lần khởi động. Điền vào để tự đặt mật khẩu.
+network:
+  8080/tcp: WebUI và API của app Zalo (chỉ để trong mạng LAN)

@@ -1,0 +1,29 @@
+name: "Telegram Gateway"
+description: "Cổng Telegram cho Home Assistant: đăng nhập tài khoản phụ, nhắn tin, gọi thoại và video"
+url: "https://github.com/TriTue2011/Calling/tree/main/telegram-gateway"
+version: "2026.11.10.8"
+slug: "telegram_gateway"
+init: false
+arch:
+  - amd64
+  - aarch64
+# Ảnh đa kiến trúc do repo Calling dựng khi đẩy tag vX; thẻ không có chữ v (đúng bằng "version").
+image: "ghcr.io/tritue2011/telegram-gateway"
+ports:
+  3333/tcp: 3333
+ports_description:
+  3333/tcp: "REST và WebUI của gateway (chỉ để trong mạng LAN, có token)"
+webui: "http://[HOST]:[PORT:3333]/ui/"
+watchdog: "http://[HOST]:[PORT:3333]/health"
+options:
+  api_id: ""
+  api_hash: ""
+  gateway_token: ""
+  ha_webhook_url: ""
+schema:
+  # Lấy ở https://my.telegram.org (xem README). Thiếu thì gateway chỉ chạy chế độ giả lập.
+  api_id: "str?"
+  api_hash: "password?"
+  # Bỏ trống: add-on tự sinh, giữ lại, in ra Nhật ký.
+  gateway_token: "password?"
+  ha_webhook_url: "str?"

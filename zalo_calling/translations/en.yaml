@@ -1,0 +1,9 @@
+configuration:
+  username:
+    name: WebUI username
+    description: Account used to open the app WebUI and by the Zalo Call integration in HA. Default is admin.
+  password:
+    name: WebUI password
+    description: Leave empty and the add-on generates a password and prints it to the Log tab at each start. Fill it in to set your own.
+network:
+  8080/tcp: App WebUI and API (keep on the LAN only)
