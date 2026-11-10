@@ -1,13 +1,13 @@
 # Home Assistant Add-ons — TriTue
 
 Thêm kho này vào Home Assistant: **Cài đặt → Add-on → Cửa hàng → ⋮ → Kho lưu trữ** →
-`https://github.com/TriTue2011/has-addons`. Chỉ dùng được với **Home Assistant OS / Supervised**.
+`https://github.com/TriTue2011/has-addons`, hoặc bấm nhanh: [![Thêm kho add-on](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2FTriTue2011%2Fhas-addons). Chỉ dùng được với **Home Assistant OS / Supervised**.
 
 | Add-on | Làm gì | Hướng dẫn |
 |---|---|---|
 | 💬 **Zalo Bot** | Gửi/nhận **tin nhắn** Zalo | [phần dưới](#-zalo-bot-cho-home-assistant) |
 | 📞 **Zalo Calling** | **Gọi thoại và video** Zalo, tiếng ra loa nhà, hình từ camera | [zalo_calling/README.md](zalo_calling/README.md) |
-| ✈️ **Telegram Gateway** | Cổng **Telegram** (nhắn tin, gọi); cách lấy `api_id`/`api_hash` | [telegram_gateway/README.md](telegram_gateway/README.md) |
+| ✈️ **Telegram Calling** | Cổng **Telegram** (nhắn tin, gọi); cách lấy `api_id`/`api_hash` | [telegram_calling/README.md](telegram_calling/README.md) |
 | 🤖 **AI Box Bridge** | Cầu WebSocket cho AI BOX | [aibox_bridge/](aibox_bridge/) |
 
 ---

@@ -1,14 +1,14 @@
-name: "Telegram Gateway"
+name: "Telegram Calling"
 description: "Cổng Telegram cho Home Assistant: đăng nhập tài khoản phụ, nhắn tin, gọi thoại và video"
-url: "https://github.com/TriTue2011/Calling/tree/main/telegram-gateway"
-version: "2026.11.10.8"
-slug: "telegram_gateway"
+url: "https://github.com/TriTue2011/Telegram-calling"
+version: "0.1.0"
+slug: "telegram_calling"
 init: false
 arch:
   - amd64
   - aarch64
-# Ảnh đa kiến trúc do repo Calling dựng khi đẩy tag vX; thẻ không có chữ v (đúng bằng "version").
-image: "ghcr.io/tritue2011/telegram-gateway"
+# Ảnh đa kiến trúc do kho Telegram-calling dựng khi đẩy thẻ vX; thẻ không có chữ v (đúng bằng "version").
+image: "ghcr.io/tritue2011/telegram-calling"
 ports:
   3333/tcp: 3333
 ports_description:

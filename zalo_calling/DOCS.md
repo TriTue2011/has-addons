@@ -10,8 +10,8 @@ Hướng dẫn đầy đủ, sơ đồ xử lý sự cố và giới hạn: xem
 ## Cần hai phần
 
 1. **Add-on này** — app đăng nhập Zalo và truyền tiếng/hình.
-2. **Tích hợp «Zalo Call»** (HACS, kho `https://github.com/TriTue2011/Calling`, loại
-   Integration) — tạo thiết bị, nút, service và sự kiện trong HA.
+2. **Tích hợp «Zalo Call»** (HACS, kho `https://github.com/TriTue2011/Zalo-calling`, loại
+   Integration, qua **⋮ → Custom repositories**) — tạo thiết bị, nút, service và sự kiện trong HA.
 
 ## Cấu hình add-on
 
