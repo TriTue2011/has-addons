@@ -97,7 +97,7 @@ docker compose pull && docker compose up -d   # cập nhật
 ```
 
 Mở `http://<máy>:8080`, đăng nhập, quét QR. Bước ② y hệt, địa chỉ app là `http://<IP máy Docker>:8080`.
-Ghim phiên bản: đổi `:latest` thành `:2026.11.10.12`. Tên biến ↔ add-on: `ZALO_PC_APP_USER` = `username`, `ZALO_PC_APP_PASSWORD` = `password` (ở Docker là **bắt buộc**).
+Ghim phiên bản: đổi `:latest` thành `:2026.11.10.13`. Tên biến ↔ add-on: `ZALO_PC_APP_USER` = `username`, `ZALO_PC_APP_PASSWORD` = `password` (ở Docker là **bắt buộc**).
 
 ## Lỗi thường gặp
 
@@ -171,24 +171,106 @@ Công tắc trên thiết bị: *Tự phát mic khi nghe máy*, *Tự đồng ý
 
 **Gửi tin có TTS của HA thành tin thoại:** tạo tệp âm thanh bằng `tts.speak`/`tts.google_translate_say` ra `/config/www/`, rồi `zalo_call.send_voice` với `file:` trỏ tới tệp đó.
 
-## Định dạng chữ, màu, emoji
+## Định dạng chữ: cỡ chữ, màu, đậm, nghiêng, gạch chân, tiêu đề
 
-`zalo_call.send_message` nhận thêm các trường (đều có ô chọn trong HA):
+Zalo cá nhân có **hai cỡ chữ** (nhỏ, to), **bốn màu** (đỏ, cam, vàng, xanh lá), đậm, nghiêng, gạch chân, gạch ngang và danh sách. Zalo Call cho cài đặt kiểu chữ **một lần trên thiết bị**
+(áp cho mọi tin tích hợp gửi, kể cả trả lời của AI) và **ghi đè từng tin** ở dịch vụ `send_message`. Mỗi mục có thêm chế độ **`auto`**: tự định dạng theo nội dung chữ.
+
+### Cài đặt mặc định (thiết bị Zalo Call → nhóm *Cấu hình*)
+
+| Ô trên thiết bị | Giá trị | Ý nghĩa |
+|---|---|---|
+| **Chữ: cỡ chữ** | `off` · `small` · `big` · `auto` | `small`/`big`: cả tin nhỏ/to. `auto`: tiêu đề to, dòng nằm trọn trong ngoặc `(…)` nhỏ |
+| **Chữ: màu chữ** | `off` · `auto` · `red` · `orange` · `yellow` · `green` | Màu cố định cho cả tin. `auto`: chỉ **con số** (29°C, 75%, 15:30, 10/11) được tô màu «màu dùng cho chế độ auto» |
+| **Chữ: in đậm** | `off` · `on` · `auto` | `on`: cả tin. `auto`: con số |
+| **Chữ: in nghiêng** | `off` · `on` · `auto` | `on`: cả tin. `auto`: đoạn trong `"…"` `“…”` `‘…’` hoặc `(…)` |
+| **Chữ: gạch chân** | `off` · `on` · `auto` | `on`: cả tin. `auto`: liên kết `http(s)://…` và địa chỉ email |
+| **Chữ: tiêu đề dòng đầu** | `off` · `on` · `auto` | `on`: dòng đầu thành **to + đậm**. `auto`: chỉ khi tin có nhiều dòng, dòng đầu ≤ 60 ký tự và **không** kết thúc bằng dấu câu (`. ! ? … , ;`); dòng ngắn kết thúc bằng `:` thành đề mục (đậm) |
+| **Chữ: màu dùng cho chế độ auto** | `red` · `orange` · `yellow` · `green` | Màu của «màu chữ = auto» (mặc định `red`) |
+| **Chữ: AI trả lời tự định dạng trong cùng lượt** | công tắc (mặc định **bật**) | Mức 1 bên dưới: AI tự định dạng khi trả lời, không chậm thêm |
+| **Chữ: dùng AI đánh giá khi gửi send_message** | công tắc (mặc định tắt) | Mức 3 bên dưới: nhờ trợ lý đánh giá ngữ cảnh cho các mục `auto` (thêm vài giây) |
+| **Chữ: trợ lý AI dùng cho chế độ auto** | chọn trợ lý hội thoại | Nên chọn trợ lý nhỏ/nhanh; Không = trợ lý của AI trả lời |
+| **Chữ: tự thêm emoji (auto)** | công tắc **bật / tắt** | Bật: mọi tin tích hợp gửi tự có một emoji hợp ngữ cảnh ở đầu từng dòng chưa có emoji (xem mục Emoji). Mặc định tắt |
+
+Mặc định mọi mục là `off` (tin gửi đi như cũ). Quy tắc `auto` dựa trên **hình dạng** của chữ (số, dấu ngoặc, liên kết, dấu câu), không dựa danh sách từ khoá.
+
+### `auto` hoạt động thế nào: nhanh hay theo ngữ cảnh
+
+Mục đích của `auto` là **tự đánh giá ngữ cảnh** để chọn màu, cỡ chữ, đậm/nghiêng, tiêu đề và emoji cho hợp. Có ba mức, **mặc định không làm chậm tin nhắn**:
+
+| Mức | Khi nào | Tốc độ |
+|---|---|---|
+| **1. AI tự định dạng trong cùng lượt** | Câu trả lời của **AI tự trả lời** (mặc định bật, công tắc *Chữ: AI trả lời tự định dạng trong cùng lượt*): tích hợp nhúng một chỉ dẫn ngắn vào chính câu hỏi gửi trợ lý, trợ lý vừa trả lời vừa tự chọn đậm, màu, tiêu đề, emoji theo nội dung | **Không chậm thêm** (cùng một lần gọi) |
+| **2. Quy tắc tức thì** | Mọi tin còn lại, và khi trợ lý quên định dạng: `auto` dùng quy tắc theo hình dạng chữ ở bảng trên (số, ngoặc, liên kết, dấu câu) | **Tức thì** |
+| **3. Nhờ AI đánh giá riêng** (tuỳ chọn) | `send_message` có mục `auto` hoặc `auto_emoji`, và bật công tắc *Chữ: dùng AI đánh giá khi gửi send_message* hoặc `ai_style: true` | **Thêm vài giây** (một lần gọi trợ lý; quá 8 giây thì bỏ, dùng mức 2). Tin dưới 24 ký tự bỏ qua |
+
+Mức 3: trợ lý hội thoại của HA đọc tin rồi đánh dấu định dạng + emoji theo ngữ cảnh (cảnh báo → đỏ, thành công → xanh lá, đề mục, nhấn mạnh…).
+**Có kiểm soát:** trợ lý chỉ được chèn định dạng và emoji; app **chỉ nhận khi chữ gốc không bị đổi** (thêm/bớt/sửa một chữ là bỏ cả đánh dấu của AI và dùng mức 2). Lỗi hoặc quá giờ cũng quay về mức 2, tin vẫn gửi bình thường.
+Muốn nhanh hơn nữa: chọn ở ô *Chữ: trợ lý AI dùng cho chế độ auto* một trợ lý **nhỏ/nhanh** (Không = dùng trợ lý của AI trả lời, rồi trợ lý mặc định của HA). Mức 3 tốn thêm token của trợ lý.
+
+Các mục để giá trị cố định (`on`, `small`, `big`, một màu cụ thể…) luôn được áp chắc chắn, không qua AI. Công tắc **Chữ: tự thêm emoji** cũng theo ba mức trên:
+bật cho câu trả lời của AI thì AI tự chọn emoji; tin do người dùng **tự gắn emoji** rồi gửi thì giữ nguyên, các dòng đã có emoji không bị thêm nữa.
+
+### Ghi đè từng tin: `zalo_call.send_message`
+
+Các trường tương ứng (đều tuỳ chọn; **bỏ trống = theo mặc định trên thiết bị**, có điền = ghi đè cho tin này):
+
+| Trường dịch vụ | Tương ứng ô thiết bị |
+|---|---|
+| `font_size` | cỡ chữ |
+| `text_color` | màu chữ |
+| `bold` · `italic` · `underline` · `heading` | in đậm · nghiêng · gạch chân · tiêu đề |
+| `auto_emoji` | công tắc tự thêm emoji (`true` / `false`) |
+| `ai_style` | `true` / `false`: nhờ AI đánh giá ngữ cảnh cho tin này (mức 3) hay dùng quy tắc tức thì; bỏ trống = theo công tắc |
+| `auto_color` | màu dùng cho chế độ auto |
+
+```yaml
+# Mặc định trên thiết bị: tiêu đề = auto, màu chữ = auto. Tin này thêm: số in đậm, không tô màu.
+service: zalo_call.send_message
+data:
+  thread_id: "6643404425553198601"
+  type: user
+  message: |
+    Báo cáo nhà hôm nay
+    Nhiệt độ 29°C, độ ẩm 75% lúc 15:30
+    Chi tiết: https://example.com
+  bold: auto            # con số in đậm
+  text_color: off       # ghi đè «màu chữ = auto» của thiết bị, tin này không tô màu
+```
+
+Kết quả: dòng đầu **to + đậm** (tiêu đề auto), `29°C`, `75%`, `15:30` in đậm, liên kết giữ nguyên.
+
+### Thứ tự ưu tiên
+
+1. **Đánh dấu tường minh trong chữ** (markdown, thẻ màu) luôn thắng: cỡ và màu mặc định/auto **không đè** lên chỗ đã có cỡ hoặc màu.
+2. **Trường của dịch vụ** `send_message` ghi đè **cài đặt mặc định** trên thiết bị.
+3. **Cài đặt mặc định** trên thiết bị (áp cả cho trả lời của AI tự trả lời).
+
+### Đánh dấu tay trong chữ (`format: markdown`)
+
+| Viết | Ra |
+|---|---|
+| `**đậm**` · `*nghiêng*` · `__gạch chân__` · `~~gạch ngang~~` | đậm · nghiêng · gạch chân · gạch ngang |
+| `# Tiêu đề` | to + đậm |
+| `- mục` · `1. mục` | danh sách chấm · đánh số |
+| `{red}đỏ{/}` `{orange}` `{yellow}` `{green}` (hoặc `{đỏ}` `{cam}` `{vàng}` `{xanh}`) | màu |
+| `{big}to{/}` · `{small}nhỏ{/}` | cỡ chữ (chỉ hai cỡ) |
+| `\*` | ký tự `*` nguyên văn |
+
+Có thể kết hợp với `auto_emphasis` (tự tô số và chữ đậm), `emoji`, `zalo_emoji`, `auto_emoji`: xem mục tiếp.
+
+### Emoji
 
 | Trường | Làm gì |
 |---|---|
-| `format: markdown` | `**đậm**` `*nghiêng*` `__gạch chân__` `~~gạch ngang~~` · `# tiêu đề` (to + đậm) · `- mục` / `1. mục` (danh sách) · `{red}đỏ{/}` `{orange}` `{yellow}` `{green}` (hoặc `{đỏ}` `{cam}` `{vàng}` `{xanh}`) · `{big}..{/}` `{small}..{/}`. Chỉ có **hai cỡ** chữ. |
-| `auto_emphasis` | `red` / `orange` / `yellow` / `green` (hoặc `true` = đỏ): **tự đổi màu + đậm** cho con số (29°C, 75%, 15:30) và chữ đã in đậm. Nhận ra số theo hình dạng, không theo danh sách từ khoá. |
-| `emoji` | Chọn trong bảng hoặc gõ emoji bất kỳ: chèn vào đầu tin. Mã `:ok:` `:canhbao:` … trong chữ cũng đổi thành emoji. |
-| `zalo_emoji` | Chọn emoji **của Zalo** (heart, haha, wow, cry…): chèn mã (`/-heart`, `:>`…) vào đầu tin, Zalo hiện thành ảnh emoji như trong bảng emoji của ô chat. |
-| `auto_emoji` | Tự thêm một emoji hợp ngữ cảnh vào đầu từng dòng chưa có (cảnh báo, lỗi, xong, nhiệt độ, cửa, đèn…). Bảng nhỏ, bảo thủ, mặc định tắt. |
+| `emoji` | Chọn trong bảng 35 biểu tượng hoặc gõ emoji bất kỳ: chèn vào đầu tin. Mã `:ok:` `:canhbao:`… trong chữ cũng đổi thành emoji |
+| `zalo_emoji` | Emoji **của Zalo** (heart, haha, wow, cry…): chèn mã (`/-heart`, `:>`…) vào đầu tin, Zalo hiện thành ảnh emoji như trong bảng emoji của ô chat |
+| `auto_emoji` | `true` / `false`: bật / tắt tự thêm emoji **cho tin này**, ghi đè công tắc *Chữ: tự thêm emoji* trên thiết bị (bỏ trống = theo công tắc). Mỗi dòng chưa có emoji được thêm một emoji hợp ngữ cảnh (cảnh báo, lỗi, xong, nhiệt độ, cửa, đèn…); bảng nhỏ, bảo thủ |
+| `auto_emphasis` | `red`/`orange`/`yellow`/`green` hoặc `true`: tô màu + in đậm con số và chữ đã in đậm (gần giống «màu chữ = auto» kèm «in đậm = auto», nhưng chọn được màu ngay ở đây) |
 
-```yaml
-service: zalo_call.send_message
-data: {thread_id: "123456789012345678", type: user, message: "Nhiệt độ 29°C, cửa mở lúc 15:30", auto_emphasis: red, auto_emoji: true}
-```
+Sticker: `zalo_call.send_sticker` với `keyword: "cảm ơn"` (và `pick: random`) tự tìm rồi gửi. Thả cảm xúc lên một tin: `zalo_call.add_reaction` với `icon: heart` (bảng 54 biểu tượng).
 
-`send_sticker` gửi sticker theo từ khoá (`keyword: "cảm ơn"`). `send_voice` gửi **tin thoại** (tệp mp3/m4a/wav hoặc URL, tự đổi sang AAC); `translate_message` dịch bằng Zalo AI (thử thật với `en`, `ko`). `add_reaction` có bảng chọn 54 biểu tượng (`like`, `heart`, `haha`, `wow`, `cry`, `angry`…). **AI tự trả lời:** trên thiết bị có ô *AI: định dạng chữ trả lời* (mặc định `markdown`), *AI: tự nhấn mạnh số…* (mặc định `off`) và công tắc *AI tự thêm emoji* (mặc định tắt).
+**Trả lời của AI tự trả lời:** dùng cùng cài đặt mặc định ở trên, cộng thêm ô *AI: định dạng chữ trả lời* (mặc định `markdown`, để dấu `**` của AI thành chữ đậm thật), và *AI: tự nhấn mạnh số…*. Công tắc *Chữ: tự thêm emoji* cũng áp cho trả lời của AI.
 
 ## Máy yếu (Raspberry Pi, NAS nhỏ)
 
