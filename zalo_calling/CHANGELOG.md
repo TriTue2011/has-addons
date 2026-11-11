@@ -1,5 +1,8 @@
 # Nhật ký thay đổi
 
+## 2026.11.11.3
+- Tự động nâng theo bản phát hành [v2026.11.11.3](https://github.com/TriTue2011/Zalo-calling/releases/tag/v2026.11.11.3): xem ghi chú phát hành để biết chi tiết.
+
 ## Chưa phát hành
 - **Trường `connect` (chọn nhiều) thay công tắc `home_devices` của quy tắc** (đặt lại quy tắc cũ bằng `set_rule`; chưa có `connect` = không nối): `mic`, `speaker`, `camera` ghép bất kỳ (thoại lẫn video), lối tắt `voice`/`always`, và `ai` (AI chọn voice hay camera lúc chuyển máy). Có ở `set_rule`, `make_call`, `answer_call`, `alert_call`. Thoại mà có camera thì nâng lên video.
 - **Thiết bị nhà chỉ nối khi chuyển máy**: cuộc gọi AI giữ máy không nối loa/mic/camera; chuyển sang trực tiếp mới nối, và chỉ thứ đã cài (không cài = không nối, kể cả AI). Sự kiện `zalo_call_ai_handover` thêm `reason`/`connected` (bỏ `home_devices`).
