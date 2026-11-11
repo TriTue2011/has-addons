@@ -1,5 +1,9 @@
 # Nhật ký thay đổi
 
+## 2026.11.10.18
+- **AI trong cuộc gọi chọn thiết bị Assist có sẵn** (Assist Cam, Assist R1…): dùng pipeline (STT, TTS, trợ lý) và giọng của thiết bị đó; trường `assist_device` cho từng cuộc gọi.
+- **Sửa lỗi WebUI:** tin hệ thống (bình chọn mới tạo trên điện thoại, đổi sự kiện nhóm, sticker, thu hồi) không còn hiện bong bóng trống — vẽ thành dòng ghi chú theo mẫu câu có sẵn của Zalo; tin cũ đã lưu cũng được vá khi đọc. Xem trước ở danh sách hội thoại hết trống.
+
 ## 2026.11.10.17
 - **Tiếp quản cuộc gọi:** nút «Tiếp quản cuộc gọi» và dịch vụ `take_over_call` — dừng AI/thông báo đang giữ cuộc gọi (không cúp máy) và trả mic nhà về để nói trực tiếp.
 - **AI tự chuyển sang trực tiếp:** AI tự quyết (dấu `[[CHUYEN_MAY]]` trong câu trả lời, không bị đọc ra) khi khẩn cấp / người gọi muốn gặp người nhà / AI không giúp được: dừng AI, nối mic nhà, không cúp máy, bắn sự kiện `zalo_call_ai_handover`. Điều kiện riêng: ô «AI tự chuyển sang trực tiếp khi…» hoặc `handover_rule`.
