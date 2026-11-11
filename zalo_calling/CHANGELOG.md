@@ -1,5 +1,17 @@
 # Nhật ký thay đổi
 
+## Chưa phát hành
+- **Trường `connect` (chọn nhiều) thay công tắc `home_devices` của quy tắc** (đặt lại quy tắc cũ bằng `set_rule`; chưa có `connect` = không nối): `mic`, `speaker`, `camera` ghép bất kỳ (thoại lẫn video), lối tắt `voice`/`always`, và `ai` (AI chọn voice hay camera lúc chuyển máy). Có ở `set_rule`, `make_call`, `answer_call`, `alert_call`. Thoại mà có camera thì nâng lên video.
+- **Thiết bị nhà chỉ nối khi chuyển máy**: cuộc gọi AI giữ máy không nối loa/mic/camera; chuyển sang trực tiếp mới nối, và chỉ thứ đã cài (không cài = không nối, kể cả AI). Sự kiện `zalo_call_ai_handover` thêm `reason`/`connected` (bỏ `home_devices`).
+- **Dịch vụ mới `alert_call`**: gọi thoại/video để báo cảnh báo - AI đọc nội dung rồi nối thẳng thiết bị đã cài, không hỏi.
+- **AI tự kết thúc cuộc gọi** khi người gọi nói không cần gì nữa (dấu `[[KET_THUC]]`); cuộc gọi đi có AI mà không `message` thì AI chào trước; `alert_call` mặc định nối tất cả thiết bị đã cài kể cả camera.
+- **Ô «Thiết bị nhà dùng NGAY khi người nhận nghe máy»** (`connect_now`, ở Gọi điện đi, Nghe máy, quy tắc): ví dụ nối camera ngay, mic và loa chờ tới khi người nhà nói trực tiếp.
+- **Báo ra loa khi có cuộc gọi đến** (quy tắc: `announce`, `announce_to`, `announce_text`; mặc định TẮT).
+- **`alert_call` có `after`** (cúp / nối thiết bị / giữ máy) và sự kiện **`zalo_call_alert_done`** để biết đúng lúc đọc xong.
+- **Ô tích thiết bị nhà** (Mic, Loa, Camera, AI tự chọn); tích Camera = cuộc gọi video; `type` không còn mặc định mà tự chọn theo ô tích.
+- **Viết lại chữ hiển thị cho dễ hiểu** (tên dịch vụ, ô nhập, nhãn ô chọn, nút «Người nhà nói trực tiếp»); id dịch vụ/trường không đổi. Bảng từ ngữ ở `tools/ha_plain_words.py`.
+- Sửa: nhận dấu chuyển máy của AI cả khi rơi ngoặc (`CHUYEN MAY`); giọng AI không còn bị chặn khung bởi chống vọng (hết giật); chế độ SRTP không đổi sau một cuộc im lặng.
+
 ## 2026.11.10.20
 - Tự động nâng theo bản phát hành [v2026.11.10.20](https://github.com/TriTue2011/Zalo-calling/releases/tag/v2026.11.10.20): xem ghi chú phát hành để biết chi tiết.
 
