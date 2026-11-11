@@ -272,6 +272,38 @@ Sticker: `zalo_call.send_sticker` với `keyword: "cảm ơn"` (và `pick: rando
 
 **Trả lời của AI tự trả lời:** dùng cùng cài đặt mặc định ở trên, cộng thêm ô *AI: định dạng chữ trả lời* (mặc định `markdown`, để dấu `**` của AI thành chữ đậm thật), và *AI: tự nhấn mạnh số…*. Công tắc *Chữ: tự thêm emoji* cũng áp cho trả lời của AI.
 
+## Cuộc gọi: tự nghe máy, thông báo bằng giọng nói, AI nói chuyện
+
+**Tự nghe máy cuộc gọi đến** (mặc định TẮT). Nghe máy là mở mic nhà cho người gọi, nên chỉ ID Zalo nằm trong danh sách mới được tự nghe; danh sách trống = không ai.
+Trên thiết bị: công tắc **«Tự nghe máy khi có người gọi đến»**, số **«Chờ trước khi tự nghe máy»** (bộ đếm, giây; 0 = ngay) và ô **«Tự nghe máy chỉ với các ID Zalo này»** (cách nhau dấu phẩy). WebUI → Thiết bị có đủ ba ô. Người gọi cúp trước khi hết bộ đếm thì không nghe.
+(Khác với «Tự đồng ý khi bên kia xin gọi video»: cài đặt đó chỉ trả lời lời xin chuyển sang video của cuộc gọi ĐÃ nghe máy.)
+
+**Thông báo bằng giọng nói khi gọi đi** — `make_call` có thêm `message` (câu đọc bằng TTS của HA ngay khi người nhận nghe máy), `repeat` (1-3 lần), `hangup_after` (mặc định cúp máy sau khi đọc), `tts_engine`, `language`:
+
+```yaml
+action: zalo_call.make_call
+data:
+  thread_id: "6643404425553198601"
+  message: "Cảnh báo: có người vừa ngã ở phòng khách. Hãy kiểm tra ngay."
+  repeat: 2
+```
+
+`zalo_call.say_in_call` đọc một câu lên cuộc gọi đang nói (`message`, `call_id` tuỳ chọn, `wait`).
+
+**AI nói chuyện trong cuộc gọi** (STT → trợ lý → TTS bằng Assist pipeline của HA): thêm `ai: true` vào `make_call` hoặc `answer_call`, hoặc bật công tắc **«AI nghe và trả lời bằng giọng nói trong cuộc gọi đến»** (áp cho cuộc gọi ĐẾN do app **tự nghe máy**, để AI trực điện thoại; ô **«Câu chào đầu cuộc gọi của AI»** đặt lời chào; người thật nghe máy thì AI không chen vào). AI nghe tiếng người gọi, trả lời bằng giọng của pipeline, giữ ngữ cảnh giữa các lượt; kết thúc khi người gọi cúp, im lặng hai lượt liền hoặc sau 10 phút (rồi cúp máy). Ví dụ gọi báo ngã rồi cho AI xử lý tiếp:
+
+```yaml
+action: zalo_call.make_call
+data:
+  thread_id: "6643404425553198601"
+  message: "Phát hiện có người ngã ở phòng khách. Bạn có ổn không?"
+  ai: true
+```
+
+Cần Assist pipeline có STT, TTS và trợ lý hội thoại. **Lưu ý an toàn:** AI làm được mọi việc mà trợ lý Assist được phép (kể cả điều khiển thiết bị); đừng cấp cho trợ lý này quyền với khoá cửa, bếp, bình nóng lạnh khi cho AI trực điện thoại. Tính năng này mới được kiểm bằng test giả lập (chưa nhiều cuộc gọi thật): nếu gặp lỗi, xem log `custom_components.zalo_call.call_voice`. Tiếng nói của app phát lên cuộc gọi qua đường mic nên **thay nguồn mic** trong lúc đang đọc.
+
+**Các trường hợp nhận cuộc gọi đã xử lý:** sự kiện `request` lặp lại cùng `call_id` chỉ tính một lần (trước đây có thể làm cuộc đang nói bị đặt lại thành «đang chuông»); có cuộc gọi thứ hai đến khi đang nói hoặc đang gọi đi thì **từ chối cuộc mới** (không đè cuộc đang sống), ghi `busy_rejected` và vẫn báo HA như cuộc nhỡ.
+
 ## WebUI: mọi dịch vụ đều làm được trên tab «Dịch vụ»
 
 Tab **Dịch vụ** của WebUI liệt kê **toàn bộ** dịch vụ (dịch vụ gốc + các API mở rộng của zca-js, gom theo nhóm) và có ô **Tìm dịch vụ**. Chọn thread ở ô «Thread thao tác» rồi bấm **Chạy**:

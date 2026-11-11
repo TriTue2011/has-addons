@@ -1,5 +1,13 @@
 # Nhật ký thay đổi
 
+## 2026.11.10.16
+- **Tự nghe máy cuộc gọi đến** (mặc định tắt): công tắc + bộ đếm + danh sách ID Zalo được tự nghe (trống = không ai). Có trong HA (thiết bị) và WebUI → Thiết bị.
+- **Thông báo bằng giọng nói:** `make_call`/`answer_call` thêm `message`, `repeat`, `hangup_after`, `tts_engine`, `language`; dịch vụ mới `say_in_call`. App thêm `POST /api/call/say`.
+- **AI nói chuyện trong cuộc gọi** (STT → trợ lý → TTS qua Assist pipeline): `ai: true` hoặc công tắc «AI nghe và trả lời… trong cuộc gọi đến» + câu chào.
+- **Sửa lỗi nhận cuộc gọi:** sự kiện `request` lặp lại không còn đặt lại cuộc đang nói; cuộc gọi đến khi đang bận bị từ chối (không đè cuộc đang sống).
+- **Sửa lỗi tin tự gửi:** tin do chính mình gửi quay về kênh đồng bộ với người gửi «0» không còn bị lưu vào thread «0» và không còn kích hoạt AI trả lời nhầm.
+- `_request` của tích hợp nhận `timeout` riêng (lỗi truyền hai lần).
+
 ## 2026.11.10.13
 - **Kiểu chữ mặc định trên thiết bị:** 7 ô cài đặt (cỡ chữ, màu chữ, in đậm, nghiêng, gạch chân, tiêu đề, màu cho chế độ auto), mỗi mục có chế độ `auto` tự theo nội dung chữ.
 - `send_message` có thêm `font_size`, `text_color`, `bold`, `italic`, `underline`, `heading`, `auto_color`: ghi đè mặc định cho từng tin. Trả lời của AI cũng theo mặc định.
