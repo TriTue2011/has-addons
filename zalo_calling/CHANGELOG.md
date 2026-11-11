@@ -1,5 +1,12 @@
 # Nhật ký thay đổi
 
+## 2026.11.10.17
+- **Tiếp quản cuộc gọi:** nút «Tiếp quản cuộc gọi» và dịch vụ `take_over_call` — dừng AI/thông báo đang giữ cuộc gọi (không cúp máy) và trả mic nhà về để nói trực tiếp.
+- **AI tự chuyển sang trực tiếp:** AI tự quyết (dấu `[[CHUYEN_MAY]]` trong câu trả lời, không bị đọc ra) khi khẩn cấp / người gọi muốn gặp người nhà / AI không giúp được: dừng AI, nối mic nhà, không cúp máy, bắn sự kiện `zalo_call_ai_handover`. Điều kiện riêng: ô «AI tự chuyển sang trực tiếp khi…» hoặc `handover_rule`.
+- **Điều phối bằng giọng nói qua Assist, không cần automation/prompt:** LLM API «Zalo Call» đăng ký sẵn (tích cạnh «Assist» trong cài đặt trợ lý): gọi điện/video theo tên (không cần dấu), nghe/từ chối/cúp máy, tiếp quản, đọc lên cuộc gọi, nhắn tin. Trong cuộc gọi do AI giữ chỉ còn công cụ «chuyển sang trực tiếp» (người lạ không sai khiến được).
+- **Phạm vi dữ liệu của AI trong cuộc gọi:** trợ lý hội thoại RIÊNG cho người gọi chưa tin cậy (không cần quyền thiết bị; pipeline chỉ làm STT), danh sách ID tin cậy + trợ lý riêng cho họ, lời dặn mềm «chưa xác thực» khi chưa chọn trợ lý riêng. Người trong danh bạ không tự động được tin cậy.
+- README: bảng đầy đủ các trường hợp gọi đi / gọi đến.
+
 ## 2026.11.10.16
 - **Tự nghe máy cuộc gọi đến** (mặc định tắt): công tắc + bộ đếm + danh sách ID Zalo được tự nghe (trống = không ai). Có trong HA (thiết bị) và WebUI → Thiết bị.
 - **Thông báo bằng giọng nói:** `make_call`/`answer_call` thêm `message`, `repeat`, `hangup_after`, `tts_engine`, `language`; dịch vụ mới `say_in_call`. App thêm `POST /api/call/say`.
