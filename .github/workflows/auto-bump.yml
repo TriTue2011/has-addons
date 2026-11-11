@@ -1,0 +1,35 @@
+# Tự nâng số phiên bản add-on (zalo_calling, telegram_calling) khi kho mã nguồn ra bản phát hành mới và ảnh Docker đã dựng xong.
+# Supervisor của Home Assistant chỉ thấy bản mới khi `version` trong config.yaml đổi; nhờ workflow này không ai phải đẩy tay, và add-on bật
+# «Tự động cập nhật» thì tự lên bản mới. Logic ở .github/scripts/auto_bump.py (không bao giờ lùi, chỉ nâng khi ảnh có đủ amd64 + arm64).
+name: Tự nâng phiên bản add-on
+
+on:
+  schedule:
+    - cron: "*/20 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: auto-bump
+  cancel-in-progress: false
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Kiểm bản phát hành mới và nâng phiên bản
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 .github/scripts/auto_bump.py
+      - name: Ghi commit nếu có thay đổi
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            git config user.name "has-addons-bot"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -A
+            git commit -m "Tự nâng phiên bản add-on theo bản phát hành mới (auto_bump.py)"
+            git push
+          fi
