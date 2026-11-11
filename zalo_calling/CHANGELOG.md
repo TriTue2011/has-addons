@@ -1,6 +1,9 @@
 # Nhật ký thay đổi
 
 ## 2026.11.10.18
+- Tự động nâng theo bản phát hành [v2026.11.10.18](https://github.com/TriTue2011/Zalo-calling/releases/tag/v2026.11.10.18): xem ghi chú phát hành để biết chi tiết.
+
+## 2026.11.10.18
 - **AI trong cuộc gọi chọn thiết bị Assist có sẵn** (Assist Cam, Assist R1…): dùng pipeline (STT, TTS, trợ lý) và giọng của thiết bị đó; trường `assist_device` cho từng cuộc gọi.
 - **Sửa lỗi WebUI:** tin hệ thống (bình chọn mới tạo trên điện thoại, đổi sự kiện nhóm, sticker, thu hồi) không còn hiện bong bóng trống — vẽ thành dòng ghi chú theo mẫu câu có sẵn của Zalo; tin cũ đã lưu cũng được vá khi đọc. Xem trước ở danh sách hội thoại hết trống.
 
