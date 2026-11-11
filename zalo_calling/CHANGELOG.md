@@ -1,5 +1,8 @@
 # Nhật ký thay đổi
 
+## 2026.11.11.4
+- Tự động nâng theo bản phát hành [v2026.11.11.4](https://github.com/TriTue2011/Zalo-calling/releases/tag/v2026.11.11.4): xem ghi chú phát hành để biết chi tiết.
+
 ## 2026.11.11.3
 - Tự động nâng theo bản phát hành [v2026.11.11.3](https://github.com/TriTue2011/Zalo-calling/releases/tag/v2026.11.11.3): xem ghi chú phát hành để biết chi tiết.
 
