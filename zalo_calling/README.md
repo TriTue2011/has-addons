@@ -122,7 +122,7 @@ data:
   thread_id: "6643404425553198601"
   type: video                          # user = thoại 1-1 · video = video 1-1 · group = nhóm
   volume: 70                           # tuỳ chọn, 0-100: âm lượng loa lúc gọi, hết cuộc tự trả lại mức cũ
-  speaker: media_player.loa_phong_khach   # tuỳ chọn; bỏ trống = ô «Loa mặc định» trên thiết bị Zalo Call
+  speaker: media_player.loa_phong_khach   # tuỳ chọn; bỏ trống = loa mặc định đặt bằng dịch vụ `set_default_devices`
   mic: camera.phong_khach              # tuỳ chọn: tiếng từ camera hoặc loa R1 (Assist satellite) gửi sang điện thoại
   camera: camera.phong_khach           # tuỳ chọn (cuộc gọi video): hình gửi đi; bỏ trống = «Camera mặc định»
 ```
@@ -151,7 +151,7 @@ automation:
         data: {volume: 60}
 ```
 
-Công tắc trên thiết bị: *Tự phát mic khi nghe máy*, *Tự đồng ý khi bên kia xin gọi video*; ô *Chống vọng* (nếu loa R1 bị nhại tiếng: đặt **Song công** và R1 chọn engine **nâng cao**).
+Loa/mic/camera mặc định và các tuỳ chọn đi kèm đặt bằng dịch vụ **`zalo_call.set_default_devices`** (`speaker`, `mic`, `mic_url`, `camera`, `call_volume`, `auto_mic` = tự phát mic khi nghe máy, `auto_video` / `auto_video_delay` = tự đồng ý khi bên kia xin gọi video, `echo_guard` = chống vọng; nếu loa R1 bị nhại tiếng: đặt `duplex` và R1 chọn engine **nâng cao**). Xem lại bằng `get_default_devices`.
 
 ### Tin nhắn, tệp, ghi âm
 
@@ -272,99 +272,77 @@ Sticker: `zalo_call.send_sticker` với `keyword: "cảm ơn"` (và `pick: rando
 
 **Trả lời của AI tự trả lời:** dùng cùng cài đặt mặc định ở trên, cộng thêm ô *AI: định dạng chữ trả lời* (mặc định `markdown`, để dấu `**` của AI thành chữ đậm thật), và *AI: tự nhấn mạnh số…*. Công tắc *Chữ: tự thêm emoji* cũng áp cho trả lời của AI.
 
-## Cuộc gọi: tự nghe máy, thông báo bằng giọng nói, AI nói chuyện
+## Cuộc gọi đến, tin nhắn và AI: chính sách bằng dịch vụ (riêng tư trước hết)
 
-**Tự nghe máy cuộc gọi đến** (mặc định TẮT). Nghe máy là mở mic nhà cho người gọi, nên chỉ ID Zalo nằm trong danh sách mới được tự nghe; danh sách trống = không ai.
-Trên thiết bị: công tắc **«Tự nghe máy khi có người gọi đến»**, số **«Chờ trước khi tự nghe máy»** (bộ đếm, giây; 0 = ngay) và ô **«Tự nghe máy chỉ với các ID Zalo này»** (cách nhau dấu phẩy). WebUI → Thiết bị có đủ ba ô. Người gọi cúp trước khi hết bộ đếm thì không nghe.
-(Khác với «Tự đồng ý khi bên kia xin gọi video»: cài đặt đó chỉ trả lời lời xin chuyển sang video của cuộc gọi ĐÃ nghe máy.)
+Mọi cài đặt này đặt bằng **dịch vụ** (gọi từ Công cụ nhà phát triển hoặc automation), không có ô cài đặt. Nguyên tắc:
 
-**Thông báo bằng giọng nói khi gọi đi** — `make_call` có thêm `message` (câu đọc bằng TTS của HA ngay khi người nhận nghe máy), `repeat` (1-3 lần), `hangup_after` (mặc định cúp máy sau khi đọc), `tts_engine`, `language`:
+- **Không có quy tắc = không làm gì.** Cuộc gọi đến chỉ đổ chuông; tin nhắn, tin thoại không đi đâu (không STT, không AI, không trả lời).
+- **Quy tắc theo ai:** `thread` (một threadID — người **hoặc nhóm**), `contacts` (mọi người trong danh bạ), `strangers` (người lạ), `groups` (mọi nhóm). Quy tắc theo threadID **thay hẳn** quy tắc nhóm (không trộn từng trường), nên `answer: false` ở một người chặn được quy tắc danh bạ dễ dãi.
+- **Không chắc người đó quen hay lạ** (app chưa tải được danh bạ): chỉ quy tắc theo threadID được áp; quy tắc `contacts`/`strangers` bị bỏ qua.
+- **Thiết bị nhà tắt mặc định:** cuộc gọi do quy tắc nghe máy **không** nối mic, loa, camera nhà (app nhận «off»), nên người lạ không nghe được phòng nhà. Chỉ nối khi đặt `home_devices: true`.
+- **`ai: true` / `reply_ai: true` bắt buộc chọn `pipeline` hoặc `agent`** (không tự dùng pipeline ưu tiên vì nó có quyền thiết bị nhà). Với người lạ nên chọn trợ lý **không có quyền thiết bị**.
+- Người gọi cúp trước khi hết thời gian chờ thì không nghe; webhook lặp chỉ nghe một lần.
 
+### Cài đặt của dịch vụ `zalo_call.set_rule`
+Trường nào không nêu thì giữ như cũ (quy tắc mới: mặc định tắt hết). Ô nào có danh sách thì HA tự liệt kê để chọn; ô không có thì gõ tay.
+
+| Nhóm | Trường | Ý nghĩa |
+|---|---|---|
+| Áp cho | `scope` (bắt buộc) | `thread` / `groups` / `contacts` / `strangers` |
+| | `thread_id` | ID Zalo của người hoặc nhóm (gõ tay; lấy bằng `list_contacts`), chỉ khi `scope: thread` |
+| | `name` | tên ghi chú |
+| Nghe máy | `answer` | tự nghe cuộc gọi 1-1 đến |
+| | `answer_delay` | chờ bao nhiêu giây rồi nghe (0–120, mặc định 3) |
+| | `call_types` | `voice`, `video` hoặc cả hai (nhận video **chưa kiểm** trên cuộc gọi thật) |
+| AI trong cuộc gọi | `ai` | AI nghe và trả lời bằng giọng nói sau khi nghe máy |
+| | `pipeline` | Assist pipeline (STT, TTS, trợ lý) — **chọn từ danh sách** |
+| | `agent` | trợ lý hội thoại riêng thay trợ lý của pipeline — chọn từ danh sách |
+| | `greeting`, `handover_rule` | câu chào đầu; điều kiện riêng để AI tự chuyển sang trực tiếp |
+| | `trusted` | người tin cậy (AI không bị dặn kiểu «chưa xác thực») |
+| Tin nhắn | `reply_ai` | AI trả lời tin chữ (nhóm thì trả lời vào nhóm) |
+| | `voice_text` | tin thoại 1-1 → Zalo STT → chữ (bắn sự kiện `zalo_call_voice_text`); `reply_ai` thì AI trả lời bằng tin thoại |
+| Thiết bị nhà | `home_devices` | nối thiết bị nhà cho cuộc gọi do quy tắc nghe máy (mặc định **tắt**) |
+| | `speaker`, `mic`, `camera` | chọn từ danh sách thiết bị (trống = mặc định của `set_default_devices`) |
+| | `mic_url`, `volume`, `echo_guard` | mic từ URL (gõ tay), âm lượng loa %, chống vọng |
+
+Các dịch vụ khác: `remove_rule` (`scope`, `thread_id`), `list_rules`, `list_contacts` (danh bạ để lấy threadID), `get_default_devices`, `set_default_devices` (loa/mic/camera mặc định cho cuộc gọi do **người** nghe: `speaker`, `mic`, `mic_url`, `camera`, `call_volume`, `echo_guard`, `auto_mic`, `auto_video`, `auto_video_delay`), `make_call` / `answer_call` (kèm `message`, `repeat`, `ai`, `pipeline`, `agent`, `hangup_after`, `greeting`, `handover_rule`, `tts_engine`, `language`), `say_in_call`, `take_over_call`.
+
+### Ví dụ automation (chạy khi HA khởi động)
 ```yaml
-action: zalo_call.make_call
-data:
-  thread_id: "6643404425553198601"
-  message: "Cảnh báo: có người vừa ngã ở phòng khách. Hãy kiểm tra ngay."
-  repeat: 2
+alias: Zalo Call — quy tắc
+trigger: [{platform: homeassistant, event: start}]
+action:
+  # 1) Một người cụ thể: nghe sau 5 giây, KHÔNG nối thiết bị nhà, AI lễ tân (trợ lý không có quyền thiết bị)
+  - action: zalo_call.set_rule
+    data: {scope: thread, thread_id: "6643404425553198601", name: Đại ca, answer: true, answer_delay: 5,
+           ai: true, agent: conversation.le_tan, trusted: true, reply_ai: true, voice_text: true}
+  # 2) Mọi người trong danh bạ: chỉ nghe thoại, nối loa/mic phòng khách để nói chuyện trực tiếp
+  - action: zalo_call.set_rule
+    data: {scope: contacts, answer: true, answer_delay: 10, call_types: [voice],
+           home_devices: true, speaker: media_player.r1_loa, mic: assist_satellite.r1}
+  # 3) Người lạ: không nghe máy; chỉ AI lễ tân trả lời tin nhắn
+  - action: zalo_call.set_rule
+    data: {scope: strangers, reply_ai: true, agent: conversation.le_tan}
 ```
 
-`zalo_call.say_in_call` đọc một câu lên cuộc gọi đang nói (`message`, `call_id` tuỳ chọn, `wait`).
+### Chuyển sang trực tiếp
+Trong cuộc gọi do AI giữ, AI tự chuyển sang trực tiếp khi khẩn cấp / người gọi muốn gặp người nhà / AI không giúp được (kết thúc câu bằng dấu `[[CHUYEN_MAY]]` — không đọc ra — hoặc công cụ «chuyển sang trực tiếp»). Khi đó AI dừng, cuộc gọi **không bị cúp**, HA bắn `zalo_call_ai_handover` (`call_id`, `heard`, `home_devices`); mic nhà chỉ được nối nếu quy tắc có `home_devices: true`. Bạn cũng có thể chủ động tiếp quản bằng nút hoặc dịch vụ `take_over_call`.
 
-**AI nói chuyện trong cuộc gọi** (STT → trợ lý → TTS bằng Assist pipeline của HA): thêm `ai: true` vào `make_call` hoặc `answer_call`, hoặc bật công tắc **«AI nghe và trả lời bằng giọng nói trong cuộc gọi đến»** (áp cho cuộc gọi ĐẾN do app **tự nghe máy**, để AI trực điện thoại; ô **«Câu chào đầu cuộc gọi của AI»** đặt lời chào; người thật nghe máy thì AI không chen vào). AI nghe tiếng người gọi, trả lời bằng giọng của pipeline, giữ ngữ cảnh giữa các lượt; kết thúc khi người gọi cúp, im lặng hai lượt liền hoặc sau 10 phút (rồi cúp máy). Ví dụ gọi báo ngã rồi cho AI xử lý tiếp:
+### Thông báo bằng giọng khi gọi đi
+`make_call` có `message` (đọc bằng TTS khi người nhận nghe máy, rồi cúp), `ai: true` (AI nói chuyện tiếp; cần `pipeline`/`agent` hoặc quy tắc của threadID đó). Mic/loa/camera nhà vẫn theo `set_default_devices` và các trường thiết bị của dịch vụ.
 
-```yaml
-action: zalo_call.make_call
-data:
-  thread_id: "6643404425553198601"
-  message: "Phát hiện có người ngã ở phòng khách. Bạn có ổn không?"
-  ai: true
-```
+### Dùng bằng giọng nói qua Assist
+Tích chọn **«Zalo Call»** cạnh «Assist» trong cài đặt trợ lý hội thoại LLM: «gọi cho Đại ca», «nghe máy», «từ chối», «cúp máy», «nhắn nhóm AI học hỏi…», «tiếp quản cuộc gọi». Trong cuộc gọi do AI giữ, trợ lý chỉ thấy **một** công cụ «chuyển sang trực tiếp» nên người lạ không sai khiến được gọi điện/nhắn tin.
 
-Cần Assist pipeline có STT, TTS và trợ lý hội thoại. **Lưu ý an toàn:** AI làm được mọi việc mà trợ lý Assist được phép (kể cả điều khiển thiết bị); đừng cấp cho trợ lý này quyền với khoá cửa, bếp, bình nóng lạnh khi cho AI trực điện thoại. Tính năng này mới được kiểm bằng test giả lập (chưa nhiều cuộc gọi thật): nếu gặp lỗi, xem log `custom_components.zalo_call.call_voice`. Tiếng nói của app phát lên cuộc gọi qua đường mic nên **thay nguồn mic** trong lúc đang đọc.
-
-**Các trường hợp nhận cuộc gọi đã xử lý:** sự kiện `request` lặp lại cùng `call_id` chỉ tính một lần (trước đây có thể làm cuộc đang nói bị đặt lại thành «đang chuông»); có cuộc gọi thứ hai đến khi đang nói hoặc đang gọi đi thì **từ chối cuộc mới** (không đè cuộc đang sống), ghi `busy_rejected` và vẫn báo HA như cuộc nhỡ.
-
-## Dùng bằng giọng nói qua Assist (không cần automation hay prompt)
-
-Tích hợp tự đăng ký một **LLM API tên «Zalo Call»** (như «TriTue Music» của custom YouTube). Bạn chỉ cần: **Cài đặt → Trợ lý giọng nói → chọn trợ lý hội thoại dùng LLM** (OpenAI, Google, Ollama, local OpenAI-compatible…) → ở mục điều khiển, **tích chọn «Zalo Call»** cạnh «Assist». Lời dặn nằm sẵn trong API, không phải viết prompt. (Trợ lý mặc định của HA không dùng LLM nên không có mục này.)
-
-Rồi nói với Assist (điện thoại, loa R1…), ví dụ:
-- «Gọi cho Đại ca» · «Gọi video cho Đại ca» · «Nhắn tin cho nhóm AI học hỏi là tối nay họp lúc 8 giờ»
-- «Ai đang gọi vậy?» · «Nghe máy đi» · «Từ chối cuộc gọi này» · «Cúp máy»
-- «Gọi cho Đại ca báo có người vừa ngã ở phòng khách, nếu họ cần giúp thì chuyển máy trực tiếp» (thông báo bằng giọng, AI nói chuyện tiếp, tự chuyển sang trực tiếp khi cần)
-- «Tiếp quản cuộc gọi» (dừng AI đang trực điện thoại, bạn nói chuyện trực tiếp)
-
-Tên được tìm trong danh bạ Zalo không cần dấu; có nhiều người trùng tên thì trợ lý liệt kê đánh số và hỏi lại trước khi gọi.
-
-**An toàn:** trong cuộc gọi do AI giữ (người bên ngoài đang nói), trợ lý chỉ thấy **một** công cụ là «chuyển sang trực tiếp». Người lạ nói qua điện thoại không sai khiến được AI gọi điện, nhắn tin hay cúp máy khác. Công cụ «chuyển sang trực tiếp» cũng là cách AI tự chuyển (ngoài dấu `[[CHUYEN_MAY]]`), nên không cần dặn thêm.
-
-## Phạm vi dữ liệu của AI khi người ngoài gọi vào
-
-Giọng nói **không xác thực được ai**, và dặn trong prompt chỉ là lớp mềm (người gọi có thể nói khéo để lách). Giới hạn thật nằm ở **trợ lý được dùng cho cuộc gọi**, vì quyền xem/điều khiển thiết bị là quyền của trợ lý đó:
-
-1. **Tạo một trợ lý hội thoại riêng cho điện thoại** (ví dụ thêm một mục OpenAI/Ollama thứ hai tên «Lễ tân») và **đừng tích «Assist»** cho nó (không quyền thiết bị, không đọc trạng thái nhà). Trên thiết bị Zalo Call chọn nó ở ô **«AI trong cuộc gọi: trợ lý RIÊNG cho người gọi chưa tin cậy»**. Pipeline chỉ nghe (STT) rồi câu hỏi đi thẳng tới trợ lý này; nó chỉ biết những gì bạn cho vào prompt của chính nó (ví dụ giờ giấc, lời nhắn) và công cụ «chuyển sang trực tiếp».
-2. **Người tin cậy (gia đình):** điền ID Zalo vào **«AI trong cuộc gọi: ID Zalo tin cậy»** và (tuỳ chọn) chọn **«trợ lý cho người tin cậy»** (ví dụ trợ lý có Assist để hỏi trạng thái nhà). Người **trong danh bạ nhưng không có trong danh sách này vẫn là người chưa tin cậy**: danh bạ không phải ranh giới bảo mật. Vì giọng nói có thể bị nhái hoặc điện thoại bị mượn, **đừng cấp cho trợ lý này quyền khoá cửa, bếp, bình nóng lạnh.**
-3. **Chưa chọn trợ lý riêng:** AI dùng trợ lý của Assist pipeline và chỉ còn **lời dặn mềm** («người gọi chưa được xác thực: không tiết lộ thông tin gia đình/thiết bị, chỉ ghi nhận lời nhắn»). Cách này **không đảm bảo** nếu trợ lý đó có quyền thiết bị — hãy làm bước 1 trước khi bật «AI nghe và trả lời trong cuộc gọi đến».
-
-Ngoài ra, trong cuộc gọi do AI giữ, LLM API «Zalo Call» chỉ để lộ công cụ «chuyển sang trực tiếp» (không thể gọi điện, nhắn tin hay cúp máy khác).
+### Lưu ý
+- STT của Zalo chỉ chuyển được tin thoại do **app Zalo thật gửi** (nằm trong kho thoại Zalo); không dùng được cho cuộc gọi trực tiếp (âm thanh khác bị Zalo từ chối, mã 212). Trong cuộc gọi, STT của Assist pipeline lo phần đó.
+- Tính năng giọng nói/AI trong cuộc gọi mới kiểm bằng test giả lập và hai cuộc gọi thử, chưa nhiều cuộc gọi thật; log: `custom_components.zalo_call.call_voice`.
 
 ## Bảng các trường hợp cuộc gọi
 
-**Gọi đi** (tài khoản Zalo của app gọi cho người khác, `make_call`):
+**Gọi đi** (`make_call`): người nhận nghe máy → state `answered` (đọc `message`, hoặc AI); từ chối → `declined`; không ai nghe → `no_answer`; bạn huỷ/cúp → `ended` (`user_end`); người nhận cúp → `ended` (`peer_ended`); người nhận gọi lại đúng lúc → cuộc đến bị từ chối vì bận, cuộc gọi đi giữ nguyên.
 
-| Trường hợp | Điều xảy ra |
-|---|---|
-| Người nhận nghe máy | state `answered`: loa/mic nhà nối ngay; có `message` thì đọc rồi cúp; có `ai` thì AI nói chuyện |
-| Người nhận từ chối | state `declined` |
-| Không ai nghe (hết giờ đổ chuông) | state `no_answer`, app tự huỷ cuộc gọi |
-| Bạn huỷ khi đang đổ chuông / cúp khi đang nói | `end_call` → `ended` (`user_end`) |
-| Người nhận cúp giữa chừng | `ended` (`peer_ended`) |
-| Người nhận xin chuyển sang video | tự đồng ý sau bộ đếm nếu bật «Tự đồng ý khi bên kia xin gọi video» |
-| Đúng lúc đó người nhận gọi lại cho bạn | cuộc gọi đến bị từ chối vì đang bận, cuộc gọi đi giữ nguyên |
-| Zalo từ chối yêu cầu gọi | state `error` kèm lý do |
-
-**Gọi đến** (người khác gọi vào tài khoản Zalo của app):
-
-| Trường hợp | Điều xảy ra |
-|---|---|
-| Mặc định (không bật tự nghe) | đổ chuông, state `incoming`; bạn `answer_call` hoặc `reject_call`; người gọi cúp thì `missed` |
-| Bật tự nghe, người gọi có trong danh sách | sau bộ đếm tự nghe, `answer_source = auto`, loa/mic nhà nối trực tiếp |
-| Bật tự nghe, người gọi KHÔNG có trong danh sách | đổ chuông như mặc định |
-| Người gọi cúp trước khi hết bộ đếm | `missed`, không nghe |
-| Tự nghe + công tắc «AI trong cuộc gọi đến» | AI chào, nghe, trả lời; kết thúc khi người gọi cúp, im lặng 2 lượt hoặc 10 phút (rồi cúp máy) |
-| …và AI thấy cần người thật (khẩn cấp / người gọi muốn gặp người nhà) | AI tự chuyển sang trực tiếp: dừng AI, nối mic nhà, không cúp, sự kiện `zalo_call_ai_handover` |
-| Có cuộc thứ hai đến khi đang nói / đang gọi đi | từ chối cuộc mới (`busy_rejected`), cuộc đang sống giữ nguyên, vẫn báo HA như cuộc nhỡ |
-| Zalo gửi lại sự kiện cuộc gọi đến | bỏ qua (mỗi cuộc chỉ xử lý một lần) |
-| Hai cuộc đến liên tiếp, chưa nghe cuộc nào | cuộc mới thay cuộc cũ |
-| Cuộc gọi nhóm đến, giữ máy (hold) | **chưa hỗ trợ** (chỉ ghi log) |
-
-**Chọn thiết bị Assist có sẵn (như Assist Cam, Assist Phicomm R1):** ở ô **«AI trong cuộc gọi: dùng Assist của thiết bị»** chọn một thiết bị Assist. Cuộc gọi dùng đúng pipeline mà thiết bị đó đang chọn (STT, TTS, trợ lý đã cấu hình sẵn) và đọc thông báo bằng giọng của nó, nên không phải cấu hình thêm gì. Có thể chọn riêng cho từng cuộc gọi bằng trường `assist_device` của `make_call`/`answer_call`; `tts_engine`/`pipeline_id` nêu rõ trong dịch vụ thì thắng. Lưu ý: trợ lý của pipeline đó thường có quyền thiết bị (nó phục vụ cả nhà) — với người gọi chưa tin cậy hãy chọn thêm «trợ lý RIÊNG…» (xem mục phạm vi dữ liệu): nó thay trợ lý của pipeline, còn STT/TTS vẫn là của thiết bị đã chọn.
-
-**AI tự chuyển sang trực tiếp (không cần bấm tay):** trong cuộc gọi, trợ lý được dặn rằng khi người gọi muốn gặp người trong nhà, có việc khẩn cấp/nguy hiểm hoặc nó không giúp được thì nói ngắn gọn «mình chuyển máy» và kết thúc bằng dấu `[[CHUYEN_MAY]]` (dấu này **không** được đọc ra). Khi thấy dấu đó: AI đọc nốt câu rồi dừng, mic nhà được nối lại (loa/mic nhà vốn đã nối từ lúc nghe máy), cuộc gọi **không bị cúp**, và HA bắn sự kiện `zalo_call_ai_handover` (`call_id`, `heard` = câu cuối người gọi nói) để automation báo cho bạn. Thêm điều kiện riêng bằng ô **«AI tự chuyển sang trực tiếp khi…»** hoặc trường `handover_rule` của `make_call`/`answer_call`, ví dụ cho cuộc gọi báo ngã: `handover_rule: "Nếu người nghe nói cần giúp, nói không ổn hoặc không trả lời rõ ràng."` Cách này chạy với mọi trợ lý hội thoại (không cần trợ lý hỗ trợ gọi công cụ); trợ lý không làm theo chỉ dẫn thì cuộc gọi vẫn kết thúc như bình thường.
-
-**Tự nghe máy rồi muốn tự nói chuyện trực tiếp:**
-- Tự nghe **không AI**: cuộc gọi đã trực tiếp ngay (loa/mic nhà nối từ lúc nghe máy), không cần làm gì thêm.
-- Tự nghe **có AI**: AI tự chuyển khi cần (xem trên), hoặc bạn bấm nút **«Tiếp quản cuộc gọi (dừng AI, nối mic nhà)»** trên thiết bị hoặc gọi `zalo_call.take_over_call`. AI dừng ngay (không cúp máy), mic nhà được trả về nguồn mặc định và cuộc gọi tiếp tục để bạn nói trực tiếp. Trong lúc AI nói chuyện, loa nhà vẫn phát tiếng người gọi nên bạn nghe được và biết lúc nào cần tiếp quản (ví dụ tạo automation gửi thông báo «AI đang nghe cuộc gọi từ X» kèm nút này).
+**Gọi đến:** không có quy tắc → chỉ đổ chuông (state `incoming`), bạn `answer_call`/`reject_call`; có quy tắc `answer` → nghe sau `answer_delay` nếu người gọi chưa cúp; webhook lặp → một lần; cuộc thứ hai đến khi đang nói/đang gọi đi → từ chối (`busy_rejected`); gọi **nhóm** đến và giữ máy (hold) → **chưa hỗ trợ**.
 
 ## WebUI: mọi dịch vụ đều làm được trên tab «Dịch vụ»
 

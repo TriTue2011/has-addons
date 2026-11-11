@@ -1,5 +1,19 @@
 # Nhật ký thay đổi
 
+## 2026.11.10.20
+**Thay đổi hành vi (đọc trước khi cập nhật):**
+- **AI trả lời tin nhắn tắt cho tới khi có quy tắc.** Trước đây công tắc «AI tự trả lời tin 1-1» + ô ID cho AI trả lời người nhắn; nay chỉ trả lời khi có quy tắc `set_rule` (`reply_ai`). Các ID trong ô cũ được tự chuyển thành quy tắc theo threadID; **ô ID trống (cũ = «mọi người») KHÔNG được chuyển** — AI sẽ không trả lời người lạ nữa cho tới khi bạn đặt quy tắc.
+- **Gỡ các ô cài đặt đã chuyển sang dịch vụ:** loa/mic/camera mặc định, URL mic, chống vọng, âm lượng, tự phát mic, tự đồng ý video và thời gian chờ, các công tắc/ô AI. HA sẽ để lại các thực thể «không còn được cung cấp» — bạn tự xoá. Đặt lại bằng `set_default_devices`; xem bằng `get_default_devices`. Còn lại: ô kiểu chữ, địa chỉ HA cho app và các nút.
+- App Zalo **không còn tự nghe máy**; HA quyết định theo quy tắc (một nơi duy nhất).
+
+**Mới:**
+- **Quy tắc bằng dịch vụ** `set_rule` / `remove_rule` / `list_rules` / `list_contacts`: theo threadID (người hoặc nhóm), danh bạ, người lạ, mọi nhóm. Không có quy tắc = không làm gì; thread đè nhóm; không biết quen/lạ thì không áp quy tắc nhóm; thiết bị nhà mặc định tắt (app nhận «off»); `ai`/`reply_ai` bắt buộc có `pipeline` hoặc `agent`. Có thời gian chờ nghe máy, loại cuộc gọi voice/video (nhận video **chưa kiểm**), AI, chọn Assist pipeline/trợ lý/thiết bị từ danh sách của HA.
+- App báo `contact_status` (friend/stranger/group/unknown) và `call_type_raw` trong webhook cuộc gọi/tin nhắn, kèm `kind`/`voice_url` cho tin thoại.
+- Tin thoại Zalo → Zalo STT → AI → trả lời bằng tin thoại (theo quy tắc `voice_text`/`reply_ai`); sự kiện `zalo_call_voice_text`.
+- AI trong cuộc gọi (STT → trợ lý → TTS qua Assist pipeline), tự chuyển sang trực tiếp (`[[CHUYEN_MAY]]` hoặc công cụ; sự kiện `zalo_call_ai_handover`), `take_over_call`, `say_in_call`, `make_call` kèm `message`/`ai`.
+- LLM API «Zalo Call» (tích cạnh «Assist»): trong cuộc gọi do AI giữ chỉ còn công cụ «chuyển sang trực tiếp».
+- **Sửa lỗi:** tin tự gửi (người gửi «0») không còn lưu nhầm thread «0»/kích hoạt AI; `request` lặp và cuộc đến khi đang bận; tin hệ thống (bình chọn mới, sticker, thu hồi) không còn bong bóng trống trong WebUI; phát tệp TTS không lặp, không rơi khung đầu; `_request` nhận `timeout`.
+
 ## 2026.11.10.18
 - Tự động nâng theo bản phát hành [v2026.11.10.18](https://github.com/TriTue2011/Zalo-calling/releases/tag/v2026.11.10.18): xem ghi chú phát hành để biết chi tiết.
 
