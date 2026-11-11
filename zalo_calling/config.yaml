@@ -1,7 +1,7 @@
 name: "Zalo Calling"
 description: "Gọi thoại và video Zalo từ Home Assistant — nghe và nói qua loa R1, camera, mic của bạn"
 url: "https://github.com/TriTue2011/Zalo-calling"
-version: "2026.11.10.18"
+version: "2026.11.10.20"
 slug: "zalo_calling"
 init: false
 arch:

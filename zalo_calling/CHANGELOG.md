@@ -1,6 +1,9 @@
 # Nhật ký thay đổi
 
 ## 2026.11.10.20
+- Tự động nâng theo bản phát hành [v2026.11.10.20](https://github.com/TriTue2011/Zalo-calling/releases/tag/v2026.11.10.20): xem ghi chú phát hành để biết chi tiết.
+
+## 2026.11.10.20
 **Thay đổi hành vi (đọc trước khi cập nhật):**
 - **AI trả lời tin nhắn tắt cho tới khi có quy tắc.** Trước đây công tắc «AI tự trả lời tin 1-1» + ô ID cho AI trả lời người nhắn; nay chỉ trả lời khi có quy tắc `set_rule` (`reply_ai`). Các ID trong ô cũ được tự chuyển thành quy tắc theo threadID; **ô ID trống (cũ = «mọi người») KHÔNG được chuyển** — AI sẽ không trả lời người lạ nữa cho tới khi bạn đặt quy tắc.
 - **Gỡ các ô cài đặt đã chuyển sang dịch vụ:** loa/mic/camera mặc định, URL mic, chống vọng, âm lượng, tự phát mic, tự đồng ý video và thời gian chờ, các công tắc/ô AI. HA sẽ để lại các thực thể «không còn được cung cấp» — bạn tự xoá. Đặt lại bằng `set_default_devices`; xem bằng `get_default_devices`. Còn lại: ô kiểu chữ, địa chỉ HA cho app và các nút.

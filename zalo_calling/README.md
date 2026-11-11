@@ -97,7 +97,7 @@ docker compose pull && docker compose up -d   # cập nhật
 ```
 
 Mở `http://<máy>:8080`, đăng nhập, quét QR. Bước ② y hệt, địa chỉ app là `http://<IP máy Docker>:8080`.
-Ghim phiên bản: đổi `:latest` thành `:2026.11.10.18`. Tên biến ↔ add-on: `ZALO_PC_APP_USER` = `username`, `ZALO_PC_APP_PASSWORD` = `password` (ở Docker là **bắt buộc**).
+Ghim phiên bản: đổi `:latest` thành `:2026.11.10.20`. Tên biến ↔ add-on: `ZALO_PC_APP_USER` = `username`, `ZALO_PC_APP_PASSWORD` = `password` (ở Docker là **bắt buộc**).
 
 ## Lỗi thường gặp
 
