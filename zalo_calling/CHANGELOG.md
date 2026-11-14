@@ -1,5 +1,8 @@
 # Nhật ký thay đổi
 
+## 2026.11.14.1
+- Phiên bản có **Ingress** (WebUI ở thanh bên), tuỳ chọn `webhook_url`, bản **không giao diện** (add-on `zalo_calling_noui`), WebUI điện thoại, cài đặt kiểu Zalo, mic/nghe trên máy đang mở WebUI. Xem [ghi chú phát hành](https://github.com/TriTue2011/Zalo-calling/releases/tag/v2026.11.14.1).
+
 ## 2026.11.11.4
 - Tự động nâng theo bản phát hành [v2026.11.11.4](https://github.com/TriTue2011/Zalo-calling/releases/tag/v2026.11.11.4): xem ghi chú phát hành để biết chi tiết.
 
