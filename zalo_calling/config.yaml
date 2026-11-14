@@ -1,9 +1,15 @@
 name: "Zalo Calling"
-description: "Gọi thoại và video Zalo từ Home Assistant — nghe và nói qua loa R1, camera, mic của bạn"
+description: "Gọi thoại/video Zalo từ Home Assistant — có WebUI ngay trong bảng bên (Ingress)"
 url: "https://github.com/TriTue2011/Zalo-calling"
 version: "2026.11.11.4"
 slug: "zalo_calling"
 init: false
+ingress: true
+ingress_port: 8080
+ingress_stream: true
+panel_icon: "mdi:phone-in-talk"
+panel_title: "Zalo Calling"
+panel_admin: true
 arch:
   - amd64
   - aarch64
@@ -15,13 +21,15 @@ ports:
 ports_description:
   8080/tcp: "WebUI và API của app Zalo (có đăng nhập). Tích hợp Zalo Call trong HA nối vào cổng này. Chỉ để trong mạng LAN."
 webui: "http://[HOST]:[PORT:8080]"
-# Supervisor tự khởi động lại add-on khi trang đăng nhập (công khai, trả 200) thôi trả lời.
-watchdog: "http://[HOST]:[PORT:8080]/login"
+# Supervisor tự khởi động lại add-on khi đường này (công khai, không lộ gì) thôi trả lời.
+watchdog: "http://[HOST]:[PORT:8080]/api/app/status"
 options:
   username: "admin"
   password: ""
+  webhook_url: ""
 schema:
-  username: "str"
+  username: "str?"
   # Bỏ trống cũng được: add-on tự sinh mật khẩu, giữ lại trong thư mục dữ liệu và in ra Log
   # mỗi lần khởi động (đổi được trong WebUI hoặc điền ở đây).
   password: "password?"
+  webhook_url: "url?"

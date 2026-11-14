@@ -1,0 +1,12 @@
+configuration:
+  username:
+    name: Username (required)
+    description: App username. This build has no WebUI, so it is set here; the Zalo Call integration uses this pair.
+  password:
+    name: Password (required, 8+ characters)
+    description: App password. Required because there is no WebUI to set it later. Change it at runtime with zalo_call.set_app_password (that value is kept and not overwritten by this option).
+  webhook_url:
+    name: Initial webhook URL
+    description: Where the app posts messages, group events, reactions and calls (one URL for all four). Used only when no webhook is configured yet; change later via zalo_call.set_app_settings.
+network:
+  8080/tcp: The Zalo Call integration and in-home speakers/cameras connect here; keep 8080 unless it clashes.

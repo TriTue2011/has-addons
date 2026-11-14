@@ -14,7 +14,9 @@ import urllib.error
 import urllib.request
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-ADDONS = {"zalo_calling": "TriTue2011/Zalo-calling", "telegram_calling": "TriTue2011/Telegram-calling"}
+# add-on -> (kho mã nguồn, hậu tố thẻ ảnh). Bản không giao diện dùng thẻ «<số>-noui» của CÙNG kho Zalo-calling.
+ADDONS = {"zalo_calling": ("TriTue2011/Zalo-calling", ""), "zalo_calling_noui": ("TriTue2011/Zalo-calling", "-noui"),
+          "telegram_calling": ("TriTue2011/Telegram-calling", "")}
 NEED_ARCH = {"amd64", "arm64"}
 TIMEOUT = 20
 
@@ -72,9 +74,10 @@ def write(p, s):
         fh.write(s)
 
 
-def bump(addon, repo, dry):
+def bump(addon, repo, suffix, dry):
     cfg = read(addon + "/config.yaml")
-    cur = re.search(r'^version:\s*"([^"]+)"', cfg, re.M).group(1)
+    cur_full = re.search(r'^version:\s*"([^"]+)"', cfg, re.M).group(1)
+    cur = cur_full[:-len(suffix)] if suffix and cur_full.endswith(suffix) else cur_full      # số phát hành, không kèm hậu tố
     image = re.search(r'^image:\s*"([^"]+)"', cfg, re.M).group(1)
     rel = latest_release(repo)
     if rel is None:
@@ -84,18 +87,19 @@ def bump(addon, repo, dry):
     if not (version_key(ver) > (version_key(cur) or ())):
         print("%s: đang ở %s, bản mới nhất %s: không có gì để nâng" % (addon, cur, ver))
         return False
-    if not image_ready(image, ver):
-        print("%s: có bản %s nhưng ảnh %s:%s chưa đủ amd64+arm64: chờ lần sau" % (addon, ver, image, ver))
+    new_full = ver + suffix
+    if not image_ready(image, new_full):
+        print("%s: có bản %s nhưng ảnh %s:%s chưa đủ amd64+arm64: chờ lần sau" % (addon, ver, image, new_full))
         return False
-    print("%s: nâng %s -> %s (%s)" % (addon, cur, ver, tag))
+    print("%s: nâng %s -> %s (%s)" % (addon, cur_full, new_full, tag))
     if dry:
         return True
-    write(addon + "/config.yaml", re.sub(r'^(version:\s*)"[^"]+"', r'\g<1>"%s"' % ver, cfg, count=1, flags=re.M))
+    write(addon + "/config.yaml", re.sub(r'^(version:\s*)"[^"]+"', r'\g<1>"%s"' % new_full, cfg, count=1, flags=re.M))
     readme = read(addon + "/README.md")
-    write(addon + "/README.md", readme.replace("`:%s`" % cur, "`:%s`" % ver))
+    write(addon + "/README.md", readme.replace("`:%s`" % cur_full, "`:%s`" % new_full))
     log = read(addon + "/CHANGELOG.md")
     head = "# Nhật ký thay đổi\n\n"
-    note = "## %s\n- Tự động nâng theo bản phát hành [%s](%s): xem ghi chú phát hành để biết chi tiết.\n\n" % (ver, tag, url)
+    note = "## %s\n- Tự động nâng theo bản phát hành [%s](%s): xem ghi chú phát hành để biết chi tiết.\n\n" % (new_full, tag, url)
     write(addon + "/CHANGELOG.md", log.replace(head, head + note, 1) if log.startswith(head) else note + log)
     return True
 
@@ -103,9 +107,9 @@ def bump(addon, repo, dry):
 def main():
     dry = "--dry-run" in sys.argv
     changed = False
-    for addon, repo in ADDONS.items():
+    for addon, (repo, suffix) in ADDONS.items():
         try:
-            changed |= bump(addon, repo, dry)
+            changed |= bump(addon, repo, suffix, dry)
         except (urllib.error.URLError, ValueError, KeyError) as err:       # mạng/API lỗi: bỏ qua add-on này, lần sau thử lại
             print("%s: không kiểm được (%s)" % (addon, err))
     print("CÓ THAY ĐỔI" if changed else "không thay đổi")

@@ -1,9 +1,12 @@
 configuration:
   username:
-    name: Tên đăng nhập WebUI
-    description: Tài khoản để mở WebUI của app và để tích hợp Zalo Call trong HA kết nối vào. Mặc định admin.
+    name: Tên đăng nhập
+    description: Tên đăng nhập app (mặc định admin). Mở bằng bảng bên của HA thì không cần; dùng khi vào qua cổng 8080 và cho tích hợp Zalo Call.
   password:
-    name: Mật khẩu WebUI
-    description: Để trống thì add-on tự sinh mật khẩu và in ra tab Log mỗi lần khởi động. Điền vào để tự đặt mật khẩu.
+    name: Mật khẩu
+    description: Để trống thì app tự sinh một mật khẩu, in một lần trong nhật ký và lưu ở /data/THONG-TIN-DANG-NHAP.txt. Đổi sau trong WebUI hoặc dịch vụ zalo_call.set_app_password thì giá trị đó được giữ.
+  webhook_url:
+    name: Địa chỉ webhook ban đầu
+    description: Nơi app đẩy tin nhắn, sự kiện nhóm, biểu cảm và cuộc gọi (một địa chỉ cho cả bốn loại). Chỉ dùng khi CHƯA có cấu hình webhook; đã đặt trong WebUI hay dịch vụ HA thì không bị đè. Để trống nếu dùng tích hợp Zalo Call (tự lo).
 network:
-  8080/tcp: WebUI và API của app Zalo (chỉ để trong mạng LAN)
+  8080/tcp: Tích hợp Zalo Call và loa/camera trong nhà gọi vào cổng này; để nguyên 8080 là chạy được ngay.

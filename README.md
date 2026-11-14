@@ -1,14 +1,34 @@
 # Home Assistant Add-ons — TriTue
 
 Thêm kho này vào Home Assistant: **Cài đặt → Add-on → Cửa hàng → ⋮ → Kho lưu trữ** →
-`https://github.com/TriTue2011/has-addons`, hoặc bấm nhanh: [![Thêm kho add-on](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2FTriTue2011%2Fhas-addons). Chỉ dùng được với **Home Assistant OS / Supervised**.
+`https://github.com/TriTue2011/has-addons`, hoặc bấm nhanh: [![Thêm kho add-on](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2FTriTue2011%2Fhas-addons). Chỉ dùng được với **Home Assistant OS / Supervised** (HA bản Docker/Container không có add-on: xem hướng dẫn Docker của từng dự án).
 
-| Add-on | Làm gì | Hướng dẫn |
-|---|---|---|
-| 💬 **Zalo Bot** | Gửi/nhận **tin nhắn** Zalo | [phần dưới](#-zalo-bot-cho-home-assistant) |
-| 📞 **Zalo Calling** | **Gọi thoại và video** Zalo, tiếng ra loa nhà, hình từ camera | [zalo_calling/README.md](zalo_calling/README.md) |
-| ✈️ **Telegram Calling** | Cổng **Telegram** (nhắn tin, gọi); cách lấy `api_id`/`api_hash` | [telegram_calling/README.md](telegram_calling/README.md) |
-| 🤖 **AI Box Bridge** | Cầu WebSocket cho AI BOX | [aibox_bridge/](aibox_bridge/) |
+| Add-on | Làm gì | Giao diện / cổng | Hướng dẫn |
+|---|---|---|---|
+| 💬 **Zalo Bot** | Gửi/nhận **tin nhắn** Zalo | WebUI cổng `3000` | [phần dưới](#-zalo-bot-cho-home-assistant) |
+| 📞 **Zalo Calling** | **Gọi thoại và video** Zalo, tiếng ra loa nhà, hình từ camera | **WebUI hiện ở thanh bên HA** (Ingress) + cổng `8080` | [zalo_calling/DOCS.md](zalo_calling/DOCS.md) |
+| 📞 **Zalo Calling (không giao diện)** | Như trên nhưng bản **nhẹ, không WebUI**, hợp máy cấu hình yếu | Chỉ API cổng `8080`; `username`/`password` **bắt buộc** | [zalo_calling_noui/DOCS.md](zalo_calling_noui/DOCS.md) |
+| ✈️ **Telegram Calling** | Cổng **Telegram** (nhắn tin, gọi); cách lấy `api_id`/`api_hash` | WebUI cổng `3333` | [telegram_calling/README.md](telegram_calling/README.md) |
+| 🤖 **AI Box Bridge** | Cầu WebSocket cho AI BOX | — | [aibox_bridge/](aibox_bridge/) |
+
+## Chọn add-on nào?
+
+- **Nhắn tin Zalo** → *Zalo Bot*. **Gọi điện Zalo** → *Zalo Calling*. Hai add-on này làm việc khác nhau và **chạy cùng nhau được** (khác cổng, khác tích hợp).
+- *Zalo Calling* có **hai bản**: **có giao diện** (quét QR và quản lý ngay ở thanh bên Home Assistant) và **không giao diện** (nhẹ hơn về bề mặt, cấu hình bằng tuỳ chọn add-on và dịch vụ).
+  Hai bản dùng **cùng cổng 8080** nên chỉ cài **một** trong hai. Bản không giao diện không nhỏ hơn đáng kể về dung lượng (cùng ~815 MB); lợi ở chỗ không mở WebUI.
+- Không dùng Home Assistant OS (Docker, Docker Compose, Portainer): xem [README của Zalo-calling, mục 1](https://github.com/TriTue2011/Zalo-calling#1-cài-đặt-app-bằng-docker-docker-compose-và-portainer).
+
+## 📞 Zalo Calling — thứ tự cài đặt
+
+Gồm hai phần: **app Zalo** (add-on ở kho này) và **tích hợp `zalo_call`** (HACS, kho [Zalo-calling](https://github.com/TriTue2011/Zalo-calling)). Làm theo thứ tự:
+
+1. **Cài add-on** (bảng trên): thêm kho → cài *Zalo Calling* (hoặc bản không giao diện) → điền tuỳ chọn → **Khởi động**.
+2. **Thêm tích hợp** bằng HACS: **⋮ → Custom repositories** → `https://github.com/TriTue2011/Zalo-calling` (*Integration*) → tải **Zalo Call** → khởi động lại HA.
+3. **Kết nối và đăng nhập Zalo**: Thêm tích hợp **Zalo Call** với địa chỉ `http://<IP HA>:8080` và tài khoản của add-on; quét QR (WebUI ở thanh bên, hoặc dịch vụ `zalo_call.login_qr` với bản không giao diện).
+4. **Dịch vụ**: gọi, quy tắc cho từng người, tin nhắn, cài đặt app… — [danh mục đầy đủ](https://github.com/TriTue2011/Zalo-calling#9-danh-mục-mọi-dịch-vụ).
+5. **Automation**: [sự kiện và ví dụ](https://github.com/TriTue2011/Zalo-calling#10-nhận-cuộc-gọi-sự-kiện-và-ví-dụ-automation), [blueprint mẫu](https://github.com/TriTue2011/Zalo-calling#11-blueprint-mẫu-chọn-từ-danh-sách-không-gõ-tay).
+
+Hướng dẫn chi tiết từng bước của từng bản: [có giao diện](zalo_calling/DOCS.md) · [không giao diện](zalo_calling_noui/DOCS.md). Phiên bản add-on **tự nâng** khi kho Zalo-calling ra bản phát hành và ảnh Docker đã dựng xong (`.github/scripts/auto_bump.py`).
 
 ---
 

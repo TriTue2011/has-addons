@@ -1,0 +1,12 @@
+configuration:
+  username:
+    name: Tên đăng nhập (bắt buộc)
+    description: Tên đăng nhập app. Bản không giao diện nên phải đặt ở đây; tích hợp Zalo Call dùng đúng cặp này.
+  password:
+    name: Mật khẩu (bắt buộc, từ 8 ký tự)
+    description: Mật khẩu app. Bắt buộc vì không có WebUI để đặt sau. Đổi lúc đang chạy bằng dịch vụ zalo_call.set_app_password (giá trị đó được giữ, không bị tuỳ chọn này ghi đè).
+  webhook_url:
+    name: Địa chỉ webhook ban đầu
+    description: Nơi app đẩy tin nhắn, sự kiện nhóm, biểu cảm và cuộc gọi (một địa chỉ cho cả bốn loại). Chỉ dùng khi CHƯA có cấu hình webhook; đổi sau bằng dịch vụ zalo_call.set_app_settings. Để trống nếu dùng tích hợp Zalo Call.
+network:
+  8080/tcp: Tích hợp Zalo Call và loa/camera trong nhà gọi vào cổng này; để nguyên 8080 là chạy được ngay.
