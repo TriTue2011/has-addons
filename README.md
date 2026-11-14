@@ -1,266 +1,72 @@
 # Home Assistant Add-ons — TriTue
 
-Thêm kho này vào Home Assistant: **Cài đặt → Add-on → Cửa hàng → ⋮ → Kho lưu trữ** →
-`https://github.com/TriTue2011/has-addons`, hoặc bấm nhanh: [![Thêm kho add-on](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2FTriTue2011%2Fhas-addons). Chỉ dùng được với **Home Assistant OS / Supervised** (HA bản Docker/Container không có add-on: xem hướng dẫn Docker của từng dự án).
+Kho add-on cho **Home Assistant OS / Supervised**: Zalo (nhắn tin và gọi điện), Telegram, và cầu nối loa AI BOX.
+Mỗi add-on có trang hướng dẫn riêng — README này chỉ **giới thiệu ngắn và dẫn link**.
 
-| Add-on | Làm gì | Giao diện / cổng | Hướng dẫn |
+## Thêm kho vào Home Assistant
+
+**Cài đặt → Add-on → Cửa hàng → ⋮ → Kho lưu trữ** → dán `https://github.com/TriTue2011/has-addons` → **Thêm**, hoặc bấm nhanh:
+[![Thêm kho add-on](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2FTriTue2011%2Fhas-addons)
+
+> Home Assistant bản Docker/Container không có add-on: mỗi dự án đều có hướng dẫn Docker riêng (link trong từng mục dưới đây).
+
+## Các add-on
+
+| Add-on | Làm gì | Giao diện / cổng | Đọc chi tiết |
 |---|---|---|---|
-| 💬 **Zalo Bot** | Gửi/nhận **tin nhắn** Zalo | WebUI cổng `3000` | [phần dưới](#-zalo-bot-cho-home-assistant) |
-| 📞 **Zalo Calling** | **Gọi thoại và video** Zalo, tiếng ra loa nhà, hình từ camera | **WebUI hiện ở thanh bên HA** (Ingress) + cổng `8080` | [zalo_calling/DOCS.md](zalo_calling/DOCS.md) |
-| 📞 **Zalo Calling (không giao diện)** | Như trên nhưng bản **nhẹ, không WebUI**, hợp máy cấu hình yếu | Chỉ API cổng `8080`; `username`/`password` **bắt buộc** | [zalo_calling_noui/DOCS.md](zalo_calling_noui/DOCS.md) |
-| ✈️ **Telegram Calling** | Cổng **Telegram** (nhắn tin, gọi); cách lấy `api_id`/`api_hash` | WebUI cổng `3333` | [telegram_calling/README.md](telegram_calling/README.md) |
-| 🤖 **AI Box Bridge** | Cầu WebSocket cho AI BOX | — | [aibox_bridge/](aibox_bridge/) |
+| 💬 [**Zalo Bot**](#-zalo-bot) | Gửi/nhận **tin nhắn** Zalo cá nhân | WebUI `3000` | [Hướng dẫn cài đặt](zalo_bot/HUONG-DAN-CAI-DAT.md) · [Tham chiếu](zalo_bot/README.md) |
+| 📞 [**Zalo Calling**](#-zalo-calling-có-giao-diện) | **Gọi thoại và video** Zalo, tiếng ra loa nhà | WebUI ở **thanh bên HA** + `8080` | [Hướng dẫn](zalo_calling/DOCS.md) |
+| 📞 [**Zalo Calling (không giao diện)**](#-zalo-calling-không-giao-diện) | Như trên, bản **nhẹ, không WebUI** | API `8080` | [Hướng dẫn](zalo_calling_noui/DOCS.md) |
+| ✈️ [**Telegram Calling**](#telegram-calling) | Cổng **Telegram**: nhắn tin, gọi thoại/video | WebUI `3333` | [Hướng dẫn](telegram_calling/README.md) |
+| 🤖 [**AI BOX WebSocket Bridge**](#-ai-box-websocket-bridge) | Điều khiển loa **AI BOX (Phicomm R1)** từ xa | WebSocket `18082` | [Hướng dẫn](aibox_bridge/README.md) |
+
+### 💬 Zalo Bot
+
+Gửi và nhận tin nhắn **Zalo cá nhân** trong Home Assistant: báo động, nhắc việc, gửi ảnh camera, chuyển tiếp tin nhắn vào automation. Chạy máy chủ `zalo-server` (Node.js, thư viện `zca-js`).
+
+- **Cần hai phần:** add-on này (máy chủ đăng nhập Zalo) **và** tích hợp *Zalo Bot* qua HACS (`https://github.com/TriTue2011/zalo_bot`). Thiếu một phần thì không chạy.
+- Đăng nhập bằng mã QR; dùng **tài khoản Zalo phụ**.
+- Chi tiết: [hướng dẫn cài đặt từng bước](zalo_bot/HUONG-DAN-CAI-DAT.md) (add-on hoặc Docker, tích hợp, bảo mật, sự cố) · [tài liệu tham chiếu](zalo_bot/README.md).
+
+### 📞 Zalo Calling (có giao diện)
+
+**Gọi thoại và video Zalo** từ Home Assistant: điện thoại đổ chuông, tiếng bên kia ra **loa trong nhà**, mic/camera nhà gửi sang điện thoại; AI nói chuyện, cảnh báo bằng cuộc gọi, quy tắc theo từng người.
+**WebUI hiện ngay ở thanh bên** Home Assistant (Ingress).
+
+- **Cần hai phần:** add-on này **và** tích hợp *Zalo Call* qua HACS (`https://github.com/TriTue2011/Zalo-calling`), rồi kết nối và quét QR (tài khoản Zalo phụ).
+- Chi tiết: [hướng dẫn từng bước](zalo_calling/DOCS.md) (cài add-on → thêm tích hợp → kết nối → dịch vụ → automation) · [danh mục dịch vụ và blueprint](https://github.com/TriTue2011/Zalo-calling#readme) · [cài bằng Docker/Compose/Portainer](https://github.com/TriTue2011/Zalo-calling#1-cài-đặt-app-bằng-docker-docker-compose-và-portainer).
+
+### 📞 Zalo Calling (không giao diện)
+
+Cùng mã nguồn với bản trên nhưng **không có WebUI**, nhẹ về bề mặt, hợp máy cấu hình yếu; `username`/`password` **bắt buộc** đặt ở tab Cấu hình, đăng nhập Zalo bằng dịch vụ `zalo_call.login_qr`.
+**Cùng cổng 8080 với bản có giao diện nên chỉ cài một trong hai.**
+
+- Chi tiết: [hướng dẫn từng bước](zalo_calling_noui/DOCS.md) · [danh mục dịch vụ và blueprint](https://github.com/TriTue2011/Zalo-calling#readme).
+
+### Telegram Calling
+
+Cổng **Telegram** cho Home Assistant: đăng nhập **tài khoản Telegram phụ**, nhắn tin, gọi thoại/video, đẩy sự kiện về HA. Bản xem trước (0.x).
+
+- Cần `api_id` và `api_hash` lấy ở <https://my.telegram.org> (hướng dẫn có trong trang chi tiết) và tích hợp *Telegram Call* qua HACS (`https://github.com/TriTue2011/Telegram-calling`).
+- Chi tiết: [hướng dẫn cài đặt](telegram_calling/README.md) · [kho mã nguồn](https://github.com/TriTue2011/Telegram-calling).
+
+### 🤖 AI BOX WebSocket Bridge
+
+Cầu **WebSocket** để điều khiển loa **AI BOX (Phicomm R1)** từ xa qua Cloudflare Tunnel; nhiều loa cùng lúc bằng tham số `?ip=<IP loa>`. Chạy mạng `host`, cổng bridge mặc định `18082`.
+
+- Chi tiết: [hướng dẫn cài đặt](aibox_bridge/README.md) (add-on hoặc Docker Compose) · [DOCS](aibox_bridge/DOCS.md).
 
 ## Chọn add-on nào?
 
-- **Nhắn tin Zalo** → *Zalo Bot*. **Gọi điện Zalo** → *Zalo Calling*. Hai add-on này làm việc khác nhau và **chạy cùng nhau được** (khác cổng, khác tích hợp).
-- *Zalo Calling* có **hai bản**: **có giao diện** (quét QR và quản lý ngay ở thanh bên Home Assistant) và **không giao diện** (nhẹ hơn về bề mặt, cấu hình bằng tuỳ chọn add-on và dịch vụ).
-  Hai bản dùng **cùng cổng 8080** nên chỉ cài **một** trong hai. Bản không giao diện không nhỏ hơn đáng kể về dung lượng (cùng ~815 MB); lợi ở chỗ không mở WebUI.
-- Không dùng Home Assistant OS (Docker, Docker Compose, Portainer): xem [README của Zalo-calling, mục 1](https://github.com/TriTue2011/Zalo-calling#1-cài-đặt-app-bằng-docker-docker-compose-và-portainer).
+- **Nhắn tin Zalo** → *Zalo Bot*. **Gọi điện Zalo** → *Zalo Calling*. Hai add-on làm việc khác nhau và **chạy cùng nhau được**.
+- *Zalo Calling* có hai bản (có / không giao diện), cùng cổng 8080: **chỉ cài một**.
+- Telegram thay cho Zalo → *Telegram Calling*. Điều khiển loa R1 từ xa → *AI BOX WebSocket Bridge*.
 
-## 📞 Zalo Calling — thứ tự cài đặt
+## Phiên bản tự cập nhật
 
-Gồm hai phần: **app Zalo** (add-on ở kho này) và **tích hợp `zalo_call`** (HACS, kho [Zalo-calling](https://github.com/TriTue2011/Zalo-calling)). Làm theo thứ tự:
+Phiên bản *Zalo Calling* (hai bản) và *Telegram Calling* **tự nâng** khi kho mã nguồn ra bản phát hành và ảnh Docker đã dựng xong (`.github/scripts/auto_bump.py`); bật «Tự động cập nhật» ở add-on là lên bản mới không cần làm gì.
 
-1. **Cài add-on** (bảng trên): thêm kho → cài *Zalo Calling* (hoặc bản không giao diện) → điền tuỳ chọn → **Khởi động**.
-2. **Thêm tích hợp** bằng HACS: **⋮ → Custom repositories** → `https://github.com/TriTue2011/Zalo-calling` (*Integration*) → tải **Zalo Call** → khởi động lại HA.
-3. **Kết nối và đăng nhập Zalo**: Thêm tích hợp **Zalo Call** với địa chỉ `http://<IP HA>:8080` và tài khoản của add-on; quét QR (WebUI ở thanh bên, hoặc dịch vụ `zalo_call.login_qr` với bản không giao diện).
-4. **Dịch vụ**: gọi, quy tắc cho từng người, tin nhắn, cài đặt app… — [danh mục đầy đủ](https://github.com/TriTue2011/Zalo-calling#9-danh-mục-mọi-dịch-vụ).
-5. **Automation**: [sự kiện và ví dụ](https://github.com/TriTue2011/Zalo-calling#10-nhận-cuộc-gọi-sự-kiện-và-ví-dụ-automation), [blueprint mẫu](https://github.com/TriTue2011/Zalo-calling#11-blueprint-mẫu-chọn-từ-danh-sách-không-gõ-tay).
+## Hỗ trợ và báo lỗi
 
-Hướng dẫn chi tiết từng bước của từng bản: [có giao diện](zalo_calling/DOCS.md) · [không giao diện](zalo_calling_noui/DOCS.md). Phiên bản add-on **tự nâng** khi kho Zalo-calling ra bản phát hành và ảnh Docker đã dựng xong (`.github/scripts/auto_bump.py`).
-
----
-
-# 💬 Zalo Bot cho Home Assistant
-
-Gửi và nhận tin nhắn **Zalo cá nhân** ngay trong Home Assistant: báo động, nhắc
-việc, gửi ảnh camera, chuyển tiếp tin nhắn vào automation.
-
-## ❓ Nhóm hỗ trợ
-
-- Zalo: https://zalo.me/g/alvkgn274
-- Facebook: https://www.facebook.com/groups/aiboxvn
-
----
-
-## Trước hết: cần HAI phần, không phải một
-
-Rất nhiều người cài xong một phần rồi tưởng hỏng. Bộ đầy đủ gồm:
-
-| Phần | Là gì | Cài ở đâu |
-|---|---|---|
-| **Máy chủ Zalo** | Chương trình thật sự đăng nhập và nói chuyện với Zalo | Add-on Home Assistant **hoặc** container Docker |
-| **Tích hợp Zalo Bot** | Phần tạo service, entity, nút bấm trong Home Assistant | HACS |
-
-Tích hợp **không tự nói chuyện với Zalo được** — nó chỉ gọi sang máy chủ. Thiếu
-máy chủ thì tích hợp không làm gì cả.
-
-Máy chủ chạy bằng Node.js nên **không thể** nhét vào tích hợp HACS (Home
-Assistant chỉ chạy Python).
-
----
-
-# PHẦN 1 — Cài máy chủ Zalo
-
-Chọn **một** trong hai đường dưới đây.
-
-## Đường A: Add-on (cho Home Assistant OS và Supervised)
-
-> Không dùng được với Home Assistant bản Docker/Container — bản đó không có hệ
-> thống add-on. Nếu bạn chạy HA bằng `docker run` hay `docker compose`, hãy đi
-> theo **Đường B**.
-
-**Bước 1.** Vào **Settings → Add-ons → Add-on Store**.
-
-**Bước 2.** Nhấp biểu tượng **ba chấm** (⋮) góc trên bên phải → **Repositories**.
-
-**Bước 3.** Dán đường dẫn này rồi **Add**:
-
-```
-https://github.com/TriTue2011/has-addons
-```
-
-**Bước 4.** Nhấn F5 để tải lại trang, tìm **Zalo Bot** → **Install**. Lần đầu
-tải image mất vài phút.
-
-**Bước 5.** Sang tab **Configuration** và điền:
-
-| Ô | Nên điền gì |
-|---|---|
-| `data_directory` | Để nguyên `/config/zalo_bot` |
-| `api_key` | Để trống — add-on tự sinh, xem bước 7 |
-| `admin_password` | Để trống cũng được — add-on tự sinh, xem bước 7 |
-| `session_secret` | Để trống cũng được — add-on tự sinh và giữ lại |
-
-**Bước 6.** Nhấn **Start**, rồi mở tab **Log** xem có lỗi không.
-
-**Bước 7.** Nếu để trống `admin_password`, tìm mật khẩu trong tab **Log** —
-add-on in ra một khối như thế này mỗi lần khởi động:
-
-```
-============================================================
- Tai khoan: admin
- Mat khau : 6nLh3ufkZMp0DUAN
- Khoa API : d95a4db8c902296dd7005fad54c9fbb28c32b3b7e517ea3fcce8d59429173
- Da ghi ra: /config/zalo_bot/THONG-TIN-DANG-NHAP.txt
-============================================================
-```
-
-Mật khẩu cũng nằm trong tệp `THONG-TIN-DANG-NHAP.txt` ở thư mục dữ liệu, mở
-bằng add-on **File editor** hoặc qua **Samba** là thấy.
-
-**Bước 8.** Mở giao diện web tại `http://<ip-máy-Home-Assistant>:3000`, đăng
-nhập bằng tài khoản trên, rồi **quét mã QR bằng ứng dụng Zalo trên điện thoại**
-để đăng nhập tài khoản Zalo.
-
-## Đường B: Docker
-
-Dùng khi chạy Home Assistant bản Container, hoặc muốn đặt máy chủ Zalo ở máy
-khác.
-
-Tạo `docker-compose.yaml`:
-
-```yaml
-services:
-  zalobot:
-    image: ghcr.io/tritue2011/zalobot:latest
-    container_name: zalobot
-    restart: unless-stopped
-    ports:
-      - "3000:3000"
-    environment:
-      DATA_DIRECTORY: /app/data
-      PORT: "3000"
-      # Sinh từng chuỗi bằng: openssl rand -hex 32
-      SESSION_SECRET: "thay-bang-chuoi-ngau-nhien"
-      ZALO_SERVER_ADMIN_PASSWORD: "thay-bang-mat-khau-manh"
-      ZALO_SERVER_API_KEY: "thay-bang-khoa-ngau-nhien"
-    volumes:
-      - ./zalobot-data:/app/data
-```
-
-Chạy:
-
-```bash
-docker compose up -d
-docker compose logs -f zalobot
-```
-
-Rồi mở `http://<ip-máy-chạy-docker>:3000`, đăng nhập bằng `admin` và mật khẩu
-vừa đặt, quét mã QR bằng Zalo trên điện thoại.
-
-**Gắn volume vào đúng `/app/data`** — cookie đăng nhập nằm ở đó. Thiếu volume là
-mỗi lần dựng lại container phải quét QR lại từ đầu.
-
-Image là **một** image dùng chung cho mọi kiến trúc: `amd64`, `aarch64`,
-`armv7`, `armhf`. Docker tự chọn đúng bản.
-
----
-
-# PHẦN 2 — Cài tích hợp trong Home Assistant
-
-Làm sau khi máy chủ ở Phần 1 đã chạy và đã quét QR xong.
-
-**Bước 1.** Mở **HACS** → dấu **ba chấm** góc trên phải → **Custom repositories**.
-
-**Bước 2.** Dán đường dẫn, chọn loại **Integration**, rồi **Add**:
-
-```
-https://github.com/TriTue2011/zalo_bot
-```
-
-**Bước 3.** Tìm **Zalo Bot** trong HACS → **Download** → **khởi động lại Home
-Assistant**.
-
-**Bước 4.** Vào **Settings → Devices & Services → Add Integration** → tìm
-**Zalo Bot**. Điền:
-
-| Ô | Giá trị |
-|---|---|
-| Zalo server | `http://<ip-máy-chủ-zalo>:3000` |
-| Username | `admin` |
-| Password | mật khẩu ở Phần 1 |
-
-Chạy add-on trên cùng máy Home Assistant thì điền `http://localhost:3000`.
-
-**Bước 5.** Xong. Trong automation sẽ có các service `zalo_bot.send_message`,
-`zalo_bot.send_image`, `zalo_bot.send_file`…
-
----
-
-## Cấu hình chi tiết
-
-| Tuỳ chọn | Biến môi trường (bản Docker) | Bỏ trống thì sao |
-|---|---|---|
-| `data_directory` | `DATA_DIRECTORY` | Add-on dùng `/config/zalo_bot`, Docker dùng `/app/data` |
-| `api_key` | `ZALO_SERVER_API_KEY` | Add-on tự sinh, giữ lại, và ghi vào `THONG-TIN-DANG-NHAP.txt` |
-| `admin_password` | `ZALO_SERVER_ADMIN_PASSWORD` | Sinh ngẫu nhiên, ghi ra `THONG-TIN-DANG-NHAP.txt` và in ra log |
-| `session_secret` | `SESSION_SECRET` | Sinh một lần rồi giữ lại, phiên đăng nhập sống qua khởi động lại |
-
-Biến môi trường luôn **được ưu tiên hơn** ô cấu hình add-on.
-
-Đổi `admin_password` sau khi tài khoản đã tạo thì **không** đổi mật khẩu đang
-dùng — giá trị đó chỉ áp dụng lúc tạo tài khoản lần đầu. Muốn đổi thì đăng nhập
-vào giao diện web rồi dùng chức năng đổi mật khẩu.
-
----
-
-## ⚠️ Bảo mật — đọc trước khi mở cổng
-
-Cổng 3000 là **cổng quản trị một tài khoản Zalo thật**. Ai vào được cổng này thì
-đọc được tin nhắn và gửi tin dưới danh nghĩa bạn.
-
-**Đừng bao giờ mở cổng 3000 ra Internet.** Không NAT, không port forward. Cần
-truy cập từ xa thì đi qua VPN hoặc Cloudflare Tunnel có xác thực.
-
-**Khoá API bật sẵn.** Add-on tự sinh `api_key` ngay lần chạy đầu, nên nhóm API
-gửi tin — `/api/sendmessage`, `/api/findUser`, `/api/getUserInfo`,
-`/api/createGroup` — đóng ngay từ đầu, đòi header
-`Authorization: Bearer <api_key>` hoặc phiên đăng nhập admin.
-
-Khoá nằm trong `THONG-TIN-DANG-NHAP.txt` cùng thư mục dữ liệu, và in ra tab
-**Log** mỗi lần khởi động. Chép ra dùng cho REST command hay script. **Tích hợp
-HACS không cần khoá này** — nó đăng nhập bằng tài khoản admin.
-
-Khoá đó cố ý **chỉ cấp quyền gửi nội dung** (tin, ảnh, tệp, video, sticker). Đọc
-lịch sử chat, tra người dùng, tạo và sửa nhóm, kết bạn đều bắt buộc đăng nhập
-bằng tài khoản admin.
-
----
-
-## Gặp sự cố
-
-**Add-on không hiện trong Store.** Nhấn F5 tải lại trang. Vẫn không thấy thì
-kiểm tra đã thêm đúng đường dẫn kho ở bước 3 chưa.
-
-**Không tìm thấy add-on dù đã thêm kho, và Home Assistant chạy bằng Docker.**
-Bản Container không có hệ thống add-on. Đi theo Đường B.
-
-**Add-on chạy nhưng không đăng nhập được.** Mở tab **Log** tìm khối in mật khẩu.
-Nếu bạn tự điền `admin_password` mà vẫn sai, nhớ rằng giá trị đó chỉ áp dụng lần
-đầu tạo tài khoản — xoá tệp `users.json` trong thư mục dữ liệu rồi khởi động lại
-để tạo lại từ đầu.
-
-**Cứ khởi động lại là bị đăng xuất khỏi giao diện web.** Đang chạy Docker mà
-chưa đặt `SESSION_SECRET`. Đặt vào là hết.
-
-**Mỗi lần dựng lại container phải quét QR lại.** Chưa gắn volume vào
-`/app/data`, nên cookie đăng nhập mất theo container.
-
-**Tích hợp báo không kết nối được máy chủ.** Kiểm tra máy Home Assistant gọi tới
-được địa chỉ đã điền:
-
-```bash
-curl -s -o /dev/null -w "%{http_code}\n" http://<ip-máy-chủ-zalo>:3000/admin-login
-```
-
-Trả `200` là thông. Không phải `200` thì lỗi mạng hoặc sai cổng, chưa phải lỗi
-tích hợp.
-
----
-
-## 🆘 Báo lỗi
-
-Mở issue tại https://github.com/TriTue2011/has-addons/issues — kèm nội dung tab
-**Log** của add-on, và nhớ **che mật khẩu cùng khoá API** trước khi dán.
+- Nhóm hỗ trợ: Zalo <https://zalo.me/g/alvkgn274> · Facebook <https://www.facebook.com/groups/aiboxvn>
+- Báo lỗi: <https://github.com/TriTue2011/has-addons/issues> — kèm nội dung tab **Nhật ký** của add-on, và nhớ **che mật khẩu cùng khoá API** trước khi dán.

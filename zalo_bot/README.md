@@ -1,5 +1,7 @@
 # Zalo Bot
 
+> **Mới cài?** Làm theo [Hướng dẫn cài đặt từng bước](HUONG-DAN-CAI-DAT.md) (máy chủ → tích hợp → cấu hình → xử lý sự cố). Trang này là tài liệu tham chiếu.
+
 Chạy `zalo-server` (Node.js, dùng thư viện `zca-js`) như một add-on của Home
 Assistant, để tự động hoá gửi và nhận tin nhắn Zalo cá nhân.
 
