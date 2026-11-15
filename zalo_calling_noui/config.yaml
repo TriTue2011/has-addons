@@ -24,5 +24,8 @@ options:
 schema:
   username: "str(1,64)"
   password: "password(8,128)"
-  webhook_url: "url?"
+  # «str?» chứ không «url?»: giá trị mặc định là chuỗi rỗng, mà «url?» từ chối chuỗi rỗng
+  # (Supervisor báo «Invalid configuration: expected a URL.» và add-on không chạy được).
+  # App tự bỏ qua chuỗi rỗng (docker-entrypoint.py: str(opts.get("webhook_url") or "").strip()).
+  webhook_url: "str?"
 image: "ghcr.io/tritue2011/zalo-calling"

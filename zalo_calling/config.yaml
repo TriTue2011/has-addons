@@ -32,4 +32,7 @@ schema:
   # Bỏ trống cũng được: add-on tự sinh mật khẩu, giữ lại trong thư mục dữ liệu và in ra Log
   # mỗi lần khởi động (đổi được trong WebUI hoặc điền ở đây).
   password: "password?"
-  webhook_url: "url?"
+  # «str?» chứ không «url?»: giá trị mặc định là chuỗi rỗng, mà «url?» từ chối chuỗi rỗng
+  # (Supervisor báo «Invalid configuration: expected a URL.» và add-on không chạy được).
+  # App tự bỏ qua chuỗi rỗng (docker-entrypoint.py: str(opts.get("webhook_url") or "").strip()).
+  webhook_url: "str?"
