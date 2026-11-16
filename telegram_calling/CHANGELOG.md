@@ -1,5 +1,8 @@
 # Nhật ký thay đổi
 
+## 2026.11.16.2
+- Tự động nâng theo bản phát hành [v2026.11.16.2](https://github.com/TriTue2011/Telegram-calling/releases/tag/v2026.11.16.2): xem ghi chú phát hành để biết chi tiết.
+
 ## 2026.11.15.1
 - Phiên bản đánh theo ngày như Zalo Calling. **Sửa cảm biến của tích hợp `telegram_call` không được thêm trên Home Assistant mới** (`sensor.telegram_call_call`, `binary_sensor` đang gọi / cổng): trước đây báo lỗi `'method' object has no attribute '_hass_callback'` nên không tạo được automation. Xem [ghi chú phát hành](https://github.com/TriTue2011/Telegram-calling/releases/tag/v2026.11.15.1).
 

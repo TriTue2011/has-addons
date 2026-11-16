@@ -1,5 +1,8 @@
 # Nhật ký thay đổi
 
+## 2026.11.16.1-noui
+- Tự động nâng theo bản phát hành [v2026.11.16.1](https://github.com/TriTue2011/Zalo-calling/releases/tag/v2026.11.16.1): xem ghi chú phát hành để biết chi tiết.
+
 ## 2026.11.15.4-noui
 - **Gọi video/thoại ĐẾN không còn mất tiếng, mất hình khi mã phiên của điện thoại gọi dài 152 ký tự** (trước đây chỉ nhận 154), và `docker logs` có **giờ ở đầu mỗi dòng** (`ZALO_PC_LOG_TS=0` để tắt). Xem [ghi chú phát hành](https://github.com/TriTue2011/Zalo-calling/releases/tag/v2026.11.15.4).
 
