@@ -1,5 +1,8 @@
 # Nhật ký thay đổi
 
+## 2026.11.16.3
+- Tự động nâng theo bản phát hành [v2026.11.16.3](https://github.com/TriTue2011/Telegram-calling/releases/tag/v2026.11.16.3): xem ghi chú phát hành để biết chi tiết.
+
 ## 2026.11.16.2
 - Tự động nâng theo bản phát hành [v2026.11.16.2](https://github.com/TriTue2011/Telegram-calling/releases/tag/v2026.11.16.2): xem ghi chú phát hành để biết chi tiết.
 

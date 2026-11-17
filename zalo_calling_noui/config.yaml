@@ -5,7 +5,7 @@
 # version = bản phát hành của kho Zalo-calling + «-noui» (.github/scripts/auto_bump.py nâng khi ảnh đã đủ amd64+arm64).
 name: "Zalo Calling (không giao diện)"
 description: "Gọi thoại/video Zalo từ Home Assistant — bản nhẹ, không WebUI, cấu hình bằng tuỳ chọn add-on"
-version: "2026.11.16.1-noui"
+version: "2026.11.16.3-noui"
 slug: "zalo_calling_noui"
 url: "https://github.com/TriTue2011/Zalo-calling"
 arch:
