@@ -1,5 +1,8 @@
 # Nhật ký thay đổi
 
+## 2026.11.19.1-noui
+- Tự động nâng cho bằng image mới nhất đã phát hành (v2026.11.19.1).
+
 ## 2026.11.18.6-noui
 - **Add-on cần token GitHub ở lần chạy đầu**: image đổi sang `zalo-calling-loader` (công khai, không chứa mã); thêm tuỳ chọn `github_token` (bắt buộc) và `app_version`. Mã Zalo Calling được tải từ kho riêng; **sau lần đầu, token hết hạn vẫn chạy bản đã lưu** (chỉ không cập nhật được). Số phiên bản add-on luôn tự nâng cho bằng image mới nhất. Hướng dẫn cài từ đầu đầy đủ ở DOCS.md.
 
