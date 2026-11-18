@@ -15,6 +15,14 @@
     "api_key": {
       "name": "Khoá API gửi tin",
       "description": "Bỏ TRỐNG cũng được: add-on tự sinh một khoá riêng, giữ lại, và ghi vào tệp THONG-TIN-DANG-NHAP.txt trong thư mục dữ liệu cùng với mật khẩu quản trị. Chỉ cần khoá này khi gọi thẳng API gửi tin bằng REST command hay script — tích hợp HACS không cần, nó đăng nhập bằng tài khoản."
+    },
+    "github_token": {
+      "name": "Token GitHub",
+      "description": "BẮT BUỘC ở lần chạy đầu. Token GitHub chỉ đọc kho zalo_bot (do chủ kho mời và cấp): GitHub → Settings → Developer settings → Fine-grained tokens, chọn đúng kho zalo_bot, quyền Contents = Read-only. Sau lần chạy đầu, token hết hạn thì add-on VẪN CHẠY bằng bản mã đã lưu, chỉ không cập nhật được; dán token mới và khởi động lại để cập nhật."
+    },
+    "app_version": {
+      "name": "Phiên bản mã",
+      "description": "Để trống = đúng bản của add-on. Điền thẻ (vd v2026.11.19.1) để ghim một bản, hoặc latest để lấy bản phát hành mới nhất (cần token còn hạn)."
     }
   }
 }

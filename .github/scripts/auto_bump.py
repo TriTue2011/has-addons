@@ -17,7 +17,7 @@ import urllib.request
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 # add-on -> (kho mã nguồn, hậu tố thẻ ảnh). Bản không giao diện dùng thẻ «<số>-noui». Image của hai add-on Zalo là zalo-calling-loader (công khai).
-ADDONS = {"zalo_calling": ("TriTue2011/Zalo-calling", ""), "zalo_calling_noui": ("TriTue2011/Zalo-calling", "-noui"),
+ADDONS = {"zalo_calling": ("TriTue2011/Zalo-calling", ""), "zalo_calling_noui": ("TriTue2011/Zalo-calling", "-noui"), "zalo_bot": ("TriTue2011/zalo_bot", ""),
           "telegram_calling": ("TriTue2011/Telegram-calling", "")}
 NEED_ARCH = {"amd64", "arm64"}
 TIMEOUT = 20
@@ -76,7 +76,7 @@ def write(p, s):
         fh.write(s)
 
 
-REGISTRY_ADDONS = {"zalo_calling", "zalo_calling_noui"}          # add-on bám theo thẻ image (công khai) thay vì bản phát hành của kho riêng
+REGISTRY_ADDONS = {"zalo_calling", "zalo_calling_noui", "zalo_bot"}          # add-on bám theo thẻ image (công khai) thay vì bản phát hành của kho riêng
 
 
 def registry_tags(image):
@@ -132,9 +132,10 @@ def bump(addon, repo, suffix, dry):
     if dry:
         return True
     write(addon + "/config.yaml", re.sub(r'^(version:\s*)"[^"]+"', r'\g<1>"%s"' % new_full, cfg, count=1, flags=re.M))
-    readme = read(addon + "/README.md")
-    write(addon + "/README.md", readme.replace("`:%s`" % cur_full, "`:%s`" % new_full))
-    log = read(addon + "/CHANGELOG.md")
+    if os.path.exists(os.path.join(ROOT, addon, "README.md")):
+        readme = read(addon + "/README.md")
+        write(addon + "/README.md", readme.replace("`:%s`" % cur_full, "`:%s`" % new_full))
+    log = read(addon + "/CHANGELOG.md") if os.path.exists(os.path.join(ROOT, addon, "CHANGELOG.md")) else "# Nhật ký thay đổi\n\n"
     head = "# Nhật ký thay đổi\n\n"
     if url:
         note = "## %s\n- Tự động nâng theo bản phát hành [%s](%s): xem ghi chú phát hành để biết chi tiết.\n\n" % (new_full, tag, url)

@@ -324,37 +324,11 @@ SDK với dữ liệu đã bị làm tròn.
 
 ## Chạy bằng Docker, không qua Home Assistant
 
-Cùng một image dùng được cho cả hai đường. Ngoài Home Assistant thì không có
-`/data/options.json`, nên `entrypoint.sh` bỏ qua phần đọc tuỳ chọn và **mọi thứ
-lấy từ biến môi trường**.
+Cùng image khởi động dùng được cho cả hai đường. Ngoài Home Assistant thì không có `/data/options.json`, nên `entrypoint.sh` bỏ qua phần đọc tuỳ chọn và **mọi thứ lấy từ biến môi trường**. Cần **token GitHub chỉ đọc kho `zalo_bot` ở lần chạy đầu** (hết hạn thì vẫn chạy bản đã lưu).
 
-```yaml
-services:
-  zalobot:
-    image: ghcr.io/tritue2011/zalobot:latest
-    container_name: zalobot
-    restart: unless-stopped
-    ports:
-      - "3000:3000"
-    environment:
-      # Nơi lưu cookie đăng nhập, webhook, proxy. Không đặt thì mặc định
-      # /app/data — nhớ gắn volume vào đúng chỗ đó, kẻo quét lại QR sau mỗi
-      # lần dựng lại container.
-      DATA_DIRECTORY: /app/data
-      PORT: "3000"
-      # Ba giá trị dưới đây tương ứng ba ô tuỳ chọn của add-on. Ý nghĩa và hậu
-      # quả khi bỏ trống: xem bảng ở đầu tài liệu này.
-      SESSION_SECRET: "doi-thanh-chuoi-ngau-nhien-dai"
-      ZALO_SERVER_ADMIN_PASSWORD: "doi-thanh-mat-khau-manh"
-      ZALO_SERVER_API_KEY: "doi-thanh-khoa-ngau-nhien-dai"
-    volumes:
-      - ./zalobot-data:/app/data
-```
+**Mẫu compose đầy đủ, cách tạo token, bảng tham số đổi được kèm phạm vi, Portainer, sự cố:** xem [HUONG-DAN-CAI-DAT.md — Đường B](HUONG-DAN-CAI-DAT.md#đường-b-docker-docker-compose-portainer).
 
-Sinh chuỗi ngẫu nhiên: `openssl rand -hex 32`.
-
-Biến môi trường luôn **được ưu tiên hơn** tuỳ chọn trong `options.json`, nên nếu
-chạy dạng add-on mà vẫn muốn ghi đè bằng env thì cũng được.
+Biến môi trường luôn **được ưu tiên hơn** tuỳ chọn trong `options.json`, nên nếu chạy dạng add-on mà vẫn muốn ghi đè bằng env thì cũng được.
 
 Không mở cổng 3000 ra Internet. Đây là cổng quản trị một tài khoản Zalo thật.
 

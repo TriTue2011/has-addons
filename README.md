@@ -25,6 +25,7 @@ Mỗi add-on có trang hướng dẫn riêng — README này chỉ **giới thi�
 Gửi và nhận tin nhắn **Zalo cá nhân** trong Home Assistant: báo động, nhắc việc, gửi ảnh camera, chuyển tiếp tin nhắn vào automation. Chạy máy chủ `zalo-server` (Node.js, thư viện `zca-js`).
 
 - **Cần hai phần:** add-on này (máy chủ đăng nhập Zalo) **và** tích hợp *Zalo Bot* qua HACS (`https://github.com/TriTue2011/zalo_bot`). Thiếu một phần thì không chạy.
+- **Cần token GitHub chỉ đọc (lần đầu):** mã máy chủ ở kho riêng `zalo_bot`; add-on dùng image khởi động công khai và tải mã bằng `github_token`. **Token hết hạn vẫn chạy bản đã lưu** (chỉ không cập nhật được). Số phiên bản add-on luôn bằng image mới nhất (tự nâng).
 - Đăng nhập bằng mã QR; dùng **tài khoản Zalo phụ**.
 - Chi tiết: [hướng dẫn cài đặt từng bước](zalo_bot/HUONG-DAN-CAI-DAT.md) (add-on hoặc Docker, tích hợp, bảo mật, sự cố) · [tài liệu tham chiếu](zalo_bot/README.md).
 
