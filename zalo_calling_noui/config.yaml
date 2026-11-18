@@ -5,7 +5,7 @@
 # version = bản phát hành của kho Zalo-calling + «-noui» (.github/scripts/auto_bump.py nâng khi ảnh đã đủ amd64+arm64).
 name: "Zalo Calling (không giao diện)"
 description: "Gọi thoại/video Zalo từ Home Assistant — bản nhẹ, không WebUI, cấu hình bằng tuỳ chọn add-on"
-version: "2026.11.16.3-noui"
+version: "2026.11.18.6-noui"
 slug: "zalo_calling_noui"
 url: "https://github.com/TriTue2011/Zalo-calling"
 arch:
@@ -21,6 +21,8 @@ options:
   username: "admin"
   password: ""
   webhook_url: ""
+  github_token: ""
+  app_version: ""
 schema:
   username: "str(1,64)"
   password: "password(8,128)"
@@ -28,4 +30,9 @@ schema:
   # (Supervisor báo «Invalid configuration: expected a URL.» và add-on không chạy được).
   # App tự bỏ qua chuỗi rỗng (docker-entrypoint.py: str(opts.get("webhook_url") or "").strip()).
   webhook_url: "str?"
-image: "ghcr.io/tritue2011/zalo-calling"
+  # TOKEN GITHUB (bắt buộc, tối thiểu 20 ký tự — để trống thì Supervisor báo cấu hình sai và KHÔNG cho khởi động). Add-on dùng token này
+  # để tải mã Zalo Calling từ kho riêng tư TriTue2011/Zalo-calling lúc khởi động (image này công khai nhưng KHÔNG chứa mã).
+  github_token: "password(20,255)"
+  # Thẻ phiên bản mã cần tải (vd v2026.11.18.6). Để trống = đúng bản đóng gói trong image; «latest» = bản phát hành mới nhất.
+  app_version: "str?"
+image: "ghcr.io/tritue2011/zalo-calling-loader"

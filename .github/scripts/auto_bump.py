@@ -14,7 +14,7 @@ import urllib.error
 import urllib.request
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-# add-on -> (kho mã nguồn, hậu tố thẻ ảnh). Bản không giao diện dùng thẻ «<số>-noui» của CÙNG kho Zalo-calling.
+# add-on -> (kho mã nguồn, hậu tố thẻ ảnh). Bản không giao diện dùng thẻ «<số>-noui». Image của hai add-on Zalo là zalo-calling-loader (công khai).
 ADDONS = {"zalo_calling": ("TriTue2011/Zalo-calling", ""), "zalo_calling_noui": ("TriTue2011/Zalo-calling", "-noui"),
           "telegram_calling": ("TriTue2011/Telegram-calling", "")}
 NEED_ARCH = {"amd64", "arm64"}
@@ -23,7 +23,8 @@ TIMEOUT = 20
 
 def http_json(url, headers=None):
     h = {"Accept": "application/vnd.github+json", "User-Agent": "has-addons-auto-bump"}
-    tok = os.environ.get("GITHUB_TOKEN")
+    # Kho nguồn Zalo-calling là RIÊNG TƯ: GITHUB_TOKEN của kho này không đọc được; dùng SOURCE_REPO_TOKEN (fine-grained, Contents: Read-only) nếu có.
+    tok = os.environ.get("SOURCE_REPO_TOKEN") or os.environ.get("GITHUB_TOKEN")
     if tok and "api.github.com" in url:
         h["Authorization"] = "Bearer " + tok
     h.update(headers or {})

@@ -23,6 +23,7 @@ jobs:
       - name: Kiểm bản phát hành mới và nâng phiên bản
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SOURCE_REPO_TOKEN: ${{ secrets.SOURCE_REPO_TOKEN }}     # token chỉ đọc kho riêng Zalo-calling (Settings → Secrets → Actions)
         run: python3 .github/scripts/auto_bump.py
       - name: Ghi commit nếu có thay đổi
         run: |

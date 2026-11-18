@@ -1,5 +1,8 @@
 # Nhật ký thay đổi
 
+## 2026.11.18.6
+- **Add-on cần token GitHub**: image đổi sang `zalo-calling-loader` (công khai, không chứa mã); thêm tuỳ chọn `github_token` (bắt buộc) và `app_version`. Mã Zalo Calling được tải từ kho riêng khi khởi động; không có quyền thì không chạy. Kho add-on là `TriTue2011/has-addons`.
+
 ## 2026.11.16.3
 - Tự động nâng theo bản phát hành [v2026.11.16.3](https://github.com/TriTue2011/Zalo-calling/releases/tag/v2026.11.16.3): xem ghi chú phát hành để biết chi tiết.
 

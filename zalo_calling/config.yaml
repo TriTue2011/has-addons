@@ -1,7 +1,7 @@
 name: "Zalo Calling"
 description: "Gọi thoại/video Zalo từ Home Assistant — có WebUI ngay trong bảng bên (Ingress)"
 url: "https://github.com/TriTue2011/Zalo-calling"
-version: "2026.11.16.3"
+version: "2026.11.18.6"
 slug: "zalo_calling"
 init: false
 ingress: true
@@ -15,7 +15,7 @@ arch:
   - aarch64
 # Ảnh đa kiến trúc (amd64 + arm64) do kho Zalo-calling dựng khi đẩy tag vX; thẻ không có chữ v
 # (đúng bằng "version" ở trên) là thẻ Supervisor kéo về.
-image: "ghcr.io/tritue2011/zalo-calling"
+image: "ghcr.io/tritue2011/zalo-calling-loader"
 ports:
   8080/tcp: 8080
 ports_description:
@@ -27,6 +27,8 @@ options:
   username: "admin"
   password: ""
   webhook_url: ""
+  github_token: ""
+  app_version: ""
 schema:
   username: "str?"
   # Bỏ trống cũng được: add-on tự sinh mật khẩu, giữ lại trong thư mục dữ liệu và in ra Log
@@ -36,3 +38,8 @@ schema:
   # (Supervisor báo «Invalid configuration: expected a URL.» và add-on không chạy được).
   # App tự bỏ qua chuỗi rỗng (docker-entrypoint.py: str(opts.get("webhook_url") or "").strip()).
   webhook_url: "str?"
+  # TOKEN GITHUB (bắt buộc, tối thiểu 20 ký tự — để trống thì Supervisor báo cấu hình sai và KHÔNG cho khởi động). Add-on dùng token này
+  # để tải mã Zalo Calling từ kho riêng tư TriTue2011/Zalo-calling lúc khởi động (image này công khai nhưng KHÔNG chứa mã).
+  github_token: "password(20,255)"
+  # Thẻ phiên bản mã cần tải (vd v2026.11.18.6). Để trống = đúng bản đóng gói trong image; «latest» = bản phát hành mới nhất.
+  app_version: "str?"

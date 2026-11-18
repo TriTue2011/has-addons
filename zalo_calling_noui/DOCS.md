@@ -9,14 +9,23 @@ Thứ tự: **1** cài add-on → **2** thêm tích hợp → **3** kết nối 
 
 ## 1. Cài add-on
 
-1. **Cài đặt → Add-on → Cửa hàng → ⋮ → Kho lưu trữ** → thêm `https://github.com/TriTue2011/Zalo-calling`.
-2. Cài **Zalo Calling (không giao diện)**. Ở tab *Cấu hình* điền **`username`** và **`password`** (từ 8 ký tự) — **bắt buộc**, thiếu thì Supervisor không cho khởi động. Khởi động add-on.
+1. **Cài đặt → Add-on → Cửa hàng → ⋮ → Kho lưu trữ** → thêm `https://github.com/TriTue2011/has-addons`.
+2. Cài **Zalo Calling (không giao diện)**. Ở tab *Cấu hình* điền **`username`**, **`password`** (từ 8 ký tự) và **`github_token`** — **bắt buộc**, thiếu thì Supervisor không cho khởi động. Khởi động add-on.
 
 | Tuỳ chọn | Bắt buộc | Ý nghĩa |
 |---|---|---|
 | `username` | **có** | Tên đăng nhập app. |
 | `password` | **có**, ≥ 8 ký tự | Mật khẩu app. Đổi lúc đang chạy bằng `zalo_call.set_app_password` thì giá trị đó được giữ. |
+| `github_token` | **có**, ≥ 20 ký tự | Token GitHub chỉ đọc kho `Zalo-calling` (xem bên dưới). Thiếu/sai: add-on không chạy. |
+| `app_version` | không | Ghim phiên bản mã (vd `v2026.11.18.6`); trống = bản của image; `latest` = bản mới nhất. |
 | `webhook_url` | không | Webhook ban đầu cho cả bốn loại; chỉ dùng khi chưa có cấu hình webhook. |
+
+### Token GitHub (chỉ ai được cấp quyền mới cài và chạy được)
+Mã Zalo Calling nằm ở kho **riêng tư** `TriTue2011/Zalo-calling`. Image của add-on là bản khởi động công khai, **không chứa mã**: mỗi lần khởi động nó dùng `github_token` để tải đúng phiên bản mã từ kho riêng, rồi mới chạy.
+1. Chủ kho mời tài khoản GitHub của bạn vào kho `Zalo-calling` (quyền *Read*).
+2. Tài khoản đó tạo token: GitHub → **Settings → Developer settings → Fine-grained tokens → Generate new token** → *Repository access*: chỉ chọn `Zalo-calling` → *Permissions → Contents: Read-only*.
+3. Dán token vào tuỳ chọn `github_token` rồi khởi động. Thiếu token, token sai/hết hạn, hoặc chủ kho thu hồi quyền thì add-on **không chạy** (kiểm lại mỗi lần khởi động); chỉ khi mất mạng và đã ghim `app_version` rõ ràng mới dùng bản đã tải trước đó.
+Token chỉ nằm trong cấu hình add-on của bạn; không được ghi ra nhật ký hay chuyển vào app.
 
 ## 2. Thêm tích hợp Zalo Call (HACS)
 
