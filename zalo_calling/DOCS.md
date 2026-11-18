@@ -7,34 +7,62 @@ ngay trong bảng bên của HA (mục **Zalo Calling**), không cần mở cổ
 
 Thứ tự: **1** cài add-on → **2** thêm tích hợp → **3** kết nối và đăng nhập Zalo → **4** dịch vụ → **5** automation.
 
-## 1. Cài add-on
+## 1. Cài add-on từ đầu
 
-1. **Cài đặt → Add-on → Cửa hàng → ⋮ → Kho lưu trữ** → thêm `https://github.com/TriTue2011/has-addons`.
-2. Cài **Zalo Calling**, bấm **Khởi động**. Bật *Hiện trong thanh bên*.
-3. Tab *Cấu hình*: điền **`github_token`** (bắt buộc), các mục khác không bắt buộc:
+**Cần có trước khi bắt đầu:** Home Assistant OS hoặc Supervised (có mục *Add-on*); một tài khoản GitHub **đã được chủ kho mời vào kho riêng `TriTue2011/Zalo-calling`** (quyền *Read*) — không được mời thì không có mã để tải; một tài khoản Zalo phụ.
 
-| Tuỳ chọn | Ý nghĩa |
-|---|---|
-| `username` | Tên đăng nhập app, mặc định `admin`. |
-| `password` | Để trống: app tự sinh, in **một lần** trong tab *Nhật ký* và lưu ở `/data/THONG-TIN-DANG-NHAP.txt`. |
-| `github_token` | **có** | Token GitHub chỉ đọc kho `Zalo-calling` (xem bên dưới). Thiếu/sai: add-on không chạy. |
-| `app_version` | không | Ghim phiên bản mã (vd `v2026.11.18.6`); trống = bản của image; `latest` = bản mới nhất. |
-| `webhook_url` | Địa chỉ webhook ban đầu cho cả bốn loại (tin nhắn, sự kiện nhóm, biểu cảm, cuộc gọi). Chỉ dùng khi chưa có cấu hình; dùng tích hợp Zalo Call thì để trống. |
+**Vì sao cần token:** add-on dùng image khởi động **công khai, không chứa mã** (`ghcr.io/tritue2011/zalo-calling-loader`). Mã Zalo Calling nằm ở kho riêng; lần đầu khởi động add-on dùng token của bạn để tải mã về và lưu trong thư mục dữ liệu. Không có token (và chưa có mã đã lưu) thì add-on **không chạy**.
+
+### 1.1. Tạo token GitHub (chỉ đọc, hạn ngắn được)
+1. Đăng nhập GitHub bằng tài khoản **đã được mời vào kho `Zalo-calling`** → ảnh đại diện → **Settings**.
+2. **Developer settings → Personal access tokens → Fine-grained tokens → Generate new token**.
+3. *Token name*: tên tuỳ ý (vd `ha-zalo`). *Expiration*: chọn hạn **tuỳ ý, ngắn cũng được** (xem mục 1.3: hết hạn thì add-on vẫn chạy, chỉ không cập nhật được).
+4. *Repository access* → **Only select repositories** → chọn **`TriTue2011/Zalo-calling`** (chỉ kho này).
+5. *Permissions → Repository permissions* → **Contents: Read-only** (không cần quyền nào khác).
+6. **Generate token** → **sao chép ngay** chuỗi bắt đầu bằng `github_pat_…` (GitHub chỉ hiện một lần).
+Không thấy kho `Zalo-calling` trong danh sách chọn = tài khoản chưa được mời: nhờ chủ kho mời rồi tạo lại.
+
+### 1.2. Cài và chạy add-on
+1. **Cài đặt → Add-on → Cửa hàng → ⋮ (góc trên phải) → Kho lưu trữ** → dán `https://github.com/TriTue2011/has-addons` → **Thêm** → đóng cửa sổ, tải lại trang.
+2. Tìm và mở **Zalo Calling** → **Cài đặt**.
+3. Ở tab **Cấu hình** dán token vào **`github_token`** (bắt buộc). Các mục khác để mặc định cũng được. Bấm **Lưu**.
+4. Tab **Thông tin** → **Khởi động**. Bật **Hiện trong thanh bên** để mở WebUI nhanh.
+5. Tab **Nhật ký** — lần đầu phải thấy lần lượt: `Zalo Calling: tải mã vX.Y.Z.N từ kho riêng…` → `Zalo Calling: đã chuẩn bị vX.Y.Z.N (… tệp)` → các dòng khởi động của app. Lần sau khởi động nhanh hơn vì mã đã lưu.
+Nếu thấy `Zalo Calling: KHÔNG CHẠY — …` thì xem bảng sự cố ở mục 1.4.
+
+| Tuỳ chọn | Bắt buộc | Ý nghĩa |
+|---|---|---|
+| `github_token` | **có**, từ 20 ký tự | Token GitHub chỉ đọc kho `Zalo-calling` (mục 1.1). **Lần đầu bắt buộc**; sau này hết hạn thì add-on vẫn chạy (mục 1.3). |
+| `username` | không | Tên đăng nhập app, mặc định `admin`. |
+| `password` | không | Để trống: app tự sinh, in **một lần** trong tab *Nhật ký* và lưu ở `/data/THONG-TIN-DANG-NHAP.txt`. |
+| `app_version` | không | Ghim phiên bản mã (vd `v2026.11.18.6`). Trống = đúng phiên bản của add-on; `latest` = bản phát hành mới nhất. |
+| `webhook_url` | không | Webhook ban đầu cho cả bốn loại; chỉ dùng khi chưa có cấu hình (dùng tích hợp Zalo Call thì để trống). |
 
 Mở bằng bảng bên của HA thì **không hỏi mật khẩu** (HA đã xác thực bạn). Mật khẩu chỉ dùng khi vào qua cổng 8080 và cho tích hợp.
 Đổi mật khẩu trong WebUI hoặc bằng `zalo_call.set_app_password` thì giá trị đó được giữ, không bị tuỳ chọn ghi đè.
 
-### Token GitHub (chỉ ai được cấp quyền mới cài và chạy được)
-Mã Zalo Calling nằm ở kho **riêng tư** `TriTue2011/Zalo-calling`. Image của add-on là bản khởi động công khai, **không chứa mã**: mỗi lần khởi động nó dùng `github_token` để tải đúng phiên bản mã từ kho riêng, rồi mới chạy.
-1. Chủ kho mời tài khoản GitHub của bạn vào kho `Zalo-calling` (quyền *Read*).
-2. Tài khoản đó tạo token: GitHub → **Settings → Developer settings → Fine-grained tokens → Generate new token** → *Repository access*: chỉ chọn `Zalo-calling` → *Permissions → Contents: Read-only*.
-3. Dán token vào tuỳ chọn `github_token` rồi khởi động. Thiếu token, token sai/hết hạn, hoặc chủ kho thu hồi quyền thì add-on **không chạy** (kiểm lại mỗi lần khởi động); chỉ khi mất mạng và đã ghim `app_version` rõ ràng mới dùng bản đã tải trước đó.
-Token chỉ nằm trong cấu hình add-on của bạn; không được ghi ra nhật ký hay chuyển vào app.
+### 1.3. Token hết hạn thì sao? (chạy tiếp, chỉ không cập nhật)
+- **Chỉ lần đầu** mới nhất thiết cần token còn hạn (để tải mã về). Sau đó token **hết hạn, bị xoá, sai, bị thu hồi quyền** hoặc mất mạng: add-on **vẫn khởi động và chạy bình thường bằng bản mã đã lưu gần nhất**. Nhật ký ghi một dòng `Zalo Calling: CẢNH BÁO — … Chạy bản đã lưu vX…; KHÔNG cập nhật được cho tới khi có token mới`.
+- **Muốn cập nhật lại:** tạo token mới (mục 1.1) → dán vào `github_token` → **Lưu** → **Khởi động lại** add-on. Mã mới sẽ được tải.
+- **Số phiên bản add-on luôn bằng bản Zalo Calling mới nhất:** mỗi lần Zalo Calling có image mới, kho `has-addons` tự nâng `version` của add-on cho bằng (tối đa vài chục phút sau khi image xuất hiện). Home Assistant hiện nút **Cập nhật** (bật *Tự động cập nhật* thì tự lên). Cập nhật add-on chỉ kéo image khởi động công khai nên **không cần token**; còn **mã** mới được tải lúc khởi động nên cần token còn hạn — nếu token đã hết hạn, add-on lên phiên bản mới nhưng vẫn chạy mã cũ đã lưu (có cảnh báo trong nhật ký) cho tới khi bạn dán token mới.
+- Xem phiên bản mã đang chạy thật: dòng `đã chuẩn bị vX…` hoặc `CẢNH BÁO … Chạy bản đã lưu vX` trong *Nhật ký*; app báo ở `GET /api/status` (`version`).
+
+### 1.4. Sự cố thường gặp (đọc tab Nhật ký)
+| Dòng trong nhật ký | Nghĩa là | Cách xử lý |
+|---|---|---|
+| `KHÔNG CHẠY — Chưa đặt token GitHub … lần đầu BẮT BUỘC có token` | Chưa có token và chưa có mã đã lưu | Làm mục 1.1 rồi dán vào `github_token` |
+| `KHÔNG CHẠY — GitHub báo token sai hoặc đã hết hạn (401)` (lần đầu) | Token sai/hết hạn và chưa có mã lưu | Tạo token mới (mục 1.1) |
+| `KHÔNG CHẠY — Token không có quyền đọc kho Zalo-calling (GitHub trả 403/404)` (lần đầu) | Token không đúng kho/quyền, hoặc tài khoản chưa được mời | Tạo lại token: chọn **Only select repositories → Zalo-calling**, **Contents: Read-only**; nhờ chủ kho mời tài khoản |
+| `KHÔNG CHẠY — Không nối được GitHub …` (lần đầu) | Mất mạng hoặc GitHub không truy cập được | Kiểm mạng/DNS của HA rồi khởi động lại |
+| `CẢNH BÁO — … Chạy bản đã lưu vX` | Đã có mã lưu; token hết hạn / mất mạng / không tải được bản mới | Add-on vẫn chạy. Muốn cập nhật: token mới + khởi động lại |
+| `KHÔNG CHẠY — Gói tải về thiếu docker-entrypoint.py …` | Phiên bản mã chọn (`app_version`) sai hoặc kho đổi cấu trúc | Để trống `app_version` hoặc đặt `latest` |
+| *Invalid configuration* khi lưu | `github_token` trống hoặc dưới 20 ký tự | Điền đủ rồi lưu |
 
 ## 2. Thêm tích hợp Zalo Call (HACS)
 
 1. **HACS → ⋮ → Custom repositories** → `https://github.com/TriTue2011/Zalo-calling`, **Type = Integration** → **Add**.
 2. Tải **Zalo Call** → **khởi động lại Home Assistant**.
+   Kho này riêng tư: tài khoản GitHub đang đăng nhập HACS phải được mời vào kho. Nếu HACS không thêm được kho riêng, tải `zalo_call.zip` ở trang *Releases* của kho (đăng nhập GitHub mới tải được), giải nén vào `/config/custom_components/zalo_call/` rồi khởi động lại HA.
 
 ## 3. Kết nối và đăng nhập Zalo
 

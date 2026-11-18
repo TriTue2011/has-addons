@@ -30,8 +30,8 @@ schema:
   # (Supervisor báo «Invalid configuration: expected a URL.» và add-on không chạy được).
   # App tự bỏ qua chuỗi rỗng (docker-entrypoint.py: str(opts.get("webhook_url") or "").strip()).
   webhook_url: "str?"
-  # TOKEN GITHUB (bắt buộc, tối thiểu 20 ký tự — để trống thì Supervisor báo cấu hình sai và KHÔNG cho khởi động). Add-on dùng token này
-  # để tải mã Zalo Calling từ kho riêng tư TriTue2011/Zalo-calling lúc khởi động (image này công khai nhưng KHÔNG chứa mã).
+  # TOKEN GITHUB chỉ đọc kho Zalo-calling (bắt buộc, tối thiểu 20 ký tự; để trống thì Supervisor KHÔNG cho khởi động). Lần chạy đầu add-on dùng token để
+  # tải mã từ kho riêng (image này công khai nhưng KHÔNG chứa mã). Sau lần đầu, token hết hạn thì add-on VẪN CHẠY bằng bản mã đã lưu, chỉ không cập nhật được.
   github_token: "password(20,255)"
   # Thẻ phiên bản mã cần tải (vd v2026.11.18.6). Để trống = đúng bản đóng gói trong image; «latest» = bản phát hành mới nhất.
   app_version: "str?"

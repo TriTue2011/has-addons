@@ -5,7 +5,7 @@ name: Tự nâng phiên bản add-on
 
 on:
   schedule:
-    - cron: "*/20 * * * *"
+    - cron: "*/10 * * * *"
   workflow_dispatch:
 
 permissions:
@@ -23,8 +23,7 @@ jobs:
       - name: Kiểm bản phát hành mới và nâng phiên bản
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SOURCE_REPO_TOKEN: ${{ secrets.SOURCE_REPO_TOKEN }}     # token chỉ đọc kho riêng Zalo-calling (Settings → Secrets → Actions)
-        run: python3 .github/scripts/auto_bump.py
+        run: python3 .github/scripts/test_auto_bump.py && python3 .github/scripts/auto_bump.py
       - name: Ghi commit nếu có thay đổi
         run: |
           if [ -n "$(git status --porcelain)" ]; then
