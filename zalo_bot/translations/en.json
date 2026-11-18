@@ -15,6 +15,14 @@
     "api_key": {
       "name": "Send API key",
       "description": "Can be left EMPTY: the add-on generates a key, keeps it, and writes it to THONG-TIN-DANG-NHAP.txt in the data directory alongside the admin password. You only need this key when calling the sending APIs directly from a REST command or script — the HACS integration does not need it, it logs in with the account."
+    },
+    "github_token": {
+      "name": "GitHub token",
+      "description": "REQUIRED for the first run. Read-only GitHub token for the zalo_bot repo (issued by the repo owner): GitHub → Settings → Developer settings → Fine-grained tokens, pick only the zalo_bot repo, permission Contents = Read-only. After the first run an expired token does NOT stop the add-on: it keeps running the saved code and just cannot update; paste a new token and restart to update."
+    },
+    "app_version": {
+      "name": "Code version",
+      "description": "Empty = the version shipped with the add-on. Enter a tag (e.g. v2026.11.19.1) to pin one, or latest for the newest release (needs a valid token)."
     }
   }
 }

@@ -69,6 +69,19 @@ def test_never_downgrades_and_waits_for_both_architectures():
     shutil.rmtree(d); shutil.rmtree(d2)
 
 
+def test_zalo_bot_addon_follows_the_loader_image_and_tolerates_missing_docs():
+    d = tempfile.mkdtemp(prefix="ab-")
+    os.makedirs(os.path.join(d, "zalo_bot"))
+    open(os.path.join(d, "zalo_bot", "config.yaml"), "w", encoding="utf-8").write('name: "x"\nversion: "2026.9.25.0"\nimage: "ghcr.io/tritue2011/zalobot-loader"\n')   # không README/CHANGELOG
+    B.ROOT = d
+    assert "zalo_bot" in B.ADDONS and "zalo_bot" in B.REGISTRY_ADDONS
+    B.http_json = fake(["2026.9.25.0", "2026.11.19.1", "v2026.11.19.1", "latest"], {"2026.9.25.0", "2026.11.19.1"})
+    repo, suffix = B.ADDONS["zalo_bot"]
+    assert B.bump("zalo_bot", repo, suffix, False) is True and version_of(d, "zalo_bot") == "2026.11.19.1"
+    assert "2026.11.19.1" in open(os.path.join(d, "zalo_bot", "CHANGELOG.md"), encoding="utf-8").read()
+    shutil.rmtree(d)
+
+
 def test_reads_every_page_of_tags_because_the_list_is_alphabetical():
     d = sandbox("2026.11.16.3", "2026.11.16.3-noui")
     old = ["2026.%02d.%02d.%d" % (m, dd, i) for m in range(1, 10) for dd in range(1, 28) for i in range(1, 6)]          # >1000 thẻ cũ xếp trước theo chữ cái
