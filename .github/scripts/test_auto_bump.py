@@ -51,7 +51,7 @@ def test_both_addons_follow_the_newest_ready_image_tag():
     tags = ["2026.11.16.3", "2026.11.16.3-noui", "v2026.11.18.6", "2026.11.18.6", "2026.11.18.6-noui", "v2026.11.18.6-noui", "latest", "noui"]
     B.http_json = fake(tags, set(tags))
     for addon, (repo, suffix) in B.ADDONS.items():
-        if addon in B.REGISTRY_ADDONS:
+        if addon in B.REGISTRY_ADDONS and addon.startswith("zalo_calling"):
             B.bump(addon, repo, suffix, False)
     assert version_of(d, "zalo_calling") == "2026.11.18.6" and version_of(d, "zalo_calling_noui") == "2026.11.18.6-noui"
     assert "## 2026.11.18.6" in open(os.path.join(d, "zalo_calling", "CHANGELOG.md"), encoding="utf-8").read()
