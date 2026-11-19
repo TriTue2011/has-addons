@@ -37,6 +37,7 @@ Nếu thấy `Zalo Calling: KHÔNG CHẠY — …` thì xem bảng sự cố ở
 | `password` | không | Để trống: app tự sinh, in **một lần** trong tab *Nhật ký* và lưu ở `/data/THONG-TIN-DANG-NHAP.txt`. |
 | `app_version` | không | Ghim phiên bản mã (vd `v2026.11.18.6`). Trống = đúng phiên bản của add-on; `latest` = bản phát hành mới nhất. |
 | `webhook_url` | không | Webhook ban đầu cho cả bốn loại; chỉ dùng khi chưa có cấu hình (dùng tích hợp Zalo Call thì để trống). |
+| `save_photos` | không | Tắt (mặc định): ảnh đến xem thẳng từ Zalo, add-on **không lưu** ảnh vào đĩa. Bật: lưu ảnh vào `/data/downloads` (xem lại được khi địa chỉ ảnh Zalo hết hạn, tốn dung lượng đĩa). Cần mã app từ bản 2026.11.19.3 trở lên. |
 
 Mở bằng bảng bên của HA thì **không hỏi mật khẩu** (HA đã xác thực bạn). Mật khẩu chỉ dùng khi vào qua cổng 8080 và cho tích hợp.
 Đổi mật khẩu trong WebUI hoặc bằng `zalo_call.set_app_password` thì giá trị đó được giữ, không bị tuỳ chọn ghi đè.

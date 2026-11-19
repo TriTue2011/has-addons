@@ -29,6 +29,7 @@ options:
   webhook_url: ""
   github_token: ""
   app_version: ""
+  save_photos: false
 schema:
   username: "str?"
   # Bỏ trống cũng được: add-on tự sinh mật khẩu, giữ lại trong thư mục dữ liệu và in ra Log
@@ -43,3 +44,5 @@ schema:
   github_token: "password(20,255)"
   # Thẻ phiên bản mã cần tải (vd v2026.11.18.6). Để trống = đúng bản đóng gói trong image; «latest» = bản phát hành mới nhất.
   app_version: "str?"
+  # Lưu ảnh đến xuống đĩa (/data/downloads)? Tắt (mặc định) = xem ảnh thẳng từ Zalo, KHÔNG lưu. Bật = lưu như trước (xem lại được khi địa chỉ Zalo hết hạn, tốn dung lượng đĩa).
+  save_photos: "bool?"

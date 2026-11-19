@@ -37,6 +37,7 @@ Nếu thấy `Zalo Calling: KHÔNG CHẠY — …` thì xem bảng sự cố ở
 | `github_token` | **có**, từ 20 ký tự | Token GitHub chỉ đọc kho `Zalo-calling` (mục 1.1). **Lần đầu bắt buộc**; sau này hết hạn thì add-on vẫn chạy (mục 1.3). |
 | `app_version` | không | Ghim phiên bản mã (vd `v2026.11.18.6`). Trống = đúng phiên bản của add-on; `latest` = bản phát hành mới nhất. |
 | `webhook_url` | không | Webhook ban đầu cho cả bốn loại; chỉ dùng khi chưa có cấu hình webhook (dùng tích hợp Zalo Call thì để trống). |
+| `save_photos` | không | Tắt (mặc định): ảnh đến xem thẳng từ Zalo, add-on **không lưu** ảnh vào đĩa. Bật: lưu ảnh vào `/data/downloads` (xem lại được khi địa chỉ ảnh Zalo hết hạn, tốn dung lượng đĩa). Cần mã app từ bản 2026.11.19.3 trở lên. |
 
 
 ### 1.3. Token hết hạn thì sao? (chạy tiếp, chỉ không cập nhật)

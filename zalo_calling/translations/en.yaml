@@ -14,5 +14,8 @@ configuration:
   app_version:
     name: "Code version"
     description: "Empty = the version shipped with the image. Enter a tag (e.g. v2026.11.18.6) to pin one, or latest for the newest release."
+  save_photos:
+    name: "Save photos to disk"
+    description: "Off (default): photos are shown directly from Zalo and NOT stored by the add-on. On: photos are saved to /data/downloads (viewable again after Zalo's link expires; uses disk space). Documents are always saved."
 network:
   8080/tcp: The Zalo Call integration and in-home speakers/cameras connect here; keep 8080 unless it clashes.
