@@ -1,5 +1,8 @@
 # Nhật ký thay đổi
 
+## 2026.11.19.4-noui
+- Tự động nâng cho bằng image mới nhất đã phát hành (v2026.11.19.4).
+
 ## 2026.11.19.3-noui
 - Tự động nâng cho bằng image mới nhất đã phát hành (v2026.11.19.3).
 
