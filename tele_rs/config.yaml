@@ -1,0 +1,72 @@
+name: "Tele Rust"
+description: "Gateway Telegram bằng Rust (nhắn tin, gọi thoại/video P2P) cho Home Assistant và giao diện web nhúng"
+url: "https://github.com/TriTue2011/tele-rust"
+version: "0.7.34"
+slug: "tele_rs"
+init: false
+startup: "application"
+boot: "auto"
+webui: "http://[HOST]:[PORT:3334]"
+arch:
+  - amd64
+  - aarch64
+# Kho tele-rust CÔNG KHAI, ảnh đa kiến trúc (amd64 + arm64) dựng sẵn — không cần github_token như Zalo Calling.
+image: "ghcr.io/tritue2011/tele-rust"
+ports:
+  "3334/tcp": 3334
+ports_description:
+  "3334/tcp": "Cổng HTTP API và giao diện web tele-rust. Chỉ để trong mạng LAN hoặc sau reverse proxy HTTPS."
+map:
+  - data:rw
+options:
+  tg_api_id: 0
+  tg_api_hash: ""
+  tg_phone: ""
+  gateway_token: ""
+  tg_ui_user: ""
+  tg_ui_password: ""
+  ui_cookie_secure: false
+  https: true
+  tls_names: ""
+  rate_limit_per_minute: 120
+  ha_webhook_url: ""
+  ha_webhook_token: ""
+  telegram_p2p: false
+  video_profile: "standard"
+  telegram_rx_video: "640x360@15"
+  tts_voice: "vi-VN-HoaiMyNeural"
+  tts_rate: "+0%"
+  log_level: "INFO"
+  telegram_debug: false
+  calltrace_keep: 3
+  calltrace_keep_bad: 30
+  calltrace_max_kb: 6144
+  webrtc_log: "off"
+  webrtc_log_mb: 20
+  webrtc_log_loc: ""
+schema:
+  tg_api_id: int(0,2147483647)?
+  tg_api_hash: password?
+  tg_phone: str?
+  gateway_token: password?
+  tg_ui_user: str?
+  tg_ui_password: password?
+  ui_cookie_secure: bool
+  https: bool
+  tls_names: str?
+  rate_limit_per_minute: int(1,10000)?
+  ha_webhook_url: str?
+  ha_webhook_token: password?
+  telegram_p2p: bool
+  video_profile: list(standard|low)
+  telegram_rx_video: str?
+  tts_voice: str?
+  tts_rate: str?
+  log_level: list(DEBUG|INFO|WARNING|WARN|ERROR|CRITICAL|OFF)
+  telegram_debug: bool
+  calltrace_keep: int(0,10000)?
+  calltrace_keep_bad: int(0,10000)?
+  calltrace_max_kb: int(1,65536)?
+  webrtc_log: list(off|info|debug)
+  webrtc_log_mb: int(1,1024)?
+  webrtc_log_loc: str?

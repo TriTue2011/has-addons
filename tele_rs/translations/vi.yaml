@@ -1,0 +1,78 @@
+configuration:
+  tg_api_id:
+    name: "Telegram API ID"
+    description: "Bắt buộc (> 0). Lấy từ trang nhà phát triển Telegram (my.telegram.org)."
+  tg_api_hash:
+    name: "Telegram API Hash"
+    description: "Bắt buộc. Đi kèm với API ID, lấy từ trang nhà phát triển Telegram."
+  tg_phone:
+    name: "Số điện thoại tài khoản mặc định"
+    description: "Chỉ cần nếu dùng chế độ một tài khoản cũ hoặc CLI đăng nhập. Bỏ trống nếu không dùng."
+  gateway_token:
+    name: "Token gateway"
+    description: "Bắt buộc. Chuỗi bí mật dùng cho Bearer API và thiết lập tài khoản web lần đầu (sinh bằng openssl rand -hex 32 chẳng hạn)."
+  tg_ui_user:
+    name: "Tên đăng nhập web"
+    description: "Tự tạo tài khoản web ở lần chạy đầu; phải đặt cùng mật khẩu bên dưới."
+  tg_ui_password:
+    name: "Mật khẩu đăng nhập web"
+    description: "Tối thiểu 10 ký tự, không trùng tên đăng nhập. Chỉ dùng ở lần chạy đầu."
+  ui_cookie_secure:
+    name: "Cookie an toàn (Secure)"
+    description: "Bật khi đặt sau reverse proxy HTTPS, để cookie phiên chỉ gửi qua HTTPS."
+  https:
+    name: "Nhận cả HTTPS"
+    description: "Phục vụ cả http:// và https:// trên cùng cổng (chứng chỉ tự ký). Cần cho mic/camera trình duyệt, vì trình duyệt chỉ cho dùng qua HTTPS hoặc localhost."
+  tls_names:
+    name: "Tên TLS thêm"
+    description: "Tên/IP thêm vào chứng chỉ tự ký, cách nhau bằng dấu phẩy. Đổi giá trị thì phải xoá thư mục tls/ trong dữ liệu add-on để sinh lại."
+  rate_limit_per_minute:
+    name: "Giới hạn yêu cầu mỗi phút"
+    description: "Số yêu cầu API tối đa mỗi phút cho mỗi token/phiên."
+  ha_webhook_url:
+    name: "URL webhook về HA"
+    description: "URL nhận webhook sự kiện gửi về Home Assistant."
+  ha_webhook_token:
+    name: "Token webhook về HA"
+    description: "Giá trị header X-Gateway-Token gửi kèm yêu cầu webhook."
+  telegram_p2p:
+    name: "Cho phép gọi P2P"
+    description: "Cho phép gọi P2P trực tiếp nếu Telegram cho phép."
+  video_profile:
+    name: "Hồ sơ video gửi đi"
+    description: "standard = 640x360@15, low = 480x270@10."
+  telegram_rx_video:
+    name: "Hồ sơ video nhận"
+    description: "Độ phân giải/fps yêu cầu từ bên kia, dạng WxH@F."
+  tts_voice:
+    name: "Giọng chuyển văn bản thành giọng nói"
+    description: "Giọng mặc định cho edge-tts."
+  tts_rate:
+    name: "Tốc độ đọc"
+    description: "Tốc độ đọc mặc định cho edge-tts (-100% đến +100%)."
+  log_level:
+    name: "Mức nhật ký"
+    description: "Mức chi tiết nhật ký ghi ra stderr."
+  telegram_debug:
+    name: "Ép mức DEBUG"
+    description: "Đặt mức nhật ký mặc định thành DEBUG khi không chỉ định log_level."
+  calltrace_keep:
+    name: "Giữ nhật ký cuộc gọi thành công"
+    description: "Số tệp nhật ký cuộc gọi thành công giữ lại (0 = tắt)."
+  calltrace_keep_bad:
+    name: "Giữ nhật ký cuộc gọi lỗi"
+    description: "Số tệp nhật ký cuộc gọi lỗi giữ lại."
+  calltrace_max_kb:
+    name: "Dung lượng tối đa mỗi nhật ký (KB)"
+    description: "Dung lượng tối đa mỗi tệp nhật ký cuộc gọi, tính bằng KB."
+  webrtc_log:
+    name: "Ghi nhật ký WebRTC"
+    description: "Ghi nhật ký WebRTC từ NTgCalls vào calltrace/webrtc.log (off, info, debug)."
+  webrtc_log_mb:
+    name: "Xoay vòng nhật ký WebRTC (MB)"
+    description: "Dung lượng xoay vòng tối đa mỗi tệp webrtc.log, tính bằng MB."
+  webrtc_log_loc:
+    name: "Lọc nhật ký WebRTC"
+    description: "Biểu thức chính quy lọc dòng nhật ký WebRTC giữ lại."
+network:
+  3334/tcp: Cổng HTTP API và giao diện web nhúng. Chỉ để trong mạng LAN hoặc sau reverse proxy HTTPS.

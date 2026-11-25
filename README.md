@@ -17,7 +17,8 @@ Mỗi add-on có trang hướng dẫn riêng — README này chỉ **giới thi�
 | 💬 [**Zalo Bot**](#-zalo-bot) | Gửi/nhận **tin nhắn** Zalo cá nhân | WebUI `3000` | [Hướng dẫn cài đặt](zalo_bot/HUONG-DAN-CAI-DAT.md) · [Tham chiếu](zalo_bot/README.md) |
 | 📞 [**Zalo Calling**](#-zalo-calling-có-giao-diện) | **Gọi thoại và video** Zalo, tiếng ra loa nhà | WebUI ở **thanh bên HA** + `8080` | [Hướng dẫn](zalo_calling/DOCS.md) |
 | 📞 [**Zalo Calling (không giao diện)**](#-zalo-calling-không-giao-diện) | Như trên, bản **nhẹ, không WebUI** | API `8080` | [Hướng dẫn](zalo_calling_noui/DOCS.md) |
-| ✈️ [**Telegram Calling**](#telegram-calling) | Cổng **Telegram**: nhắn tin, gọi thoại/video | WebUI `3333` | [Hướng dẫn](telegram_calling/README.md) |
+| ✈️ [**Telegram Calling**](#telegram-calling) | Cổng **Telegram** (Python, bản xem trước) | WebUI `3333` | [Hướng dẫn](telegram_calling/README.md) |
+| ✈️ [**Tele Rust**](#tele-rust) | Cổng **Telegram** (Rust, bản mới) — nhắn tin, gọi thoại/video | WebUI `3334` | [Hướng dẫn](tele_rs/DOCS.md) |
 | 🤖 [**AI BOX WebSocket Bridge**](#-ai-box-websocket-bridge) | Điều khiển loa **AI BOX (Phicomm R1)** từ xa | WebSocket `18082` | [Hướng dẫn](aibox_bridge/README.md) |
 
 ### 💬 Zalo Bot
@@ -46,10 +47,19 @@ Cùng mã nguồn với bản trên nhưng **không có WebUI**, nhẹ về bề
 
 ### Telegram Calling
 
-Cổng **Telegram** cho Home Assistant: đăng nhập **tài khoản Telegram phụ**, nhắn tin, gọi thoại/video, đẩy sự kiện về HA. Bản xem trước (0.x).
+Cổng **Telegram** cho Home Assistant (Python): đăng nhập **tài khoản Telegram phụ**, nhắn tin, gọi thoại/video, đẩy sự kiện về HA. Bản xem trước (0.x).
 
 - Cần `api_id` và `api_hash` lấy ở <https://my.telegram.org> (hướng dẫn có trong trang chi tiết) và tích hợp *Telegram Call* qua HACS (`https://github.com/TriTue2011/Telegram-calling`).
 - Chi tiết: [hướng dẫn cài đặt](telegram_calling/README.md) · [kho mã nguồn](https://github.com/TriTue2011/Telegram-calling).
+
+### Tele Rust
+
+Cổng **Telegram** khác, viết bằng Rust: đăng nhập **tài khoản Telegram phụ**, nhắn tin, gọi thoại/video P2P, đẩy sự kiện về HA, kèm giao diện web riêng ở cổng `3334`. **Không cài đồng thời với Telegram Calling trên cùng một tài khoản Telegram** — mỗi add-on tự quản lý phiên đăng nhập riêng, dùng chung tài khoản dễ xung đột.
+
+- Kho **công khai**, không cần token GitHub — khác với Zalo Calling.
+- Cần `tg_api_id` và `tg_api_hash` lấy ở <https://my.telegram.org>, cùng `gateway_token` tự sinh.
+- Không có tab ở thanh bên HA (CSP `frame-ancestors 'none'` của gateway chặn Ingress) — mở trực tiếp cổng `3334`.
+- Chi tiết: [hướng dẫn cài đặt](tele_rs/DOCS.md) · [kho mã nguồn](https://github.com/TriTue2011/tele-rust#readme).
 
 ### 🤖 AI BOX WebSocket Bridge
 
@@ -61,11 +71,11 @@ Cầu **WebSocket** để điều khiển loa **AI BOX (Phicomm R1)** từ xa qu
 
 - **Nhắn tin Zalo** → *Zalo Bot*. **Gọi điện Zalo** → *Zalo Calling*. Hai add-on làm việc khác nhau và **chạy cùng nhau được**.
 - *Zalo Calling* có hai bản (có / không giao diện), cùng cổng 8080: **chỉ cài một**.
-- Telegram thay cho Zalo → *Telegram Calling*. Điều khiển loa R1 từ xa → *AI BOX WebSocket Bridge*.
+- Telegram thay cho Zalo → *Telegram Calling* (Python, cũ) hoặc *Tele Rust* (Rust, mới — khuyến nghị). Điều khiển loa R1 từ xa → *AI BOX WebSocket Bridge*.
 
 ## Phiên bản tự cập nhật
 
-Phiên bản *Zalo Calling* (hai bản) và *Telegram Calling* **tự nâng** khi kho mã nguồn ra bản phát hành và ảnh Docker đã dựng xong (`.github/scripts/auto_bump.py`); bật «Tự động cập nhật» ở add-on là lên bản mới không cần làm gì.
+Phiên bản *Zalo Calling* (hai bản), *Zalo Bot*, *Telegram Calling* và *Tele Rust* **tự nâng** khi kho mã nguồn ra bản phát hành và ảnh Docker đã dựng xong (`.github/scripts/auto_bump.py`); bật «Tự động cập nhật» ở add-on là lên bản mới không cần làm gì.
 
 ## Hỗ trợ và báo lỗi
 

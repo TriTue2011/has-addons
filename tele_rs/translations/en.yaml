@@ -1,0 +1,78 @@
+configuration:
+  tg_api_id:
+    name: "Telegram API ID"
+    description: "Required (> 0). Get it from the Telegram developer page (my.telegram.org)."
+  tg_api_hash:
+    name: "Telegram API Hash"
+    description: "Required. Paired with API ID, from the Telegram developer page."
+  tg_phone:
+    name: "Default account phone"
+    description: "Only needed for the legacy single-account mode or the login CLI. Leave empty otherwise."
+  gateway_token:
+    name: "Gateway token"
+    description: "Required. Secret Bearer token for the Home Assistant API and the first-run web account setup (generate with e.g. openssl rand -hex 32)."
+  tg_ui_user:
+    name: "Web login username"
+    description: "Auto-creates a web account on first run; must be set together with the password below."
+  tg_ui_password:
+    name: "Web login password"
+    description: "At least 10 characters, must differ from the username. Only used on first run."
+  ui_cookie_secure:
+    name: "Secure cookie"
+    description: "Enable when placed behind an HTTPS reverse proxy, so the session cookie is only sent over HTTPS."
+  https:
+    name: "Accept HTTPS too"
+    description: "Serves both http:// and https:// on the same port (self-signed cert). Needed for browser mic/camera, which browsers only allow over HTTPS or localhost."
+  tls_names:
+    name: "Extra TLS names"
+    description: "Comma-separated names/IPs added to the self-signed certificate. Changing this requires deleting the tls/ folder in the add-on's data to regenerate it."
+  rate_limit_per_minute:
+    name: "Rate limit per minute"
+    description: "Maximum API requests per minute per token/session."
+  ha_webhook_url:
+    name: "HA webhook URL"
+    description: "URL that receives event webhooks back to Home Assistant."
+  ha_webhook_token:
+    name: "HA webhook token"
+    description: "Value sent in the X-Gateway-Token header with webhook requests."
+  telegram_p2p:
+    name: "Allow P2P calls"
+    description: "Allow direct P2P calls when Telegram permits it."
+  video_profile:
+    name: "Outgoing video profile"
+    description: "standard = 640x360@15, low = 480x270@10."
+  telegram_rx_video:
+    name: "Incoming video profile"
+    description: "Resolution/fps requested from the other side, as WxH@F."
+  tts_voice:
+    name: "Text-to-speech voice"
+    description: "Default voice for edge-tts."
+  tts_rate:
+    name: "Text-to-speech rate"
+    description: "Default reading speed for edge-tts (-100% to +100%)."
+  log_level:
+    name: "Log level"
+    description: "Log verbosity written to stderr."
+  telegram_debug:
+    name: "Force debug logging"
+    description: "Defaults the log level to DEBUG when log_level is not explicitly set."
+  calltrace_keep:
+    name: "Keep successful call logs"
+    description: "Number of successful call trace files kept (0 = off)."
+  calltrace_keep_bad:
+    name: "Keep failed call logs"
+    description: "Number of failed call trace files kept."
+  calltrace_max_kb:
+    name: "Call log max size (KB)"
+    description: "Maximum size per call trace file, in KB."
+  webrtc_log:
+    name: "WebRTC logging"
+    description: "Write NTgCalls WebRTC logs to calltrace/webrtc.log (off, info, debug)."
+  webrtc_log_mb:
+    name: "WebRTC log rotation (MB)"
+    description: "Maximum rotating size per webrtc.log file, in MB."
+  webrtc_log_loc:
+    name: "WebRTC log filter"
+    description: "Regular expression filtering which WebRTC log lines are kept."
+network:
+  3334/tcp: HTTP API and embedded web UI. Keep this on the LAN or behind an HTTPS reverse proxy.
