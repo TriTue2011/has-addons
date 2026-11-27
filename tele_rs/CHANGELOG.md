@@ -1,5 +1,8 @@
 # Nhật ký thay đổi
 
+## 0.7.49
+- Tự động nâng theo bản phát hành [v0.7.49](https://github.com/TriTue2011/tele-rust/releases/tag/v0.7.49): xem ghi chú phát hành để biết chi tiết.
+
 ## 0.7.47
 - Tự động nâng theo bản phát hành [v0.7.47](https://github.com/TriTue2011/tele-rust/releases/tag/v0.7.47): xem ghi chú phát hành để biết chi tiết.
 
