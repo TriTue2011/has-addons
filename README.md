@@ -15,11 +15,11 @@ Mỗi add-on có trang hướng dẫn riêng — README này chỉ **giới thi�
 | Add-on | Làm gì | Giao diện / cổng | Đọc chi tiết |
 |---|---|---|---|
 | 💬 [**Zalo Bot**](#-zalo-bot) | Gửi/nhận **tin nhắn** Zalo cá nhân | WebUI `3000` | [Hướng dẫn cài đặt](zalo_bot/HUONG-DAN-CAI-DAT.md) · [Tham chiếu](zalo_bot/README.md) |
-| 📞 [**Zalo Calling**](#-zalo-calling-có-giao-diện) | **Gọi thoại và video** Zalo, tiếng ra loa nhà | WebUI ở **thanh bên HA** + `8080` | [Hướng dẫn](zalo_calling/DOCS.md) |
-| 📞 [**Zalo Calling (không giao diện)**](#-zalo-calling-không-giao-diện) | Như trên, bản **nhẹ, không WebUI** | API `8080` | [Hướng dẫn](zalo_calling_noui/DOCS.md) |
+| 📞 [**Zalo Calling**](#-zalo-calling-có-giao-diện) | **Gọi thoại và video** Zalo, tiếng ra loa nhà | WebUI ở **thanh bên HA** + `8080` | [Hướng dẫn](raling/DOCS.md) |
+| 📞 [**Zalo Calling (không giao diện)**](#-zalo-calling-không-giao-diện) | Như trên, bản **nhẹ, không WebUI** | API `8080` | [Hướng dẫn](raling_noui/DOCS.md) |
 | ✈️ [**Telegram Calling**](#telegram-calling) | Cổng **Telegram** (Python, bản xem trước) | WebUI `3333` | [Hướng dẫn](telegram_calling/README.md) |
 | ✈️ [**Tele Rust**](#tele-rust) | Cổng **Telegram** (Rust, bản mới) — nhắn tin, gọi thoại/video | WebUI `3334` | [Hướng dẫn](tele_rs/DOCS.md) |
-| 🏠 [**Ralo**](#ralo) | Cổng **Zalo** (Rust, bản mới) — nhắn tin, gọi thoại/video; cài **song song** Zalo Calling không đè | WebUI ở **thanh bên HA** + `8096` | [Hướng dẫn](zalo_rs/DOCS.md) |
+| 🏠 [**Ralo**](#ralo) | Cổng **Zalo** (Rust, bản mới) — nhắn tin, gọi thoại/video; cài **song song** Zalo Calling không đè | WebUI ở **thanh bên HA** + `8096` | [Hướng dẫn](ralo/DOCS.md) |
 | 🤖 [**AI BOX WebSocket Bridge**](#-ai-box-websocket-bridge) | Điều khiển loa **AI BOX (Phicomm R1)** từ xa | WebSocket `18082` | [Hướng dẫn](aibox_bridge/README.md) |
 
 ### 💬 Zalo Bot
@@ -37,14 +37,14 @@ Gửi và nhận tin nhắn **Zalo cá nhân** trong Home Assistant: báo độn
 **WebUI hiện ngay ở thanh bên** Home Assistant (Ingress).
 
 - **Cần hai phần:** add-on này **và** tích hợp *Zalo Call* qua HACS (`https://github.com/TriTue2011/Zalo-calling`), rồi kết nối và quét QR (tài khoản Zalo phụ).
-- Chi tiết: [hướng dẫn từng bước](zalo_calling/DOCS.md) (cài add-on → thêm tích hợp → kết nối → dịch vụ → automation) · [danh mục dịch vụ và blueprint](https://github.com/TriTue2011/Zalo-calling#readme) · [cài bằng Docker/Compose/Portainer](https://github.com/TriTue2011/Zalo-calling#1-cài-đặt-app-bằng-docker-docker-compose-và-portainer).
+- Chi tiết: [hướng dẫn từng bước](raling/DOCS.md) (cài add-on → thêm tích hợp → kết nối → dịch vụ → automation) · [danh mục dịch vụ và blueprint](https://github.com/TriTue2011/Zalo-calling#readme) · [cài bằng Docker/Compose/Portainer](https://github.com/TriTue2011/Zalo-calling#1-cài-đặt-app-bằng-docker-docker-compose-và-portainer).
 
 ### 📞 Zalo Calling (không giao diện)
 
 Cùng mã nguồn với bản trên nhưng **không có WebUI**, nhẹ về bề mặt, hợp máy cấu hình yếu; `username`/`password` **bắt buộc** đặt ở tab Cấu hình, đăng nhập Zalo bằng dịch vụ `zalo_call.login_qr`.
 **Cùng cổng 8080 với bản có giao diện nên chỉ cài một trong hai.**
 
-- Chi tiết: [hướng dẫn từng bước](zalo_calling_noui/DOCS.md) · [danh mục dịch vụ và blueprint](https://github.com/TriTue2011/Zalo-calling#readme).
+- Chi tiết: [hướng dẫn từng bước](raling_noui/DOCS.md) · [danh mục dịch vụ và blueprint](https://github.com/TriTue2011/Zalo-calling#readme).
 
 ### Telegram Calling
 
@@ -59,7 +59,7 @@ Cổng **Telegram** cho Home Assistant (Python): đăng nhập **tài khoản Te
 - Kho mã **riêng tư** như Zalo Calling: image `zalo-rs-loader` công khai **không chứa mã**, lần đầu dùng `github_token` chỉ đọc kho
   `TriTue2011/Ralo` để tải nhị phân dựng sẵn (amd64/arm64); token hết hạn vẫn chạy bản đã lưu.
 - Tab ở **thanh bên HA** (Ingress) + cổng LAN **8096** — không đè Zalo Calling (8080). Dùng tài khoản Zalo khác với Zalo Calling.
-- Chi tiết: [hướng dẫn cài đặt](zalo_rs/DOCS.md) · [README add-on](zalo_rs/README.md).
+- Chi tiết: [hướng dẫn cài đặt](ralo/DOCS.md) · [README add-on](ralo/README.md).
 
 ### Tele Rust
 

@@ -1,4 +1,4 @@
-# Tự nâng số phiên bản add-on (zalo_calling, telegram_calling) khi kho mã nguồn ra bản phát hành mới và ảnh Docker đã dựng xong.
+# Tự nâng số phiên bản add-on (raling, ralo, telegram_calling, tele_rs…) khi kho mã nguồn ra bản phát hành mới và ảnh Docker đã dựng xong.
 # Supervisor của Home Assistant chỉ thấy bản mới khi `version` trong config.yaml đổi; nhờ workflow này không ai phải đẩy tay, và add-on bật
 # «Tự động cập nhật» thì tự lên bản mới. Logic ở .github/scripts/auto_bump.py (không bao giờ lùi, chỉ nâng khi ảnh có đủ amd64 + arm64).
 name: Tự nâng phiên bản add-on
