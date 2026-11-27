@@ -19,6 +19,7 @@ Mỗi add-on có trang hướng dẫn riêng — README này chỉ **giới thi�
 | 📞 [**Zalo Calling (không giao diện)**](#-zalo-calling-không-giao-diện) | Như trên, bản **nhẹ, không WebUI** | API `8080` | [Hướng dẫn](zalo_calling_noui/DOCS.md) |
 | ✈️ [**Telegram Calling**](#telegram-calling) | Cổng **Telegram** (Python, bản xem trước) | WebUI `3333` | [Hướng dẫn](telegram_calling/README.md) |
 | ✈️ [**Tele Rust**](#tele-rust) | Cổng **Telegram** (Rust, bản mới) — nhắn tin, gọi thoại/video | WebUI `3334` | [Hướng dẫn](tele_rs/DOCS.md) |
+| 🏠 [**Ralo**](#ralo) | Cổng **Zalo** (Rust, bản mới) — nhắn tin, gọi thoại/video; cài **song song** Zalo Calling không đè | WebUI ở **thanh bên HA** + `8096` | [Hướng dẫn](zalo_rs/DOCS.md) |
 | 🤖 [**AI BOX WebSocket Bridge**](#-ai-box-websocket-bridge) | Điều khiển loa **AI BOX (Phicomm R1)** từ xa | WebSocket `18082` | [Hướng dẫn](aibox_bridge/README.md) |
 
 ### 💬 Zalo Bot
@@ -51,6 +52,14 @@ Cổng **Telegram** cho Home Assistant (Python): đăng nhập **tài khoản Te
 
 - Cần `api_id` và `api_hash` lấy ở <https://my.telegram.org> (hướng dẫn có trong trang chi tiết) và tích hợp *Telegram Call* qua HACS (`https://github.com/TriTue2011/Telegram-calling`).
 - Chi tiết: [hướng dẫn cài đặt](telegram_calling/README.md) · [kho mã nguồn](https://github.com/TriTue2011/Telegram-calling).
+
+### Ralo
+
+- **Ralo** — gateway **Zalo viết bằng Rust**: nhắn tin (ảnh, video, album, tin ghim nhóm, hình nền), gọi thoại/video 1-1, SSE + webhook cho Home Assistant.
+- Kho mã **riêng tư** như Zalo Calling: image `zalo-rs-loader` công khai **không chứa mã**, lần đầu dùng `github_token` chỉ đọc kho
+  `TriTue2011/Ralo` để tải nhị phân dựng sẵn (amd64/arm64); token hết hạn vẫn chạy bản đã lưu.
+- Tab ở **thanh bên HA** (Ingress) + cổng LAN **8096** — không đè Zalo Calling (8080). Dùng tài khoản Zalo khác với Zalo Calling.
+- Chi tiết: [hướng dẫn cài đặt](zalo_rs/DOCS.md) · [README add-on](zalo_rs/README.md).
 
 ### Tele Rust
 

@@ -1,0 +1,57 @@
+configuration:
+  github_token:
+    name: "GitHub token (read-only, Ralo repo)"
+    description: "Required on first start: fine-grained token limited to TriTue2011/Ralo with Contents: Read-only. If it expires the add-on keeps running the saved build."
+  app_version:
+    name: "Version to download"
+    description: "Empty = the add-on's own version; «latest» = newest release; or a tag such as v0.2.2."
+  app_user:
+    name: "Tên đăng nhập app"
+    description: "Mặc định admin."
+  app_password:
+    name: "Mật khẩu app"
+    description: "Để trống: tự sinh, in một lần trong Nhật ký và lưu ở /data/state/THONG-TIN-DANG-NHAP.txt."
+  app_password_hash:
+    name: "Mật khẩu app (dạng băm)"
+    description: "Băm PBKDF2-SHA256; điền thì bỏ qua mật khẩu thường."
+  ui:
+    name: "Bật giao diện web"
+    description: "Tắt = chỉ API cho tích hợp Home Assistant (không có tab giao diện)."
+  udp_port:
+    name: "Cổng UDP cuộc gọi"
+    description: "0 = tự chọn."
+  session_hours:
+    name: "Thời hạn phiên đăng nhập (giờ)"
+  login_max_fails:
+    name: "Số lần nhập sai tối đa"
+    description: "Quá số này thì tạm khoá đăng nhập."
+  cookie_secure:
+    name: "Cookie chỉ qua HTTPS"
+    description: "Bật khi mở qua reverse proxy HTTPS."
+  app_pin:
+    name: "Mã PIN riêng tư"
+    description: "Khoá các mục riêng tư trong giao diện."
+  app_pin_hash:
+    name: "Mã PIN (dạng băm)"
+  app_pin_minutes:
+    name: "Thời gian mở khoá PIN (phút)"
+  webhook_url:
+    name: "Webhook ban đầu"
+    description: "Chỉ dùng khi chưa có cấu hình; dùng tích hợp Zalo Call thì để trống."
+  ws_enabled:
+    name: "Nhận tin qua WebSocket"
+    description: "Tắt = chỉ long-poll."
+  ws_ping_seconds:
+    name: "Chu kỳ ping WebSocket (giây)"
+  computer_name:
+    name: "Tên máy hiện trên Zalo"
+  save_photos:
+    name: "Lưu ảnh đến xuống đĩa"
+    description: "Tắt = xem thẳng từ Zalo, không lưu."
+  p2p:
+    name: "Cuộc gọi P2P"
+    description: "auto / 1 bật / 0 tắt."
+  p2p_hosts:
+    name: "Địa chỉ P2P bổ sung"
+network:
+  8080/tcp: "Web UI / API port (LAN)"

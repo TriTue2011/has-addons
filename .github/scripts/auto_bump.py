@@ -18,7 +18,8 @@ import urllib.request
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 # add-on -> (kho mã nguồn, hậu tố thẻ ảnh). Bản không giao diện dùng thẻ «<số>-noui». Image của hai add-on Zalo là zalo-calling-loader (công khai).
 ADDONS = {"zalo_calling": ("TriTue2011/Zalo-calling", ""), "zalo_calling_noui": ("TriTue2011/Zalo-calling", "-noui"), "zalo_bot": ("TriTue2011/zalo_bot", ""),
-          "telegram_calling": ("TriTue2011/Telegram-calling", ""), "tele_rs": ("TriTue2011/tele-rust", "")}
+          "telegram_calling": ("TriTue2011/Telegram-calling", ""), "tele_rs": ("TriTue2011/tele-rust", ""),
+          "zalo_rs": ("TriTue2011/Ralo", "")}
 NEED_ARCH = {"amd64", "arm64"}
 TIMEOUT = 20
 
@@ -76,7 +77,7 @@ def write(p, s):
         fh.write(s)
 
 
-REGISTRY_ADDONS = {"zalo_calling", "zalo_calling_noui", "zalo_bot"}          # add-on bám theo thẻ image (công khai) thay vì bản phát hành của kho riêng
+REGISTRY_ADDONS = {"zalo_calling", "zalo_calling_noui", "zalo_bot", "zalo_rs"}          # add-on bám theo thẻ image (công khai) thay vì bản phát hành của kho riêng
 
 
 def registry_tags(image):

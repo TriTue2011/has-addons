@@ -1,0 +1,77 @@
+name: "Ralo"
+description: "Ralo — gateway Zalo viết bằng Rust: nhắn tin, gọi thoại/video, API HTTP/SSE cho Home Assistant, giao diện ở thanh bên"
+version: "0.2.6"
+slug: "zalo_rs"
+url: "https://github.com/TriTue2011/Ralo"
+arch:
+  - amd64
+  - aarch64
+# Ảnh khởi động đa kiến trúc (amd64 + arm64) công khai, không chứa mã; lần đầu dùng github_token tải nhị phân từ kho riêng Ralo.
+image: "ghcr.io/tritue2011/zalo-rs-loader"
+init: true
+startup: "application"
+boot: "auto"
+# Tab ở thanh bên HA (Ingress) như Zalo Calling; ingress_stream cho SSE (tin nhắn cập nhật liên tục).
+ingress: true
+ingress_port: 8080
+ingress_stream: true
+panel_icon: "mdi:chat-processing"
+panel_title: "Ralo"
+panel_admin: true
+webui: "http://[HOST]:[PORT:8080]"
+# Supervisor tự khởi động lại add-on khi API trạng thái (công khai, trả 200 cả ở bản không giao diện) thôi trả lời — như watchdog của bản Python.
+watchdog: "http://[HOST]:[PORT:8080]/api/app/status"
+# Cổng máy chủ 8096 (không phải 8080): Zalo Calling đã giữ 8080 — cài song song không đè nhau. Đặt trống để chỉ dùng tab Ingress.
+ports:
+  "8080/tcp": 8096
+ports_description:
+  "8080/tcp": "Cổng HTTP API và giao diện web Zalo Rust (có đăng nhập). Chỉ để trong mạng LAN."
+map:
+  - data:rw
+options:
+  github_token: ""
+  app_version: ""
+  app_user: "admin"
+  app_password: ""
+  app_password_hash: ""
+  ui: true
+  udp_port: 0
+  session_hours: 8
+  login_max_fails: 5
+  cookie_secure: false
+  app_pin: ""
+  app_pin_hash: ""
+  app_pin_minutes: 10
+  webhook_url: ""
+  ws_enabled: true
+  ws_ping_seconds: 30
+  computer_name: ""
+  save_photos: false
+  p2p: "auto"
+  p2p_hosts: ""
+schema:
+  # TOKEN GITHUB chỉ đọc kho zalo-rs (bắt buộc, tối thiểu 20 ký tự; để trống thì Supervisor KHÔNG cho khởi động).
+  # Lần chạy đầu add-on dùng token để tải từ kho riêng (image loader công khai nhưng KHÔNG chứa mã).
+  # Sau lần đầu, token hết hạn thì add-on VẪN CHẠY bằng bản đã lưu, chỉ không cập nhật được.
+  github_token: "password(20,255)"
+  # Thẻ phiên bản mã cần tải (vd v0.1.0). Để trống = đúng bản đóng gói theo add-on; «latest» = bản phát hành mới nhất.
+  app_version: "str?"
+  # Bỏ trống cả hai cũng được: add-on tự sinh mật khẩu, giữ ở THONG-TIN-DANG-NHAP.txt và in ra Nhật ký mỗi lần khởi động.
+  app_user: str?
+  app_password: password?
+  app_password_hash: password?
+  ui: bool
+  udp_port: int(0,65535)?
+  session_hours: float(0.1,8760)?
+  login_max_fails: int(1,100)?
+  cookie_secure: bool
+  app_pin: password?
+  app_pin_hash: password?
+  app_pin_minutes: float(1,1440)?
+  webhook_url: str?
+  ws_enabled: bool
+  ws_ping_seconds: int(5,3600)?
+  computer_name: str?
+  save_photos: bool
+  p2p: list(auto|1|0)
+  p2p_hosts: str?
