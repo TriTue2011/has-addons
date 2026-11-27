@@ -137,7 +137,7 @@ Người nhận phải cho phép cuộc gọi từ bạn (Telegram → Quyền r
 
 Có người gọi tài khoản Telegram → sự kiện **`telegram_call_call_state`** (và cảm biến *Cuộc gọi*). `state`:
 `incoming` · `ringing` · `connecting` · `answered` · `ended` · `not_answered` · `missed` · `error`; kèm `call_id`, `user_id`, `outgoing`, `video`, `seconds`, `error`
-(cùng tên trạng thái với `zalo_call_call_state`, nên một automation dùng được cho cả hai). Nghe máy: `telegram_call.answer_call` (bỏ `call_id` nếu chỉ có một cuộc đang đổ chuông).
+(cùng tên trạng thái với `ralo_call_state`, nên một automation dùng được cho cả hai). Nghe máy: `telegram_call.answer_call` (bỏ `call_id` nếu chỉ có một cuộc đang đổ chuông).
 
 ```yaml
 automation:

@@ -1,7 +1,7 @@
 # Add-on Zalo Calling — BẢN KHÔNG GIAO DIỆN (image :<version>-noui, nhỏ hơn, cho máy cấu hình yếu).
 # Không có WebUI nên tên đăng nhập và mật khẩu BẮT BUỘC đặt ở đây (thiếu là Supervisor không cho khởi động).
-# Đọc/đổi các cài đặt khác lúc đang chạy bằng dịch vụ HA zalo_call.get_app_settings / set_app_settings /
-# set_app_password hoặc curl tới /api/... (xem DOCS.md). Đăng nhập Zalo bằng dịch vụ zalo_call.login_qr.
+# Đọc/đổi các cài đặt khác lúc đang chạy bằng dịch vụ HA ralo.get_app_settings / set_app_settings /
+# set_app_password hoặc curl tới /api/... (xem DOCS.md). Đăng nhập Zalo bằng dịch vụ ralo.login_qr.
 # version = bản phát hành của kho Zalo-calling + «-noui» (.github/scripts/auto_bump.py nâng khi ảnh đã đủ amd64+arm64).
 name: "Zalo Calling (không giao diện)"
 description: "Gọi thoại/video Zalo từ Home Assistant — bản nhẹ, không WebUI, cấu hình bằng tuỳ chọn add-on"
@@ -15,7 +15,7 @@ init: false
 ports:
   8080/tcp: 8080
 ports_description:
-  8080/tcp: "Tích hợp Zalo Call và loa/camera trong nhà gọi vào cổng này; để nguyên 8080 là chạy được ngay"
+  8080/tcp: "Tích hợp Ralo và loa/camera trong nhà gọi vào cổng này; để nguyên 8080 là chạy được ngay"
 watchdog: "http://[HOST]:[PORT:8080]/api/app/status"
 options:
   username: "admin"

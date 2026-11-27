@@ -1,13 +1,13 @@
 configuration:
   username:
     name: Username
-    description: App username (default admin). Not needed when opened from the HA side panel; used for port 8080 and the Zalo Call integration.
+    description: App username (default admin). Not needed when opened from the HA side panel; used for port 8080 and the Ralo integration.
   password:
     name: Password
-    description: Leave empty and the app generates one, prints it once in the log and keeps it in /data/THONG-TIN-DANG-NHAP.txt. A password changed later in the WebUI or via zalo_call.set_app_password is kept.
+    description: Leave empty and the app generates one, prints it once in the log and keeps it in /data/THONG-TIN-DANG-NHAP.txt. A password changed later in the WebUI or via ralo.set_app_password is kept.
   webhook_url:
     name: Initial webhook URL
-    description: Where the app posts messages, group events, reactions and calls (one URL for all four). Used only when no webhook is configured yet. Leave empty when using the Zalo Call integration.
+    description: Where the app posts messages, group events, reactions and calls (one URL for all four). Used only when no webhook is configured yet. Leave empty when using the Ralo integration.
   github_token:
     name: "GitHub token"
     description: "REQUIRED for the first run. Read-only GitHub token for the Zalo-calling repo (issued by the repo owner): GitHub → Settings → Developer settings → Fine-grained tokens, pick only the Zalo-calling repo, permission Contents = Read-only. After the first run an expired token does NOT stop the add-on: it keeps running the saved code and just cannot update; paste a new token and restart to update."
@@ -18,4 +18,4 @@ configuration:
     name: "Save photos to disk"
     description: "Off (default): photos are shown directly from Zalo and NOT stored by the add-on. On: photos are saved to /data/downloads (viewable again after Zalo's link expires; uses disk space). Documents are always saved."
 network:
-  8080/tcp: The Zalo Call integration and in-home speakers/cameras connect here; keep 8080 unless it clashes.
+  8080/tcp: The Ralo integration and in-home speakers/cameras connect here; keep 8080 unless it clashes.

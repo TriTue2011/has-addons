@@ -33,10 +33,10 @@ Nếu thấy `Zalo Calling: KHÔNG CHẠY — …` thì xem bảng sự cố ở
 | Tuỳ chọn | Bắt buộc | Ý nghĩa |
 |---|---|---|
 | `username` | **có** | Tên đăng nhập app (cho cổng 8080 và tích hợp). |
-| `password` | **có**, từ 8 ký tự | Mật khẩu app. Đổi lúc đang chạy bằng `zalo_call.set_app_password` thì giá trị đó được giữ. |
+| `password` | **có**, từ 8 ký tự | Mật khẩu app. Đổi lúc đang chạy bằng `ralo.set_app_password` thì giá trị đó được giữ. |
 | `github_token` | **có**, từ 20 ký tự | Token GitHub chỉ đọc kho `Zalo-calling` (mục 1.1). **Lần đầu bắt buộc**; sau này hết hạn thì add-on vẫn chạy (mục 1.3). |
 | `app_version` | không | Ghim phiên bản mã (vd `v2026.11.18.6`). Trống = đúng phiên bản của add-on; `latest` = bản phát hành mới nhất. |
-| `webhook_url` | không | Webhook ban đầu cho cả bốn loại; chỉ dùng khi chưa có cấu hình webhook (dùng tích hợp Zalo Call thì để trống). |
+| `webhook_url` | không | Webhook ban đầu cho cả bốn loại; chỉ dùng khi chưa có cấu hình webhook (dùng tích hợp Ralo thì để trống). |
 | `save_photos` | không | Tắt (mặc định): ảnh đến xem thẳng từ Zalo, add-on **không lưu** ảnh vào đĩa. Bật: lưu ảnh vào `/data/downloads` (xem lại được khi địa chỉ ảnh Zalo hết hạn, tốn dung lượng đĩa). Cần mã app từ bản 2026.11.19.3 trở lên. |
 
 
@@ -57,25 +57,25 @@ Nếu thấy `Zalo Calling: KHÔNG CHẠY — …` thì xem bảng sự cố ở
 | `KHÔNG CHẠY — Gói tải về thiếu docker-entrypoint.py …` | Phiên bản mã chọn (`app_version`) sai hoặc kho đổi cấu trúc | Để trống `app_version` hoặc đặt `latest` |
 | *Invalid configuration* khi lưu | `github_token` trống hoặc dưới 20 ký tự hoặc `password` dưới 8 ký tự | Điền đủ rồi lưu |
 
-## 2. Thêm tích hợp Zalo Call (HACS)
+## 2. Thêm tích hợp Ralo (HACS)
 
 1. **HACS → ⋮ → Custom repositories** → `https://github.com/TriTue2011/Zalo-calling`, **Type = Integration** → **Add**.
-2. Tải **Zalo Call** → **khởi động lại Home Assistant**.
-   Kho này riêng tư: tài khoản GitHub đang đăng nhập HACS phải được mời vào kho. Nếu HACS không thêm được kho riêng, tải `zalo_call.zip` ở trang *Releases* của kho (đăng nhập GitHub mới tải được), giải nén vào `/config/custom_components/zalo_call/` rồi khởi động lại HA.
+2. Tải **Ralo** → **khởi động lại Home Assistant**.
+   Kho này riêng tư: tài khoản GitHub đang đăng nhập HACS phải được mời vào kho. Nếu HACS không thêm được kho riêng, tải `ralo.zip` ở trang *Releases* của kho (đăng nhập GitHub mới tải được), giải nén vào `/config/custom_components/ralo/` rồi khởi động lại HA.
 
 ## 3. Kết nối và đăng nhập Zalo
 
-1. **Cài đặt → Thiết bị & Dịch vụ → Thêm tích hợp → Zalo Call**: địa chỉ `http://<IP máy HA>:8080` và đúng cặp `username`/`password` ở mục 1.
+1. **Cài đặt → Thiết bị & Dịch vụ → Thêm tích hợp → Ralo**: địa chỉ `http://<IP máy HA>:8080` và đúng cặp `username`/`password` ở mục 1.
    Tích hợp tự lo webhook sang Home Assistant. Người nhận chọn ở *Cấu hình → Người và nhóm nhận*.
-2. Đăng nhập Zalo: gọi dịch vụ **`zalo_call.login_qr`** (`type: pc` để gọi thoại/video, `web` chỉ nhắn tin) rồi mở thực thể ảnh
+2. Đăng nhập Zalo: gọi dịch vụ **`ralo.login_qr`** (`type: pc` để gọi thoại/video, `web` chỉ nhắn tin) rồi mở thực thể ảnh
    **Mã QR đăng nhập**, quét bằng Zalo trên điện thoại. Cảm biến **Trạng thái Zalo** báo `logged_in` khi xong.
-3. Đọc / đổi cài đặt lúc đang chạy (không cần WebUI): `zalo_call.get_app_settings` (`sections`, `reveal_secrets`), `zalo_call.set_app_settings`
-   (`section`: `webhooks` · `devices` · `retention` · `proxy` · `security`, kèm `values`), `zalo_call.set_app_password`, `zalo_call.test_webhook`, `zalo_call.logout`.
+3. Đọc / đổi cài đặt lúc đang chạy (không cần WebUI): `ralo.get_app_settings` (`sections`, `reveal_secrets`), `ralo.set_app_settings`
+   (`section`: `webhooks` · `devices` · `retention` · `proxy` · `security`, kèm `values`), `ralo.set_app_password`, `ralo.test_webhook`, `ralo.logout`.
    Hoặc `curl`: `POST /api/app/login` lấy cookie rồi `GET/POST /api/webhooks`, `/api/settings/devices`, …; kiểm sống `GET /api/app/status`.
 
 ## 4. Dịch vụ
 
-Sau khi kết nối, mọi dịch vụ là `zalo_call.<tên>` (**Công cụ nhà phát triển → Hành động**, gõ `zalo_call.`). Mỗi ô có mô tả và ô chọn.
+Sau khi kết nối, mọi dịch vụ là `ralo.<tên>` (**Công cụ nhà phát triển → Hành động**, gõ `ralo.`). Mỗi ô có mô tả và ô chọn.
 
 | Nhóm | Dịch vụ chính | Chi tiết |
 |---|---|---|
@@ -89,7 +89,7 @@ Người nhận chọn từ danh sách (thực thể `notify.zalo_<tên>`), khô
 
 ## 5. Automation
 
-- **Sự kiện**: có người gọi tới → Home Assistant bắn sự kiện `zalo_call_call_state` (`incoming`, `answered`, `missed`, `ended`…); tin nhắn đến cũng có sự kiện riêng. Bảng trường và ví dụ YAML: [mục 10](https://github.com/TriTue2011/Zalo-calling#10-nhận-cuộc-gọi-sự-kiện-và-ví-dụ-automation).
+- **Sự kiện**: có người gọi tới → Home Assistant bắn sự kiện `ralo_call_state` (`incoming`, `answered`, `missed`, `ended`…); tin nhắn đến cũng có sự kiện riêng. Bảng trường và ví dụ YAML: [mục 10](https://github.com/TriTue2011/Zalo-calling#10-nhận-cuộc-gọi-sự-kiện-và-ví-dụ-automation).
 - **Blueprint dựng sẵn** (chọn từ danh sách, không gõ mã): gọi cảnh báo khi cảm biến kích hoạt, một nút nghe/cúp/gọi, quy tắc cho cuộc gọi đến, nhắn tin tuỳ biến, nhắc hẹn theo lịch — nút nhập ở [mục 11](https://github.com/TriTue2011/Zalo-calling#11-blueprint-mẫu-chọn-từ-danh-sách-không-gõ-tay), kho [TriTue2011/Blueprint](https://github.com/TriTue2011/Blueprint).
 
 ## Lưu ý

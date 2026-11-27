@@ -1,13 +1,13 @@
 configuration:
   username:
     name: Tên đăng nhập
-    description: Tên đăng nhập app (mặc định admin). Mở bằng bảng bên của HA thì không cần; dùng khi vào qua cổng 8080 và cho tích hợp Zalo Call.
+    description: Tên đăng nhập app (mặc định admin). Mở bằng bảng bên của HA thì không cần; dùng khi vào qua cổng 8080 và cho tích hợp Ralo.
   password:
     name: Mật khẩu
-    description: Để trống thì app tự sinh một mật khẩu, in một lần trong nhật ký và lưu ở /data/THONG-TIN-DANG-NHAP.txt. Đổi sau trong WebUI hoặc dịch vụ zalo_call.set_app_password thì giá trị đó được giữ.
+    description: Để trống thì app tự sinh một mật khẩu, in một lần trong nhật ký và lưu ở /data/THONG-TIN-DANG-NHAP.txt. Đổi sau trong WebUI hoặc dịch vụ ralo.set_app_password thì giá trị đó được giữ.
   webhook_url:
     name: Địa chỉ webhook ban đầu
-    description: Nơi app đẩy tin nhắn, sự kiện nhóm, biểu cảm và cuộc gọi (một địa chỉ cho cả bốn loại). Chỉ dùng khi CHƯA có cấu hình webhook; đã đặt trong WebUI hay dịch vụ HA thì không bị đè. Để trống nếu dùng tích hợp Zalo Call (tự lo).
+    description: Nơi app đẩy tin nhắn, sự kiện nhóm, biểu cảm và cuộc gọi (một địa chỉ cho cả bốn loại). Chỉ dùng khi CHƯA có cấu hình webhook; đã đặt trong WebUI hay dịch vụ HA thì không bị đè. Để trống nếu dùng tích hợp Ralo (tự lo).
   github_token:
     name: "Token GitHub"
     description: "BẮT BUỘC ở lần chạy đầu. Token GitHub chỉ đọc kho Zalo-calling (do chủ kho mời và cấp): GitHub → Settings → Developer settings → Fine-grained tokens, chọn đúng kho Zalo-calling, quyền Contents = Read-only. Sau lần chạy đầu, token hết hạn thì add-on VẪN CHẠY bằng bản mã đã lưu, chỉ không cập nhật được; dán token mới và khởi động lại để cập nhật."
@@ -18,4 +18,4 @@ configuration:
     name: "Lưu ảnh xuống đĩa"
     description: "Tắt (mặc định): xem ảnh thẳng từ Zalo, add-on KHÔNG lưu ảnh. Bật: lưu ảnh vào /data/downloads (xem lại được khi địa chỉ ảnh Zalo hết hạn, tốn dung lượng đĩa). Tệp tài liệu luôn được lưu."
 network:
-  8080/tcp: Tích hợp Zalo Call và loa/camera trong nhà gọi vào cổng này; để nguyên 8080 là chạy được ngay.
+  8080/tcp: Tích hợp Ralo và loa/camera trong nhà gọi vào cổng này; để nguyên 8080 là chạy được ngay.

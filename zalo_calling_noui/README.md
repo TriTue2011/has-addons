@@ -1,7 +1,7 @@
 # 📞 Zalo Calling (không giao diện)
 
 Cùng mã nguồn với bản có giao diện nhưng nhỏ gọn, hợp máy cấu hình yếu. **Không có WebUI**: `username` và `password` bắt buộc đặt ở tab *Cấu hình*,
-đăng nhập Zalo và đổi cài đặt bằng dịch vụ Home Assistant (`zalo_call.login_qr`, `zalo_call.set_app_settings`…) hoặc `curl`.
+đăng nhập Zalo và đổi cài đặt bằng dịch vụ Home Assistant (`ralo.login_qr`, `ralo.set_app_settings`…) hoặc `curl`.
 
 > App không chính thức, đăng nhập Zalo bằng mã QR. **Dùng tài khoản Zalo phụ.**
 
