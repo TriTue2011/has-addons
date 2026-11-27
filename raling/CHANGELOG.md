@@ -1,5 +1,8 @@
 # Nhật ký thay đổi
 
+## 2026.11.27.1
+- Tự động nâng cho bằng image mới nhất đã phát hành (v2026.11.27.1).
+
 ## 2026.11.20.4
 - Tự động nâng cho bằng image mới nhất đã phát hành (v2026.11.20.4).
 
