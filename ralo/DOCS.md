@@ -20,7 +20,7 @@
 1. Mở **Cài đặt → Tiện ích bổ sung (Add-ons) → Cửa hàng tiện ích bổ sung**.
 2. Chọn biểu tượng ba chấm góc trên bên phải → **Kho lưu trữ (Repositories)**.
 3. Dán `https://github.com/TriTue2011/has-addons` → **Thêm** → đóng cửa sổ, tải lại trang.
-4. Tìm **Ralo** (icon chữ «Ralo»), nhấn **Cài đặt (Install)**. Không đè **Zalo Calling**: slug, dữ liệu và cổng riêng (8096).
+4. Tìm **Ralo** (icon chữ «Ralo»), nhấn **Cài đặt (Install)**. Không đè **Raling**: slug, dữ liệu và cổng riêng (8096).
 5. Chuyển sang tab **Cấu hình (Configuration)**, dán token vừa tạo vào **`github_token`** (bắt buộc, từ 20 ký tự), nhấn **Lưu** rồi **Khởi động**.
 
 6. Tab **Thông tin** → bật **Hiện trong thanh bên** → mục **Ralo** xuất hiện ở thanh bên HA (Ingress, không cần mở cổng).

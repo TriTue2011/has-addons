@@ -10,7 +10,7 @@ configuration:
     description: Where the app posts messages, group events, reactions and calls (one URL for all four). Used only when no webhook is configured yet; change later via ralo.set_app_settings.
   github_token:
     name: "GitHub token"
-    description: "REQUIRED for the first run. Read-only GitHub token for the Zalo-calling repo (issued by the repo owner): GitHub → Settings → Developer settings → Fine-grained tokens, pick only the Zalo-calling repo, permission Contents = Read-only. After the first run an expired token does NOT stop the add-on: it keeps running the saved code and just cannot update; paste a new token and restart to update."
+    description: "REQUIRED for the first run. Read-only GitHub token for the Raling repo (issued by the repo owner): GitHub → Settings → Developer settings → Fine-grained tokens, pick only the Raling repo, permission Contents = Read-only. After the first run an expired token does NOT stop the add-on: it keeps running the saved code and just cannot update; paste a new token and restart to update."
   app_version:
     name: "Code version"
     description: "Empty = the version shipped with the image. Enter a tag (e.g. v2026.11.18.6) to pin one, or latest for the newest release."

@@ -15,11 +15,11 @@ Mỗi add-on có trang hướng dẫn riêng — README này chỉ **giới thi�
 | Add-on | Làm gì | Giao diện / cổng | Đọc chi tiết |
 |---|---|---|---|
 | 💬 [**Zalo Bot**](#-zalo-bot) | Gửi/nhận **tin nhắn** Zalo cá nhân | WebUI `3000` | [Hướng dẫn cài đặt](zalo_bot/HUONG-DAN-CAI-DAT.md) · [Tham chiếu](zalo_bot/README.md) |
-| 📞 [**Zalo Calling**](#-zalo-calling-có-giao-diện) | **Gọi thoại và video** Zalo, tiếng ra loa nhà | WebUI ở **thanh bên HA** + `8080` | [Hướng dẫn](raling/DOCS.md) |
-| 📞 [**Zalo Calling (không giao diện)**](#-zalo-calling-không-giao-diện) | Như trên, bản **nhẹ, không WebUI** | API `8080` | [Hướng dẫn](raling_noui/DOCS.md) |
+| 📞 [**Raling**](#-raling-có-giao-diện) | **Gọi thoại và video** Zalo, tiếng ra loa nhà | WebUI ở **thanh bên HA** + `8080` | [Hướng dẫn](raling/DOCS.md) |
+| 📞 [**Raling (không giao diện)**](#-raling-không-giao-diện) | Như trên, bản **nhẹ, không WebUI** | API `8080` | [Hướng dẫn](raling_noui/DOCS.md) |
 | ✈️ [**Telegram Calling**](#telegram-calling) | Cổng **Telegram** (Python, bản xem trước) | WebUI `3333` | [Hướng dẫn](telegram_calling/README.md) |
 | ✈️ [**Tele Rust**](#tele-rust) | Cổng **Telegram** (Rust, bản mới) — nhắn tin, gọi thoại/video | WebUI `3334` | [Hướng dẫn](tele_rs/DOCS.md) |
-| 🏠 [**Ralo**](#ralo) | Cổng **Zalo** (Rust, bản mới) — nhắn tin, gọi thoại/video; cài **song song** Zalo Calling không đè | WebUI ở **thanh bên HA** + `8096` | [Hướng dẫn](ralo/DOCS.md) |
+| 🏠 [**Ralo**](#ralo) | Cổng **Zalo** (Rust, bản mới) — nhắn tin, gọi thoại/video; cài **song song** Raling không đè | WebUI ở **thanh bên HA** + `8096` | [Hướng dẫn](ralo/DOCS.md) |
 | 🤖 [**AI BOX WebSocket Bridge**](#-ai-box-websocket-bridge) | Điều khiển loa **AI BOX (Phicomm R1)** từ xa | WebSocket `18082` | [Hướng dẫn](aibox_bridge/README.md) |
 
 ### 💬 Zalo Bot
@@ -31,20 +31,20 @@ Gửi và nhận tin nhắn **Zalo cá nhân** trong Home Assistant: báo độn
 - Đăng nhập bằng mã QR; dùng **tài khoản Zalo phụ**.
 - Chi tiết: [hướng dẫn cài đặt từng bước](zalo_bot/HUONG-DAN-CAI-DAT.md) (add-on hoặc Docker, tích hợp, bảo mật, sự cố) · [tài liệu tham chiếu](zalo_bot/README.md).
 
-### 📞 Zalo Calling (có giao diện)
+### 📞 Raling (có giao diện)
 
 **Gọi thoại và video Zalo** từ Home Assistant: điện thoại đổ chuông, tiếng bên kia ra **loa trong nhà**, mic/camera nhà gửi sang điện thoại; AI nói chuyện, cảnh báo bằng cuộc gọi, quy tắc theo từng người.
 **WebUI hiện ngay ở thanh bên** Home Assistant (Ingress).
 
-- **Cần hai phần:** add-on này **và** tích hợp *Zalo Call* qua HACS (`https://github.com/TriTue2011/Zalo-calling`), rồi kết nối và quét QR (tài khoản Zalo phụ).
-- Chi tiết: [hướng dẫn từng bước](raling/DOCS.md) (cài add-on → thêm tích hợp → kết nối → dịch vụ → automation) · [danh mục dịch vụ và blueprint](https://github.com/TriTue2011/Zalo-calling#readme) · [cài bằng Docker/Compose/Portainer](https://github.com/TriTue2011/Zalo-calling#1-cài-đặt-app-bằng-docker-docker-compose-và-portainer).
+- **Cần hai phần:** add-on này **và** tích hợp *Zalo Call* qua HACS (`https://github.com/TriTue2011/Raling`), rồi kết nối và quét QR (tài khoản Zalo phụ).
+- Chi tiết: [hướng dẫn từng bước](raling/DOCS.md) (cài add-on → thêm tích hợp → kết nối → dịch vụ → automation) · [danh mục dịch vụ và blueprint](https://github.com/TriTue2011/Raling#readme) · [cài bằng Docker/Compose/Portainer](https://github.com/TriTue2011/Raling#1-cài-đặt-app-bằng-docker-docker-compose-và-portainer).
 
-### 📞 Zalo Calling (không giao diện)
+### 📞 Raling (không giao diện)
 
 Cùng mã nguồn với bản trên nhưng **không có WebUI**, nhẹ về bề mặt, hợp máy cấu hình yếu; `username`/`password` **bắt buộc** đặt ở tab Cấu hình, đăng nhập Zalo bằng dịch vụ `zalo_call.login_qr`.
 **Cùng cổng 8080 với bản có giao diện nên chỉ cài một trong hai.**
 
-- Chi tiết: [hướng dẫn từng bước](raling_noui/DOCS.md) · [danh mục dịch vụ và blueprint](https://github.com/TriTue2011/Zalo-calling#readme).
+- Chi tiết: [hướng dẫn từng bước](raling_noui/DOCS.md) · [danh mục dịch vụ và blueprint](https://github.com/TriTue2011/Raling#readme).
 
 ### Telegram Calling
 
@@ -56,16 +56,16 @@ Cổng **Telegram** cho Home Assistant (Python): đăng nhập **tài khoản Te
 ### Ralo
 
 - **Ralo** — gateway **Zalo viết bằng Rust**: nhắn tin (ảnh, video, album, tin ghim nhóm, hình nền), gọi thoại/video 1-1, SSE + webhook cho Home Assistant.
-- Kho mã **riêng tư** như Zalo Calling: image `zalo-rs-loader` công khai **không chứa mã**, lần đầu dùng `github_token` chỉ đọc kho
+- Kho mã **riêng tư** như Raling: image `zalo-rs-loader` công khai **không chứa mã**, lần đầu dùng `github_token` chỉ đọc kho
   `TriTue2011/Ralo` để tải nhị phân dựng sẵn (amd64/arm64); token hết hạn vẫn chạy bản đã lưu.
-- Tab ở **thanh bên HA** (Ingress) + cổng LAN **8096** — không đè Zalo Calling (8080). Dùng tài khoản Zalo khác với Zalo Calling.
+- Tab ở **thanh bên HA** (Ingress) + cổng LAN **8096** — không đè Raling (8080). Dùng tài khoản Zalo khác với Raling.
 - Chi tiết: [hướng dẫn cài đặt](ralo/DOCS.md) · [README add-on](ralo/README.md).
 
 ### Tele Rust
 
 Cổng **Telegram** khác, viết bằng Rust: đăng nhập **tài khoản Telegram phụ**, nhắn tin, gọi thoại/video P2P, đẩy sự kiện về HA, kèm giao diện web riêng ở cổng `3334`. **Không cài đồng thời với Telegram Calling trên cùng một tài khoản Telegram** — mỗi add-on tự quản lý phiên đăng nhập riêng, dùng chung tài khoản dễ xung đột.
 
-- Kho **công khai**, không cần token GitHub — khác với Zalo Calling.
+- Kho **công khai**, không cần token GitHub — khác với Raling.
 - Cần `tg_api_id` và `tg_api_hash` lấy ở <https://my.telegram.org>, cùng `gateway_token` tự sinh.
 - Không có tab ở thanh bên HA (CSP `frame-ancestors 'none'` của gateway chặn Ingress) — mở trực tiếp cổng `3334`.
 - Chi tiết: [hướng dẫn cài đặt](tele_rs/DOCS.md) · [kho mã nguồn](https://github.com/TriTue2011/tele-rust#readme).
@@ -78,13 +78,13 @@ Cầu **WebSocket** để điều khiển loa **AI BOX (Phicomm R1)** từ xa qu
 
 ## Chọn add-on nào?
 
-- **Nhắn tin Zalo** → *Zalo Bot*. **Gọi điện Zalo** → *Zalo Calling*. Hai add-on làm việc khác nhau và **chạy cùng nhau được**.
-- *Zalo Calling* có hai bản (có / không giao diện), cùng cổng 8080: **chỉ cài một**.
+- **Nhắn tin Zalo** → *Zalo Bot*. **Gọi điện Zalo** → *Raling*. Hai add-on làm việc khác nhau và **chạy cùng nhau được**.
+- *Raling* có hai bản (có / không giao diện), cùng cổng 8080: **chỉ cài một**.
 - Telegram thay cho Zalo → *Telegram Calling* (Python, cũ) hoặc *Tele Rust* (Rust, mới — khuyến nghị). Điều khiển loa R1 từ xa → *AI BOX WebSocket Bridge*.
 
 ## Phiên bản tự cập nhật
 
-Phiên bản *Zalo Calling* (hai bản), *Zalo Bot*, *Telegram Calling* và *Tele Rust* **tự nâng** khi kho mã nguồn ra bản phát hành và ảnh Docker đã dựng xong (`.github/scripts/auto_bump.py`); bật «Tự động cập nhật» ở add-on là lên bản mới không cần làm gì.
+Phiên bản *Raling* (hai bản), *Zalo Bot*, *Telegram Calling* và *Tele Rust* **tự nâng** khi kho mã nguồn ra bản phát hành và ảnh Docker đã dựng xong (`.github/scripts/auto_bump.py`); bật «Tự động cập nhật» ở add-on là lên bản mới không cần làm gì.
 
 ## Hỗ trợ và báo lỗi
 

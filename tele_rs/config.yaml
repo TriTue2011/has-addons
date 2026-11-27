@@ -10,7 +10,7 @@ webui: "http://[HOST]:[PORT:3334]"
 arch:
   - amd64
   - aarch64
-# Kho tele-rust CÔNG KHAI, ảnh đa kiến trúc (amd64 + arm64) dựng sẵn — không cần github_token như Zalo Calling.
+# Kho tele-rust CÔNG KHAI, ảnh đa kiến trúc (amd64 + arm64) dựng sẵn — không cần github_token như Raling.
 image: "ghcr.io/tritue2011/tele-rust"
 ports:
   "3334/tcp": 3334

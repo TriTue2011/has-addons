@@ -6,9 +6,9 @@ Add-on chạy gateway **zalo-rs** (viết bằng Rust) để cung cấp API HTTP
 
 > **Cảnh báo:** Đây là **dự án không chính thức, không liên kết, không được tài trợ hay xác nhận bởi Zalo / VNG**. Người dùng tự chịu trách nhiệm khi triển khai, cấu hình và vận hành với tài khoản của mình.
 
-## Cài song song Zalo Calling — không đè nhau
+## Cài song song Raling — không đè nhau
 
-- Slug riêng `zalo_rs`, thư mục dữ liệu riêng; **cổng máy chủ mặc định 8096** (Zalo Calling giữ 8080). Hai add-on chạy cùng lúc được.
+- Slug riêng `zalo_rs`, thư mục dữ liệu riêng; **cổng máy chủ mặc định 8096** (Raling giữ 8080). Hai add-on chạy cùng lúc được.
 - Dùng **hai tài khoản Ralo khác nhau** cho hai add-on: cùng một tài khoản đăng nhập ở hai nơi thì Ralo đẩy phiên cũ ra.
 
 ## Mở giao diện

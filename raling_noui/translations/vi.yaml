@@ -10,7 +10,7 @@ configuration:
     description: Nơi app đẩy tin nhắn, sự kiện nhóm, biểu cảm và cuộc gọi (một địa chỉ cho cả bốn loại). Chỉ dùng khi CHƯA có cấu hình webhook; đổi sau bằng dịch vụ ralo.set_app_settings. Để trống nếu dùng tích hợp Ralo.
   github_token:
     name: "Token GitHub"
-    description: "BẮT BUỘC ở lần chạy đầu. Token GitHub chỉ đọc kho Zalo-calling (do chủ kho mời và cấp): GitHub → Settings → Developer settings → Fine-grained tokens, chọn đúng kho Zalo-calling, quyền Contents = Read-only. Sau lần chạy đầu, token hết hạn thì add-on VẪN CHẠY bằng bản mã đã lưu, chỉ không cập nhật được; dán token mới và khởi động lại để cập nhật."
+    description: "BẮT BUỘC ở lần chạy đầu. Token GitHub chỉ đọc kho Raling (do chủ kho mời và cấp): GitHub → Settings → Developer settings → Fine-grained tokens, chọn đúng kho Raling, quyền Contents = Read-only. Sau lần chạy đầu, token hết hạn thì add-on VẪN CHẠY bằng bản mã đã lưu, chỉ không cập nhật được; dán token mới và khởi động lại để cập nhật."
   app_version:
     name: "Phiên bản mã"
     description: "Để trống = đúng bản của image. Điền thẻ (vd v2026.11.18.6) để ghim một bản, hoặc latest để lấy bản phát hành mới nhất."

@@ -11,7 +11,7 @@ image: "ghcr.io/tritue2011/zalo-rs-loader"
 init: true
 startup: "application"
 boot: "auto"
-# Tab ở thanh bên HA (Ingress) như Zalo Calling; ingress_stream cho SSE (tin nhắn cập nhật liên tục).
+# Tab ở thanh bên HA (Ingress) như Raling; ingress_stream cho SSE (tin nhắn cập nhật liên tục).
 ingress: true
 ingress_port: 8080
 ingress_stream: true
@@ -21,7 +21,7 @@ panel_admin: true
 webui: "http://[HOST]:[PORT:8080]"
 # Supervisor tự khởi động lại add-on khi API trạng thái (công khai, trả 200 cả ở bản không giao diện) thôi trả lời — như watchdog của bản Python.
 watchdog: "http://[HOST]:[PORT:8080]/api/app/status"
-# Cổng máy chủ 8096 (không phải 8080): Zalo Calling đã giữ 8080 — cài song song không đè nhau. Đặt trống để chỉ dùng tab Ingress.
+# Cổng máy chủ 8096 (không phải 8080): Raling đã giữ 8080 — cài song song không đè nhau. Đặt trống để chỉ dùng tab Ingress.
 ports:
   "8080/tcp": 8096
 ports_description:
