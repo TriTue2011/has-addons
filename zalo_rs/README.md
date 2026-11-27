@@ -1,4 +1,4 @@
-# 🏠 Ralo — Add-on Home Assistant (Zalo viết bằng Rust)
+# 🏠 Ralo — Add-on Home Assistant (Ralo viết bằng Rust)
 
 Add-on chạy gateway **zalo-rs** (viết bằng Rust) để cung cấp API HTTP/SSE và giao diện web nhúng cho tích hợp Home Assistant.
 
@@ -9,7 +9,7 @@ Add-on chạy gateway **zalo-rs** (viết bằng Rust) để cung cấp API HTTP
 ## Cài song song Zalo Calling — không đè nhau
 
 - Slug riêng `zalo_rs`, thư mục dữ liệu riêng; **cổng máy chủ mặc định 8096** (Zalo Calling giữ 8080). Hai add-on chạy cùng lúc được.
-- Dùng **hai tài khoản Zalo khác nhau** cho hai add-on: cùng một tài khoản đăng nhập ở hai nơi thì Zalo đẩy phiên cũ ra.
+- Dùng **hai tài khoản Ralo khác nhau** cho hai add-on: cùng một tài khoản đăng nhập ở hai nơi thì Ralo đẩy phiên cũ ra.
 
 ## Mở giao diện
 
@@ -20,7 +20,7 @@ Add-on chạy gateway **zalo-rs** (viết bằng Rust) để cung cấp API HTTP
 
 - **Mô hình loader công khai + token kho riêng:** Kéo ảnh loader không cần đăng nhập registry trên Home Assistant; tải từ kho riêng bằng `github_token` và ghim được phiên bản qua `app_version` (để trống = bản đóng gói theo add-on, `latest` = bản phát hành mới nhất).
 - Xác thực cookie `HttpOnly`, hỗ trợ mật khẩu băm PBKDF2-SHA256, tự sinh mật khẩu lần đầu (lưu tại `/data/state/THONG-TIN-DANG-NHAP.txt`) và mã PIN riêng tư.
-- Quản lý phiên Zalo (đăng nhập QR, đa tài khoản trong cùng tiến trình).
+- Quản lý phiên Ralo (đăng nhập QR, đa tài khoản trong cùng tiến trình).
 - Nhận tin nhắn thời gian thực qua WebSocket và long-poll, lưu SQLite cục bộ, phát SSE và đẩy webhook về Home Assistant.
 - Hỗ trợ gửi tin nhắn, tệp, tin thoại (chuyển mã AAC bằng FFmpeg) và gọi thoại/video 1-1 (Opus, SRTP).
 - Hỗ trợ cả hai chế độ **có giao diện web** (`ui: true`) và **không giao diện web** (`ui: false`, tương đương `ZALO_PC_UI=0`) trong một add-on duy nhất.

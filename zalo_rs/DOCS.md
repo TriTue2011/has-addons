@@ -1,4 +1,4 @@
-# Hướng dẫn cấu hình Add-on Zalo RS
+# Hướng dẫn cấu hình Add-on Ralo RS
 
 > **Điểm khác biệt quan trọng so với `tele-rust`:** Kho `tele-rust` là **công khai** nên Home Assistant kéo thẳng ảnh Docker về chạy mà **không cần token**. Ngược lại, kho **`Ralo` là kho RIÊNG TƯ (private)** (cùng mô hình bảo vệ mã nguồn như `zalo_calling`):
 > - Add-on dùng ảnh khởi động ("loader") **công khai, không chứa mã** (`ghcr.io/tritue2011/zalo-rs-loader`), nên Home Assistant cài đặt và nâng cấp add-on không cần `docker login ghcr.io`.
@@ -60,7 +60,7 @@ Hai tuỳ chọn đầu dành cho trình nạp kho riêng (`github_token`, `app_
 | `webhook_url` | `ZALO_PC_WEBHOOK_URL` | `""` | URL HTTP/HTTPS mặc định nhận webhook sự kiện (khi chưa lưu cấu hình riêng). |
 | `ws_enabled` | `ZALO_PC_WS` | `true` (`1`) | Bật kênh WebSocket bổ sung cho đồng bộ và điều khiển. |
 | `ws_ping_seconds` | `ZALO_PC_WS_PING_SECONDS` | `30` | Chu kỳ gửi ping giữ kết nối WebSocket (5–3600 giây). |
-| `computer_name` | `ZALO_PC_COMPUTER_NAME` | `""` | Tên thiết bị hiển thị trong phiên đăng nhập Zalo (tối đa 40 ký tự). |
+| `computer_name` | `ZALO_PC_COMPUTER_NAME` | `""` | Tên thiết bị hiển thị trong phiên đăng nhập Ralo (tối đa 40 ký tự). |
 | `save_photos` | `ZALO_PC_SAVE_PHOTOS` | `false` (`0`) | Tự động tải và lưu ảnh nhận được (mặc định chỉ tự tải tệp đính kèm). |
 | `p2p` | `ZALO_PC_P2P` | `"auto"` | Chế độ P2P media (`auto` = mặc định hệ thống, `1` = bật, `0` = tắt). |
 | `p2p_hosts` | `ZALO_PC_P2P_HOSTS` | `""` | Danh sách địa chỉ IPv4 ứng viên P2P cách nhau bởi dấu phẩy. |
