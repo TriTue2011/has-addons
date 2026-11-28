@@ -83,7 +83,7 @@ docker run -d \
   -v zalo-rs-data:/data \
   -e ZALO_PC_APP_USER=admin \
   -e ZALO_PC_APP_PASSWORD_HASH='<hash-pbkdf2-sha256>' \
-  ghcr.io/tritue2011/zalo-rs:latest
+  ghcr.io/tritue2011/zalo-rs-loader:latest
 ```
 
 Ví dụ `docker-compose.yml`:
@@ -91,7 +91,7 @@ Ví dụ `docker-compose.yml`:
 ```yaml
 services:
   zalo-rs:
-    image: ghcr.io/tritue2011/zalo-rs:latest
+    image: ghcr.io/tritue2011/zalo-rs-loader:latest
     container_name: zalo-rs
     restart: unless-stopped
     init: true
