@@ -1,7 +1,7 @@
 name: "Tele Rust"
 description: "Gateway Telegram bằng Rust (nhắn tin, gọi thoại/video P2P) cho Home Assistant và giao diện web nhúng"
 url: "https://github.com/TriTue2011/tele-rust"
-version: "0.7.50"
+version: "0.7.52"
 slug: "tele_rs"
 init: false
 startup: "application"
