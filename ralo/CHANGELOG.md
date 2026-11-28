@@ -1,3 +1,6 @@
+## 0.2.9
+- Tự động nâng cho bằng image mới nhất đã phát hành (v0.2.9).
+
 ## 0.2.8
 - Tự động nâng cho bằng image mới nhất đã phát hành (v0.2.8).
 

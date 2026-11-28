@@ -1,6 +1,6 @@
 name: "Ralo"
 description: "Ralo — gateway Zalo viết bằng Rust: nhắn tin, gọi thoại/video, API HTTP/SSE cho Home Assistant, giao diện ở thanh bên"
-version: "0.2.8"
+version: "0.2.9"
 slug: "zalo_rs"
 url: "https://github.com/TriTue2011/Ralo"
 arch:
